@@ -1,0 +1,625 @@
+import React, { useState, useEffect } from 'react';
+import { BarChart3, Clock, Users, AlertTriangle, FileText, TrendingUp, Calendar } from 'lucide-react';
+import ReportFiltersComponent from '../components/ReportFilters';
+import { 
+  ReportFilters, 
+  ResolutionResponseReport, 
+  AgentPerformanceReport, 
+  UnresolvedTicket, 
+  TicketSummary,
+  reportsApi,
+  reportUtils
+} from '../services/reportsApi';
+
+type ReportTab = 'resolution' | 'performance' | 'unresolved' | 'allTickets';
+
+const TicketReportsPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<ReportTab>('resolution');
+  const [filters, setFilters] = useState<ReportFilters>({});
+  const [loading, setLoading] = useState(false);
+  
+  // Report data state
+  const [resolutionData, setResolutionData] = useState<ResolutionResponseReport[]>([]);
+  const [performanceData, setPerformanceData] = useState<AgentPerformanceReport[]>([]);
+  const [unresolvedData, setUnresolvedData] = useState<UnresolvedTicket[]>([]);
+  const [allTicketsData, setAllTicketsData] = useState<TicketSummary[]>([]);
+
+  const tabs = [
+    {
+      id: 'resolution' as const,
+      name: 'Resolution & Response Time',
+      icon: Clock,
+      description: 'Track response and resolution times with SLA metrics'
+    },
+    {
+      id: 'performance' as const,
+      name: 'Agent Performance',
+      icon: Users,
+      description: 'Monitor agent productivity and performance metrics'
+    },
+    {
+      id: 'unresolved' as const,
+      name: 'Unresolved Tickets',
+      icon: AlertTriangle,
+      description: 'View overdue and pending tickets requiring attention'
+    },
+    {
+      id: 'allTickets' as const,
+      name: 'All Tickets',
+      icon: FileText,
+      description: 'Comprehensive ticket overview with full details'
+    }
+  ];
+
+  // Load data based on active tab and filters
+  useEffect(() => {
+    loadReportData();
+  }, [activeTab, filters]);
+
+  const loadReportData = async () => {
+    if (!filters.startDate || !filters.endDate) return;
+    
+    setLoading(true);
+    try {
+      switch (activeTab) {
+        case 'resolution':
+          const resData = await reportsApi.getResolutionResponseReport(filters);
+          setResolutionData(resData);
+          break;
+        case 'performance':
+          const perfData = await reportsApi.getAgentPerformanceReport(filters);
+          setPerformanceData(perfData);
+          break;
+        case 'unresolved':
+          const unresData = await reportsApi.getUnresolvedTicketsReport(filters);
+          setUnresolvedData(unresData);
+          break;
+        case 'allTickets':
+          const allData = await reportsApi.getAllTicketsReport(filters);
+          setAllTicketsData(allData);
+          break;
+      }
+    } catch (error) {
+      console.error('Error loading report data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
+    const reportType = activeTab === 'allTickets' ? 'all-tickets' : 
+                      activeTab === 'unresolved' ? 'unresolved-tickets' : 
+                      activeTab === 'performance' ? 'agent-performance' : 'resolution-response';
+    
+    try {
+      await reportsApi.exportReport(reportType, filters, { format });
+    } catch (error) {
+      console.error('Error exporting report:', error);
+    }
+  };
+
+  const getCurrentData = () => {
+    switch (activeTab) {
+      case 'resolution': return resolutionData;
+      case 'performance': return performanceData;
+      case 'unresolved': return unresolvedData;
+      case 'allTickets': return allTicketsData;
+      default: return [];
+    }
+  };
+
+  return (
+    <div className="text-sm leading-snug p-6 bg-gray-50 min-h-screen">
+      {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold leading-tight mt-sm mb-sm">Ticket Reports</h1>
+        <p className="text-gray-600">
+          Comprehensive reporting and analytics for ticket management and performance tracking.
+        </p>
+      </div>
+
+      {/* Report Tabs */}
+      <div className="mb-6">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm ${
+                    isActive
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
+                  }`}
+                >
+                  <Icon className={`mr-2 h-4 w-4 ${
+                    isActive ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'
+                  }`} />
+                  <span className="hidden sm:inline">{tab.name}</span>
+                  <span className="sm:hidden">{tab.name.split(' ')[0]}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+        
+        {/* Tab Description */}
+        <div className="mt-2">
+          <p className="text-sm text-gray-600">
+            {tabs.find(tab => tab.id === activeTab)?.description}
+          </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <ReportFiltersComponent
+        filters={filters}
+        onFiltersChange={setFilters}
+        onExport={handleExport}
+        onRefresh={loadReportData}
+        loading={loading}
+        showStatusFilter={activeTab !== 'unresolved'}
+      />
+
+      {/* Report Content */}
+      <div className="bg-white rounded-lg border border-gray-200">
+        {loading ? (
+          <div className="flex items-center justify-center p-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-3 text-gray-600">Loading report data...</span>
+          </div>
+        ) : (
+          <>
+            {/* Report Header with Summary Stats */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {tabs.find(tab => tab.id === activeTab)?.name}
+                </h3>
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Calendar className="h-4 w-4" />
+                  {filters.startDate && filters.endDate ? (
+                    <span>
+                      {new Date(filters.startDate).toLocaleDateString()} - {new Date(filters.endDate).toLocaleDateString()}
+                    </span>
+                  ) : (
+                    <span>Select date range to view data</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex items-center">
+                    <TrendingUp className="h-5 w-5 text-blue-600 mr-2" />
+                    <div>
+                      <p className="text-sm text-blue-600 font-medium">Total Records</p>
+                      <p className="text-lg font-bold text-blue-900">{getCurrentData().length}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {activeTab === 'resolution' && resolutionData.length > 0 && (
+                  <>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <div className="flex items-center">
+                        <Clock className="h-5 w-5 text-green-600 mr-2" />
+                        <div>
+                          <p className="text-sm text-green-600 font-medium">Avg Response Time</p>
+                          <p className="text-lg font-bold text-green-900">
+                            {Math.round(resolutionData.reduce((sum, item) => sum + (item.responseTime || 0), 0) / resolutionData.length)}h
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                      <div className="flex items-center">
+                        <BarChart3 className="h-5 w-5 text-yellow-600 mr-2" />
+                        <div>
+                          <p className="text-sm text-yellow-600 font-medium">Avg Resolution Time</p>
+                          <p className="text-lg font-bold text-yellow-900">
+                            {Math.round(resolutionData.reduce((sum, item) => sum + (item.resolutionTime || 0), 0) / resolutionData.length)}h
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <div className="flex items-center">
+                        <AlertTriangle className="h-5 w-5 text-purple-600 mr-2" />
+                        <div>
+                          <p className="text-sm text-purple-600 font-medium">Total Tickets</p>
+                          <p className="text-lg font-bold text-purple-900">
+                            {resolutionData.length}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {activeTab === 'performance' && performanceData.length > 0 && (
+                  <>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <div className="flex items-center">
+                        <Users className="h-5 w-5 text-green-600 mr-2" />
+                        <div>
+                          <p className="text-sm text-green-600 font-medium">Active Agents</p>
+                          <p className="text-lg font-bold text-green-900">{performanceData.length}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="flex items-center">
+                        <FileText className="h-5 w-5 text-blue-600 mr-2" />
+                        <div>
+                          <p className="text-sm text-blue-600 font-medium">Total Resolved</p>
+                          <p className="text-lg font-bold text-blue-900">
+                            {performanceData.reduce((sum, item) => sum + item.resolvedTickets, 0)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                      <div className="flex items-center">
+                        <TrendingUp className="h-5 w-5 text-yellow-600 mr-2" />
+                        <div>
+                          <p className="text-sm text-yellow-600 font-medium">Avg Resolution Rate</p>
+                          <p className="text-lg font-bold text-yellow-900">
+                            {Math.round((performanceData.reduce((sum, item) => sum + item.resolutionRate, 0) / performanceData.length))}%
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Report Table */}
+            <div className="p-6">
+              {getCurrentData().length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>
+                  <p className="text-gray-500">
+                    {!filters.startDate || !filters.endDate ? 
+                      'Please select a date range to view report data.' : 
+                      'No data found for the selected criteria. Try adjusting your filters.'
+                    }
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  {activeTab === 'resolution' && (
+                    <ResolutionResponseTable data={resolutionData} />
+                  )}
+                  {activeTab === 'performance' && (
+                    <AgentPerformanceTable data={performanceData} />
+                  )}
+                  {activeTab === 'unresolved' && (
+                    <UnresolvedTicketsTable data={unresolvedData} />
+                  )}
+                  {activeTab === 'allTickets' && (
+                    <AllTicketsTable data={allTicketsData} />
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Resolution & Response Time Table Component
+const ResolutionResponseTable: React.FC<{ data: ResolutionResponseReport[] }> = ({ data }) => (
+  <table className="min-w-full divide-y divide-gray-200">
+    <thead className="bg-gray-50">
+      <tr>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Ticket ID
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Title
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Category
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Priority
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Response Time
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Resolution Time
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Status
+        </th>
+      </tr>
+    </thead>
+    <tbody className="bg-white divide-y divide-gray-200">
+      {data.map((item) => (
+        <tr key={item.ticketId} className="hover:bg-gray-50">
+          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+            #{item.publicId}
+          </td>
+          <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+            {item.title}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            {item.category}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap">
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+              item.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+              item.priority === 'High' ? 'bg-orange-100 text-orange-800' :
+              item.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {item.priority}
+            </span>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            {item.responseTime ? reportUtils.formatTime(item.responseTime) : '-'}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            {item.resolutionTime ? reportUtils.formatTime(item.resolutionTime) : '-'}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap">
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+              item.status === 'Open' ? 'bg-blue-100 text-blue-800' :
+              item.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
+              item.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>
+              {item.status}
+            </span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
+
+// Agent Performance Table Component
+const AgentPerformanceTable: React.FC<{ data: AgentPerformanceReport[] }> = ({ data }) => (
+  <table className="min-w-full divide-y divide-gray-200">
+    <thead className="bg-gray-50">
+      <tr>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Agent
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Department
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Total Tickets
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Resolved
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Resolution Rate
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Avg Resolution Time
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Satisfaction
+        </th>
+      </tr>
+    </thead>
+    <tbody className="bg-white divide-y divide-gray-200">
+      {data.map((agent, index) => (
+        <tr key={index} className="hover:bg-gray-50">
+          <td className="px-6 py-4 whitespace-nowrap">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 h-8 w-8">
+                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="text-sm font-medium text-blue-800">
+                    {agent.agentName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              </div>
+              <div className="ml-3">
+                <div className="text-sm font-medium text-gray-900">{agent.agentName}</div>
+                <div className="text-sm text-gray-500">{agent.email}</div>
+              </div>
+            </div>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            {agent.department}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            {agent.totalTickets}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            {agent.resolvedTickets}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            <div className="flex items-center">
+              <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                <div 
+                  className={`h-2 rounded-full ${
+                    agent.resolutionRate >= 80 ? 'bg-green-500' :
+                    agent.resolutionRate >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                  }`}
+                  style={{ width: `${agent.resolutionRate}%` }}
+                ></div>
+              </div>
+              <span className="text-sm font-medium">{agent.resolutionRate.toFixed(1)}%</span>
+            </div>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            {reportUtils.formatTime(agent.avgResolutionTime)}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+              (agent.satisfactionRating || 0) >= 4 ? 'bg-green-100 text-green-800' :
+              (agent.satisfactionRating || 0) >= 3 ? 'bg-yellow-100 text-yellow-800' :
+              'bg-red-100 text-red-800'
+            }`}>
+              {agent.satisfactionRating ? agent.satisfactionRating.toFixed(1) : 'N/A'}
+            </span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
+
+// Unresolved Tickets Table Component
+const UnresolvedTicketsTable: React.FC<{ data: UnresolvedTicket[] }> = ({ data }) => (
+  <table className="min-w-full divide-y divide-gray-200">
+    <thead className="bg-gray-50">
+      <tr>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Ticket ID
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Title
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Priority
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Status
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Assigned To
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Age (Days)
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Last Updated
+        </th>
+      </tr>
+    </thead>
+    <tbody className="bg-white divide-y divide-gray-200">
+      {data.map((ticket) => (
+        <tr key={ticket.ticketId} className="hover:bg-gray-50">
+          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+            #{ticket.publicId}
+          </td>
+          <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+            {ticket.title}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap">
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+              ticket.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+              ticket.priority === 'High' ? 'bg-orange-100 text-orange-800' :
+              ticket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {ticket.priority}
+            </span>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap">
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+              ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
+              ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>
+              {ticket.status}
+            </span>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            {ticket.assignedAgent || 'Unassigned'}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            <span className={ticket.daysSinceCreation > 7 ? 'text-red-600 font-semibold' : 'text-gray-900'}>
+              {ticket.daysSinceCreation} days
+            </span>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            {new Date(ticket.lastUpdated).toLocaleDateString()}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
+
+// All Tickets Table Component
+const AllTicketsTable: React.FC<{ data: TicketSummary[] }> = ({ data }) => (
+  <table className="min-w-full divide-y divide-gray-200">
+    <thead className="bg-gray-50">
+      <tr>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Ticket ID
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Title
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Category
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Priority
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Status
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Created Date
+        </th>
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Assigned Agent
+        </th>
+      </tr>
+    </thead>
+    <tbody className="bg-white divide-y divide-gray-200">
+      {data.map((ticket) => (
+        <tr key={ticket.ticketId} className="hover:bg-gray-50">
+          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+            #{ticket.publicId}
+          </td>
+          <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+            {ticket.title}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            {ticket.category}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap">
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+              ticket.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+              ticket.priority === 'High' ? 'bg-orange-100 text-orange-800' :
+              ticket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {ticket.priority}
+            </span>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap">
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+              ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
+              ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
+              ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>
+              {ticket.status}
+            </span>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            {new Date(ticket.createdAt).toLocaleDateString()}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            {ticket.assignedAgent || 'Unassigned'}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
+
+export default TicketReportsPage;
+

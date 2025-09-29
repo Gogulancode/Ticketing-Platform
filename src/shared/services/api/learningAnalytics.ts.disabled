@@ -1,0 +1,361 @@
+// API Configuration
+const API_BASE_URL = 'http://localhost:5015';
+
+// Types for Learning Analytics
+export interface UserLearningDashboard {
+  userId: string;
+  overallProgress: number;
+  moduleProgress: ModuleProgressSummary[];
+  recentActivity: RecentActivityItem[];
+  mistakePatterns: MistakePatternSummary[];
+  recommendations: LearningRecommendationSummary[];
+  timeSpentAnalytics: TimeSpentSummary;
+  completionStats: CompletionStatsSummary;
+}
+
+export interface ModuleProgressSummary {
+  moduleId: number;
+  moduleName: string;
+  progress: number;
+  status: string;
+  lastAccessed: string;
+}
+
+export interface RecentActivityItem {
+  type: string;
+  title: string;
+  timestamp: string;
+  status: string;
+}
+
+export interface MistakePatternSummary {
+  category: string;
+  count: number;
+  latestOccurrence: string;
+}
+
+export interface LearningRecommendationSummary {
+  id: string;
+  title: string;
+  type: string;
+  priority: number;
+  moduleName: string;
+}
+
+export interface TimeSpentSummary {
+  totalMinutes: number;
+  averageSessionMinutes: number;
+  sessionsCount: number;
+}
+
+export interface CompletionStatsSummary {
+  totalItems: number;
+  completedItems: number;
+  completionRate: number;
+}
+
+export interface ModuleProgressDetail {
+  moduleId: number;
+  moduleName: string;
+  overallProgress: number;
+  completionStatus: string;
+  totalSections: number;
+  completedSections: number;
+  totalLessons: number;
+  completedLessons: number;
+  totalTimeSpent: number;
+  lastAccessed: string;
+  sectionProgress: SectionProgressSummary[];
+}
+
+export interface SectionProgressSummary {
+  sectionId: number;
+  sectionName: string;
+  totalLessons: number;
+  completedLessons: number;
+  progress: number;
+}
+
+export interface ContentProgressDetail {
+  contentId: number;
+  userId: string;
+  status: string;
+  completionPercentage: number;
+  timeSpent: number;
+  lastAccessed: string;
+  startedAt?: string;
+  completedAt?: string;
+  notes?: string;
+}
+
+export interface UpdateContentProgressRequest {
+  status?: string;
+  completionPercentage?: number;
+  timeSpent?: number;
+  notes?: string;
+}
+
+export interface MistakePatternAnalysis {
+  totalMistakes: number;
+  resolvedMistakes: number;
+  unresolvedMistakes: number;
+  mistakesByCategory: MistakeCategoryCount[];
+  mistakesByModule: MistakeModuleCount[];
+  recentMistakes: RecentMistake[];
+}
+
+export interface MistakeCategoryCount {
+  category: string;
+  count: number;
+  resolvedCount: number;
+}
+
+export interface MistakeModuleCount {
+  moduleId: number;
+  moduleName: string;
+  count: number;
+  recentMistakes: number;
+}
+
+export interface RecentMistake {
+  id: string;
+  questionId: number;
+  mistakeCategory: string;
+  moduleName: string;
+  sectionName?: string;
+  occurredAt: string;
+  isResolved: boolean;
+}
+
+export interface TimeAnalytics {
+  period: number;
+  totalTimeSpent: number;
+  averageSessionTime: number;
+  timeByModule: TimeByModule[];
+  dailyActivity: DailyActivityPoint[];
+}
+
+export interface TimeByModule {
+  moduleId: number;
+  moduleName: string;
+  timeSpent: number;
+}
+
+export interface DailyActivityPoint {
+  date: string;
+  timeSpent: number;
+}
+
+export interface PerformanceAnalytics {
+  period: number;
+  totalAssessments: number;
+  passedAssessments: number;
+  averageScore: number;
+  highestScore: number;
+  totalMistakes: number;
+  resolvedMistakes: number;
+  performanceByModule: ModulePerformance[];
+  scoreTrend: ScoreTrendPoint[];
+}
+
+export interface ModulePerformance {
+  moduleId: number;
+  moduleName: string;
+  attemptsCount: number;
+  averageScore: number;
+  passRate: number;
+}
+
+export interface ScoreTrendPoint {
+  date: string;
+  score: number;
+}
+
+// Learning Analytics API functions
+export const learningAnalyticsApi = {
+  // Get user dashboard
+  async getUserDashboard(): Promise<UserLearningDashboard> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/LearningAnalytics/dashboard`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch user dashboard');
+    }
+
+    return response.json();
+  },
+
+  // Get module progress
+  async getModuleProgress(moduleId: number): Promise<ModuleProgressDetail> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/LearningAnalytics/module/${moduleId}/progress`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch module progress');
+    }
+
+    return response.json();
+  },
+
+  // Get content progress
+  async getContentProgress(contentId: number): Promise<ContentProgressDetail> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/LearningAnalytics/content/${contentId}/progress`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch content progress');
+    }
+
+    return response.json();
+  },
+
+  // Update content progress
+  async updateContentProgress(contentId: number, request: UpdateContentProgressRequest): Promise<void> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/LearningAnalytics/content/${contentId}/progress`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update content progress');
+    }
+  },
+
+  // Get mistake patterns
+  async getMistakePatterns(): Promise<MistakePatternAnalysis> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/LearningAnalytics/mistakes/patterns`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch mistake patterns');
+    }
+
+    return response.json();
+  },
+
+  // Resolve mistake
+  async resolveMistake(mistakeId: string, resolutionNotes?: string): Promise<void> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/LearningAnalytics/mistakes/${mistakeId}/resolve`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ resolutionNotes }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to resolve mistake');
+    }
+  },
+
+  // Get recommendations
+  async getRecommendations(): Promise<any[]> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/LearningAnalytics/recommendations`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch recommendations');
+    }
+
+    return response.json();
+  },
+
+  // Dismiss recommendation
+  async dismissRecommendation(recommendationId: string): Promise<void> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/LearningAnalytics/recommendations/${recommendationId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to dismiss recommendation');
+    }
+  },
+
+  // Get time analytics
+  async getTimeAnalytics(days: number = 30): Promise<TimeAnalytics> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/LearningAnalytics/time-analytics?days=${days}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch time analytics');
+    }
+
+    return response.json();
+  },
+
+  // Get performance analytics
+  async getPerformanceAnalytics(months: number = 6): Promise<PerformanceAnalytics> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/LearningAnalytics/performance?months=${months}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch performance analytics');
+    }
+
+    return response.json();
+  },
+
+  // Get admin overview (Admin only)
+  async getAdminOverview(): Promise<any> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/LearningAnalytics/admin/overview`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch admin overview');
+    }
+
+    return response.json();
+  },
+};

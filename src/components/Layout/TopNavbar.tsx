@@ -1,20 +1,27 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Bell, Settings, ChevronDown, User, LogOut } from 'lucide-react';
-import { currentUser } from '../../data/mockData';
+import { Bell, ChevronDown, User, LogOut } from 'lucide-react';
+import { currentUser } from '../../shared/data/mockData';
+import { useAuth } from '../../contexts/AuthContext';
 
 const TopNavbar: React.FC = () => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const navigate = useNavigate();
+  const { logout: authLogout } = useAuth();
 
   const handleLogout = () => {
-    // Remove auth token from localStorage (adjust key if needed)
+    // Use auth context to clear state
+    authLogout();
+    
+    // Clear all authentication data
     localStorage.removeItem('token');
-    // Optionally clear other user data
-    // localStorage.removeItem('user');
-    // Redirect to login page
-    navigate('/login');
+    localStorage.removeItem('user');
+    localStorage.removeItem('currentUser');
+    
+    // Clear session storage as well
+    sessionStorage.clear();
+    
+    // Force a complete page reload to the login page
+    window.location.replace('/login');
   };
 
   const notifications = [
@@ -58,9 +65,13 @@ const TopNavbar: React.FC = () => {
           )}
         </div>
 
-        {/* Settings */}
-        <button className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-          <Settings className="h-5 w-5" />
+        {/* Logout Button */}
+        <button 
+          onClick={handleLogout}
+          className="flex items-center space-x-2 px-3 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="text-sm font-medium">Logout</span>
         </button>
 
         {/* User Profile */}
@@ -71,7 +82,7 @@ const TopNavbar: React.FC = () => {
           >
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
               <span className="text-sm font-medium text-white">
-                {currentUser.name.split(' ').map(n => n[0]).join('')}
+                {currentUser.name.split(' ').map((n: string) => n[0]).join('')}
               </span>
             </div>
             <div className="text-left">
@@ -87,13 +98,6 @@ const TopNavbar: React.FC = () => {
                 <button className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
                   <User className="h-4 w-4 mr-3" />
                   Profile Settings
-                </button>
-                <button
-                  className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4 mr-3" />
-                  Logout
                 </button>
               </div>
             </div>

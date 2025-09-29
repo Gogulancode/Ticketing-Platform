@@ -7,9 +7,10 @@ import {
   Search, 
   TrendingUp,
   FileQuestion,
-  Settings
+  Settings,
+  Home
 } from 'lucide-react';
-import { currentUser } from '../../data/mockData';
+import { currentUser } from '../../shared/data/mockData';
 
 interface SidebarItem {
   id: string;
@@ -21,47 +22,53 @@ interface SidebarItem {
 
 const sidebarItems: SidebarItem[] = [
   {
+    id: 'home',
+    label: 'Home',
+    icon: Home,
+    path: '/'
+  },
+  {
     id: 'dashboard',
     label: 'Dashboard',
     icon: LayoutDashboard,
-    path: '/'
+    path: '/training'
   },
   {
     id: 'modules',
     label: 'Modules',
     icon: BookOpen,
-    path: '/modules'
+    path: '/training/modules'
   },
   {
     id: 'upload',
     label: 'Upload Content',
     icon: Upload,
-    path: '/upload',
+    path: '/training/upload',
     adminOnly: true
   },
   {
     id: 'search',
     label: 'Search',
     icon: Search,
-    path: '/search'
+    path: '/training/search'
   },
   {
     id: 'progress',
     label: 'My Progress',
     icon: TrendingUp,
-    path: '/progress'
+    path: '/training/progress'
   },
   {
     id: 'assessments',
     label: 'Assessments',
     icon: FileQuestion,
-    path: '/assessments'
+    path: '/training/assessments'
   },
   {
     id: 'settings',
     label: 'Settings',
     icon: Settings,
-    path: '/settings',
+    path: '/training/settings',
     adminOnly: true
   }
 ];

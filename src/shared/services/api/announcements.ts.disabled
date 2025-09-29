@@ -1,0 +1,232 @@
+// API Configuration
+const API_BASE_URL = 'http://localhost:5015';
+
+// Types for Announcements
+export interface TrainingAnnouncement {
+  id: string;
+  title: string;
+  content: string;
+  announcementType: string;
+  priority: string;
+  targetAudience: string;
+  targetRoles?: string;
+  targetUserIds?: string;
+  expiryDate?: string;
+  createdByUserId: string;
+  createdByName: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateAnnouncementRequest {
+  title: string;
+  content: string;
+  announcementType: string;
+  priority: string;
+  targetAudience: string;
+  targetRoles?: string;
+  targetUserIds?: string;
+  expiryDate?: string;
+}
+
+export interface UpdateAnnouncementRequest {
+  title?: string;
+  content?: string;
+  announcementType?: string;
+  priority?: string;
+  targetAudience?: string;
+  targetRoles?: string;
+  targetUserIds?: string;
+  expiryDate?: string;
+}
+
+export interface AnnouncementStatistics {
+  totalAnnouncements: number;
+  activeAnnouncements: number;
+  expiredAnnouncements: number;
+  announcementsByType: AnnouncementTypeCount[];
+  announcementsByPriority: AnnouncementPriorityCount[];
+  readStatistics: ReadStatistics[];
+}
+
+export interface AnnouncementTypeCount {
+  type: string;
+  count: number;
+}
+
+export interface AnnouncementPriorityCount {
+  priority: string;
+  count: number;
+}
+
+export interface ReadStatistics {
+  announcementId: string;
+  announcementTitle: string;
+  totalTargetUsers: number;
+  readCount: number;
+  readPercentage: number;
+}
+
+// Announcements API functions
+export const announcementsApi = {
+  // Get all announcements for current user
+  async getUserAnnouncements(): Promise<TrainingAnnouncement[]> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/Announcements`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch announcements');
+    }
+
+    return response.json();
+  },
+
+  // Get unread announcements count
+  async getUnreadCount(): Promise<{ count: number }> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/Announcements/unread-count`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch unread count');
+    }
+
+    return response.json();
+  },
+
+  // Mark announcement as read
+  async markAsRead(announcementId: string, acknowledge: boolean = false): Promise<void> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/Announcements/${announcementId}/read`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ acknowledge }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to mark announcement as read');
+    }
+  },
+
+  // Get all announcements (Admin only)
+  async getAllAnnouncements(): Promise<TrainingAnnouncement[]> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/Announcements/admin/all`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch all announcements');
+    }
+
+    return response.json();
+  },
+
+  // Create announcement (Admin only)
+  async createAnnouncement(request: CreateAnnouncementRequest): Promise<TrainingAnnouncement> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/Announcements`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create announcement');
+    }
+
+    return response.json();
+  },
+
+  // Update announcement (Admin only)
+  async updateAnnouncement(announcementId: string, request: UpdateAnnouncementRequest): Promise<void> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/Announcements/${announcementId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update announcement');
+    }
+  },
+
+  // Delete announcement (Admin only)
+  async deleteAnnouncement(announcementId: string): Promise<void> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/Announcements/${announcementId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete announcement');
+    }
+  },
+
+  // Get announcement statistics (Admin only)
+  async getStatistics(): Promise<AnnouncementStatistics> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/api/Announcements/admin/statistics`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch announcement statistics');
+    }
+
+    return response.json();
+  },
+};
+
+// Announcement types and priorities for forms
+export const ANNOUNCEMENT_TYPES = [
+  'General',
+  'Training Update',
+  'System Maintenance',
+  'Policy Change',
+  'Assessment',
+  'Achievement',
+  'Reminder'
+];
+
+export const ANNOUNCEMENT_PRIORITIES = [
+  'Low',
+  'Normal',
+  'High',
+  'Critical'
+];
+
+export const TARGET_AUDIENCES = [
+  'All Users',
+  'Specific Roles',
+  'Specific Users'
+];

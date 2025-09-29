@@ -1,0 +1,300 @@
+using Microsoft.AspNetCore.Mvc;
+using ERPTraining.Core.Services;
+using ERPTraining.Core.Entities.Tickets;
+
+namespace ERPTraining.API.Controllers.Ticketing;
+
+[ApiController]
+[Route("api/tickets/settings")]
+public class TicketSettingsController : ControllerBase
+{
+    private readonly ITicketSettingsService _ticketSettingsService;
+
+    public TicketSettingsController(ITicketSettingsService ticketSettingsService)
+    {
+        _ticketSettingsService = ticketSettingsService;
+    }
+
+    #region Categories
+
+    [HttpGet("categories")]
+    public async Task<ActionResult<IEnumerable<object>>> GetCategories()
+    {
+        try
+        {
+            // Temporary hardcoded response for testing
+            var testCategories = new[]
+            {
+                new { Id = 1, Name = "Software", Description = "Software issues", DisplayOrder = 1, IsActive = true },
+                new { Id = 2, Name = "Hardware", Description = "Hardware issues", DisplayOrder = 2, IsActive = true }
+            };
+            
+            return Ok(testCategories);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
+    }
+
+    [HttpGet("categories/{id}")]
+    public async Task<ActionResult<TicketCategory>> GetCategory(int id)
+    {
+        var category = await _ticketSettingsService.GetCategoryByIdAsync(id);
+        if (category == null)
+            return NotFound();
+
+        return Ok(category);
+    }
+
+    [HttpPost("categories")]
+    public async Task<ActionResult<TicketCategory>> CreateCategory([FromBody] TicketCategory category)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var created = await _ticketSettingsService.CreateCategoryAsync(category);
+        return CreatedAtAction(nameof(GetCategory), new { id = created.Id }, created);
+    }
+
+    [HttpPut("categories/{id}")]
+    public async Task<ActionResult<TicketCategory>> UpdateCategory(int id, [FromBody] TicketCategory category)
+    {
+        if (id != category.Id)
+            return BadRequest("ID mismatch");
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var updated = await _ticketSettingsService.UpdateCategoryAsync(category);
+        return Ok(updated);
+    }
+
+    [HttpDelete("categories/{id}")]
+    public async Task<IActionResult> DeleteCategory(int id)
+    {
+        var result = await _ticketSettingsService.DeleteCategoryAsync(id);
+        if (!result)
+            return NotFound();
+
+        return NoContent();
+    }
+
+    #endregion
+
+    #region Sub-Categories
+
+    [HttpGet("subcategories")]
+    public async Task<ActionResult<IEnumerable<TicketSubCategory>>> GetSubCategories([FromQuery] int? categoryId = null)
+    {
+        var subCategories = await _ticketSettingsService.GetSubCategoriesAsync(categoryId);
+        return Ok(subCategories);
+    }
+
+    [HttpGet("subcategories/{id}")]
+    public async Task<ActionResult<TicketSubCategory>> GetSubCategory(int id)
+    {
+        var subCategory = await _ticketSettingsService.GetSubCategoryByIdAsync(id);
+        if (subCategory == null)
+            return NotFound();
+
+        return Ok(subCategory);
+    }
+
+    [HttpPost("subcategories")]
+    public async Task<ActionResult<TicketSubCategory>> CreateSubCategory([FromBody] TicketSubCategory subCategory)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var created = await _ticketSettingsService.CreateSubCategoryAsync(subCategory);
+        return CreatedAtAction(nameof(GetSubCategory), new { id = created.Id }, created);
+    }
+
+    [HttpPut("subcategories/{id}")]
+    public async Task<ActionResult<TicketSubCategory>> UpdateSubCategory(int id, [FromBody] TicketSubCategory subCategory)
+    {
+        if (id != subCategory.Id)
+            return BadRequest("ID mismatch");
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var updated = await _ticketSettingsService.UpdateSubCategoryAsync(subCategory);
+        return Ok(updated);
+    }
+
+    [HttpDelete("subcategories/{id}")]
+    public async Task<IActionResult> DeleteSubCategory(int id)
+    {
+        var result = await _ticketSettingsService.DeleteSubCategoryAsync(id);
+        if (!result)
+            return NotFound();
+
+        return NoContent();
+    }
+
+    #endregion
+
+    #region Statuses
+
+    [HttpGet("statuses")]
+    public async Task<ActionResult<IEnumerable<TicketStatus>>> GetStatuses()
+    {
+        var statuses = await _ticketSettingsService.GetStatusesAsync();
+        return Ok(statuses);
+    }
+
+    [HttpGet("statuses/{id}")]
+    public async Task<ActionResult<TicketStatus>> GetStatus(int id)
+    {
+        var status = await _ticketSettingsService.GetStatusByIdAsync(id);
+        if (status == null)
+            return NotFound();
+
+        return Ok(status);
+    }
+
+    [HttpPost("statuses")]
+    public async Task<ActionResult<TicketStatus>> CreateStatus([FromBody] TicketStatus status)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var created = await _ticketSettingsService.CreateStatusAsync(status);
+        return CreatedAtAction(nameof(GetStatus), new { id = created.Id }, created);
+    }
+
+    [HttpPut("statuses/{id}")]
+    public async Task<ActionResult<TicketStatus>> UpdateStatus(int id, [FromBody] TicketStatus status)
+    {
+        if (id != status.Id)
+            return BadRequest("ID mismatch");
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var updated = await _ticketSettingsService.UpdateStatusAsync(status);
+        return Ok(updated);
+    }
+
+    [HttpDelete("statuses/{id}")]
+    public async Task<IActionResult> DeleteStatus(int id)
+    {
+        var result = await _ticketSettingsService.DeleteStatusAsync(id);
+        if (!result)
+            return NotFound();
+
+        return NoContent();
+    }
+
+    #endregion
+
+    #region Priorities
+
+    [HttpGet("priorities")]
+    public async Task<ActionResult<IEnumerable<TicketPriority>>> GetPriorities()
+    {
+        var priorities = await _ticketSettingsService.GetPrioritiesAsync();
+        return Ok(priorities);
+    }
+
+    [HttpGet("priorities/{id}")]
+    public async Task<ActionResult<TicketPriority>> GetPriority(int id)
+    {
+        var priority = await _ticketSettingsService.GetPriorityByIdAsync(id);
+        if (priority == null)
+            return NotFound();
+
+        return Ok(priority);
+    }
+
+    [HttpPost("priorities")]
+    public async Task<ActionResult<TicketPriority>> CreatePriority([FromBody] TicketPriority priority)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var created = await _ticketSettingsService.CreatePriorityAsync(priority);
+        return CreatedAtAction(nameof(GetPriority), new { id = created.Id }, created);
+    }
+
+    [HttpPut("priorities/{id}")]
+    public async Task<ActionResult<TicketPriority>> UpdatePriority(int id, [FromBody] TicketPriority priority)
+    {
+        if (id != priority.Id)
+            return BadRequest("ID mismatch");
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var updated = await _ticketSettingsService.UpdatePriorityAsync(priority);
+        return Ok(updated);
+    }
+
+    [HttpDelete("priorities/{id}")]
+    public async Task<IActionResult> DeletePriority(int id)
+    {
+        var result = await _ticketSettingsService.DeletePriorityAsync(id);
+        if (!result)
+            return NotFound();
+
+        return NoContent();
+    }
+
+    #endregion
+
+    #region Departments
+
+    [HttpGet("departments")]
+    public async Task<ActionResult<IEnumerable<TicketDepartment>>> GetDepartments()
+    {
+        var departments = await _ticketSettingsService.GetDepartmentsAsync();
+        return Ok(departments);
+    }
+
+    [HttpGet("departments/{id}")]
+    public async Task<ActionResult<TicketDepartment>> GetDepartment(int id)
+    {
+        var department = await _ticketSettingsService.GetDepartmentByIdAsync(id);
+        if (department == null)
+            return NotFound();
+
+        return Ok(department);
+    }
+
+    [HttpPost("departments")]
+    public async Task<ActionResult<TicketDepartment>> CreateDepartment([FromBody] TicketDepartment department)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var created = await _ticketSettingsService.CreateDepartmentAsync(department);
+        return CreatedAtAction(nameof(GetDepartment), new { id = created.Id }, created);
+    }
+
+    [HttpPut("departments/{id}")]
+    public async Task<ActionResult<TicketDepartment>> UpdateDepartment(int id, [FromBody] TicketDepartment department)
+    {
+        if (id != department.Id)
+            return BadRequest("ID mismatch");
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var updated = await _ticketSettingsService.UpdateDepartmentAsync(department);
+        return Ok(updated);
+    }
+
+    [HttpDelete("departments/{id}")]
+    public async Task<IActionResult> DeleteDepartment(int id)
+    {
+        var result = await _ticketSettingsService.DeleteDepartmentAsync(id);
+        if (!result)
+            return NotFound();
+
+        return NoContent();
+    }
+
+    #endregion
+}
