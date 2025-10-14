@@ -11,7 +11,7 @@ export { default as PermissionManager } from './components/PermissionManager';
 
 // Common Views (Pages)
 export { default as Dashboard } from './components/Dashboard';
-export { default as Login } from './components/Login';
+export { default as LoginOld } from './components/Login'; // OLD DEMO LOGIN - DO NOT USE
 export { default as Profile } from './components/Profile';
 export { default as LandingPage } from './views/LandingPage';
 

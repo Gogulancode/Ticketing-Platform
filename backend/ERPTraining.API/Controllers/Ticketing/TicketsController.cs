@@ -11,7 +11,7 @@ namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
 [Route("api/tickets")]
-// [Authorize] // TODO: Re-enable in production; disabled for dev testing
+[Authorize] // Authentication required for all endpoints
 public class TicketsController : ControllerBase
 {
     private readonly ITicketService _ticketService;
@@ -27,15 +27,39 @@ public class TicketsController : ControllerBase
         _connectionString = configuration.GetConnectionString("DefaultConnection") ?? "";
     }
 
+    // Helper method to ensure DateTime is properly stored as UTC
+    private DateTime GetUtcNow()
+    {
+        return DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+    }
+
+    // Helper method to ensure DateTime is properly marked as UTC for JSON serialization
+    private DateTime EnsureUtc(DateTime dateTime)
+    {
+        if (dateTime.Kind == DateTimeKind.Utc)
+            return dateTime;
+        
+        // If it's Local or Unspecified, assume it's already UTC and just mark it as such
+        return DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+    }
+
+    private DateTime? EnsureUtc(DateTime? dateTime)
+    {
+        return dateTime.HasValue ? EnsureUtc(dateTime.Value) : (DateTime?)null;
+    }
+
     private string GetCurrentUserId()
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? 
                     User.FindFirst("sub")?.Value ?? 
                     User.FindFirst("userid")?.Value;
         
-        // For development: return a valid user ID if no authenticated user
-        // TODO: Replace with proper authentication in production
-        return userId ?? "0016f2fc-c4da-42d7-a635-236b4b95c6f1";
+        if (string.IsNullOrEmpty(userId))
+        {
+            throw new UnauthorizedAccessException("User is not authenticated");
+        }
+        
+        return userId;
     }
 
     private async Task<bool> IsCurrentUserAgentOrAdmin()
@@ -108,7 +132,6 @@ public class TicketsController : ControllerBase
 
     // GET: api/tickets
     [HttpGet]
-    [AllowAnonymous] // TODO: Remove in production; for dev dashboard
     public async Task<ActionResult<IEnumerable<object>>> GetTickets(
         [FromQuery] TicketStatus? status = null,
         [FromQuery] TicketPriority? priority = null,
@@ -118,28 +141,45 @@ public class TicketsController : ControllerBase
         {
             var tickets = await _ticketService.GetFilteredTicketsAsync(status, priority, category);
             
-            // Return clean DTOs to avoid circular references
-            var response = tickets.Select(ticket => new
+            // Create response with basic user information
+            var response = new List<object>();
+            
+            foreach (var ticket in tickets)
             {
-                id = ticket.Id,
-                title = ticket.Title,
-                description = ticket.Description,
-                category = (int)ticket.Category,
-                priority = (int)ticket.Priority,
-                status = (int)ticket.Status,
-                source = (int)ticket.Source,
-                createdByUserId = ticket.CreatedByUserId,
-                assignedToUserId = ticket.AssignedToUserId,
-                createdAt = ticket.CreatedAt,
-                updatedAt = ticket.UpdatedAt,
-                firstResponseAt = ticket.FirstResponseAt,
-                resolvedAt = ticket.ResolvedAt,
-                isOverdue = false, // Calculate if needed
-                // For list view, we'll skip user details and counts for performance
-                // Use the single ticket endpoint to get full details
-                commentCount = 0, // Placeholder
-                attachmentCount = 0 // Placeholder
-            });
+                // Get basic user info for created by user
+                User? createdByUser = null;
+                if (!string.IsNullOrEmpty(ticket.CreatedByUserId))
+                {
+                    createdByUser = await _ticketService.GetUserAsync(ticket.CreatedByUserId);
+                }
+                
+                response.Add(new
+                {
+                    id = ticket.Id,
+                    title = ticket.Title,
+                    description = ticket.Description,
+                    category = (int)ticket.Category,
+                    priority = (int)ticket.Priority,
+                    status = (int)ticket.Status,
+                    source = (int)ticket.Source,
+                    createdByUserId = ticket.CreatedByUserId,
+                    assignedToUserId = ticket.AssignedToUserId,
+                    createdAt = EnsureUtc(ticket.CreatedAt),
+                    updatedAt = EnsureUtc(ticket.UpdatedAt),
+                    firstResponseAt = EnsureUtc(ticket.FirstResponseAt),
+                    resolvedAt = EnsureUtc(ticket.ResolvedAt),
+                    isOverdue = false, // Calculate if needed
+                    // Include basic creator info for display
+                    createdByUser = createdByUser != null ? new {
+                        id = createdByUser.Id,
+                        firstName = createdByUser.FirstName ?? "",
+                        lastName = createdByUser.LastName ?? "",
+                        email = createdByUser.Email ?? ""
+                    } : null,
+                    commentCount = 0, // Placeholder
+                    attachmentCount = 0 // Placeholder
+                });
+            }
             
             return Ok(response);
         }
@@ -151,7 +191,6 @@ public class TicketsController : ControllerBase
 
     // GET: api/tickets/my
     [HttpGet("my")]
-    [AllowAnonymous] // TODO: Remove in production; for dev testing
     public async Task<ActionResult<IEnumerable<object>>> GetMyTickets()
     {
         try
@@ -159,27 +198,45 @@ public class TicketsController : ControllerBase
             var userId = GetCurrentUserId();
             var tickets = await _ticketService.GetTicketsByUserAsync(userId);
             
-            // Return clean DTOs to avoid circular references
-            var response = tickets.Select(ticket => new
+            // Create response with basic user information
+            var response = new List<object>();
+            
+            foreach (var ticket in tickets)
             {
-                id = ticket.Id,
-                title = ticket.Title,
-                description = ticket.Description,
-                category = (int)ticket.Category,
-                priority = (int)ticket.Priority,
-                status = (int)ticket.Status,
-                source = (int)ticket.Source,
-                createdByUserId = ticket.CreatedByUserId,
-                assignedToUserId = ticket.AssignedToUserId,
-                createdAt = ticket.CreatedAt,
-                updatedAt = ticket.UpdatedAt,
-                firstResponseAt = ticket.FirstResponseAt,
-                resolvedAt = ticket.ResolvedAt,
-                isOverdue = false, // Calculate if needed
-                // For list view, we'll skip user details and counts for performance
-                commentCount = 0, // Placeholder
-                attachmentCount = 0 // Placeholder
-            });
+                // Get basic user info for created by user
+                User? createdByUser = null;
+                if (!string.IsNullOrEmpty(ticket.CreatedByUserId))
+                {
+                    createdByUser = await _ticketService.GetUserAsync(ticket.CreatedByUserId);
+                }
+                
+                response.Add(new
+                {
+                    id = ticket.Id,
+                    title = ticket.Title,
+                    description = ticket.Description,
+                    category = (int)ticket.Category,
+                    priority = (int)ticket.Priority,
+                    status = (int)ticket.Status,
+                    source = (int)ticket.Source,
+                    createdByUserId = ticket.CreatedByUserId,
+                    assignedToUserId = ticket.AssignedToUserId,
+                    createdAt = EnsureUtc(ticket.CreatedAt),
+                    updatedAt = EnsureUtc(ticket.UpdatedAt),
+                    firstResponseAt = EnsureUtc(ticket.FirstResponseAt),
+                    resolvedAt = EnsureUtc(ticket.ResolvedAt),
+                    isOverdue = false, // Calculate if needed
+                    // Include basic creator info for display
+                    createdByUser = createdByUser != null ? new {
+                        id = createdByUser.Id,
+                        firstName = createdByUser.FirstName ?? "",
+                        lastName = createdByUser.LastName ?? "",
+                        email = createdByUser.Email ?? ""
+                    } : null,
+                    commentCount = 0, // Placeholder
+                    attachmentCount = 0 // Placeholder
+                });
+            }
             
             return Ok(response);
         }
@@ -191,7 +248,6 @@ public class TicketsController : ControllerBase
 
     // GET: api/tickets/{id}
     [HttpGet("{id:guid}")]
-    [AllowAnonymous] // TODO: Remove in production; for dev testing
     public async Task<ActionResult<object>> GetTicket(Guid id)
     {
         try
@@ -230,10 +286,10 @@ public class TicketsController : ControllerBase
                 source = (int)ticket.Source,
                 createdByUserId = ticket.CreatedByUserId,
                 assignedToUserId = ticket.AssignedToUserId,
-                createdAt = ticket.CreatedAt,
-                updatedAt = ticket.UpdatedAt,
-                firstResponseAt = ticket.FirstResponseAt,
-                resolvedAt = ticket.ResolvedAt,
+                createdAt = EnsureUtc(ticket.CreatedAt),
+                updatedAt = EnsureUtc(ticket.UpdatedAt),
+                firstResponseAt = EnsureUtc(ticket.FirstResponseAt),
+                resolvedAt = EnsureUtc(ticket.ResolvedAt),
                 isOverdue = false, // Calculate if needed
                 
                 // Include extended fields for relational database support
@@ -261,7 +317,7 @@ public class TicketsController : ControllerBase
                     fileName = a.FileName ?? "",
                     contentType = a.ContentType ?? "",
                     sizeBytes = a.SizeBytes,
-                    createdAt = a.CreatedAt
+                    createdAt = EnsureUtc(a.CreatedAt)
                 }),
                 // Include comments safely
                 comments = comments.Select(c => new {
@@ -269,7 +325,7 @@ public class TicketsController : ControllerBase
                     body = c.Body ?? "",
                     authorUserId = c.AuthorUserId ?? "",
                     isInternal = c.IsInternal,
-                    createdAt = c.CreatedAt
+                    createdAt = EnsureUtc(c.CreatedAt)
                 })
             };
 
@@ -283,7 +339,6 @@ public class TicketsController : ControllerBase
 
     // POST: api/tickets
     [HttpPost]
-    [AllowAnonymous] // TODO: Remove in production; for dev testing
     public async Task<ActionResult<Ticket>> CreateTicket([FromBody] CreateTicketRequest request)
     {
         try
@@ -292,7 +347,7 @@ public class TicketsController : ControllerBase
                 return BadRequest(ModelState);
 
             var currentUserId = GetCurrentUserId();
-            Console.WriteLine($"DEBUG: Current User ID = '{currentUserId}'");
+            _logger.LogDebug("Creating ticket for user: {UserId}", currentUserId);
 
             // Determine subcategory automatically based on keywords if not provided
             var subcategoryId = request.SubcategoryId;
@@ -302,6 +357,9 @@ public class TicketsController : ControllerBase
                 _logger.LogInformation("Auto-determined subcategory: {SubcategoryId} for title: {Title}", subcategoryId, request.Title);
             }
 
+            _logger.LogInformation("📝 Creating ticket with: StatusId={StatusId}, CustomFieldsCount={Count}", 
+                request.StatusId, request.CustomFieldValues?.Count ?? 0);
+            
             var ticket = new Ticket
             {
                 Title = request.Title,
@@ -314,10 +372,86 @@ public class TicketsController : ControllerBase
                 CategoryId = request.CategoryId,
                 SubcategoryId = subcategoryId, // Use the determined subcategory
                 DepartmentId = request.DepartmentId,
-                Status = (TicketStatus)(request.StatusId ?? 0) // Default to 0 (New) if not provided
+                Status = request.StatusId ?? 1 // Default to 1 (New status ID in database)
             };
+            
+            _logger.LogInformation("✅ Ticket object created with Status={Status} (from StatusId={StatusId})", 
+                ticket.Status, request.StatusId);
 
             var createdTicket = await _ticketService.CreateTicketAsync(ticket);
+            
+            _logger.LogInformation("💾 Ticket saved to database with ID={TicketId}, Status={Status}", 
+                createdTicket.Id, createdTicket.Status);
+
+            // Handle custom field values if provided
+            _logger.LogInformation("💾 Checking custom field values: HasValues={HasValues}, Count={Count}", 
+                request.CustomFieldValues?.Any() == true, request.CustomFieldValues?.Count ?? 0);
+            
+            if (request.CustomFieldValues?.Any() == true)
+            {
+                try
+                {
+                    _logger.LogInformation("💾 Saving {Count} custom field values for ticket {TicketId}", 
+                        request.CustomFieldValues.Count, createdTicket.Id);
+                    
+                    using var connection = new SqlConnection(_connectionString);
+                    await connection.OpenAsync();
+                    
+                    foreach (var fieldValue in request.CustomFieldValues)
+                    {
+                        _logger.LogInformation("🔍 Processing custom field: Key={Key}, Value={Value}, ValueType={ValueType}", 
+                            fieldValue.Key, fieldValue.Value, fieldValue.Value?.GetType().Name);
+                        
+                        // Skip empty values
+                        if (fieldValue.Value == null || string.IsNullOrWhiteSpace(fieldValue.Value.ToString()))
+                        {
+                            _logger.LogInformation("⏭️ Skipping empty custom field: {Key}", fieldValue.Key);
+                            continue;
+                        }
+                        
+                        // Parse the field ID from the key - try direct parse first, then remove prefix if exists
+                        int customFieldId;
+                        if (int.TryParse(fieldValue.Key, out customFieldId))
+                        {
+                            // Key is already a number (like "2", "3", etc.)
+                        }
+                        else if (fieldValue.Key.StartsWith("customField_") && 
+                                 int.TryParse(fieldValue.Key.Replace("customField_", ""), out customFieldId))
+                        {
+                            // Key has prefix like "customField_2"
+                        }
+                        else
+                        {
+                            _logger.LogWarning("⚠️ Failed to parse custom field ID from key: {Key}", fieldValue.Key);
+                            continue;
+                        }
+                        
+                        var sql = @"
+                            INSERT INTO TicketCustomFieldValues (TicketId, CustomFieldId, Value, CreatedAt, UpdatedAt)
+                            VALUES (@TicketId, @CustomFieldId, @Value, @CreatedAt, @UpdatedAt)";
+                        
+                        using var command = new SqlCommand(sql, connection);
+                        command.Parameters.AddWithValue("@TicketId", createdTicket.Id);
+                        command.Parameters.AddWithValue("@CustomFieldId", customFieldId);
+                        command.Parameters.AddWithValue("@Value", fieldValue.Value.ToString());
+                        command.Parameters.AddWithValue("@CreatedAt", GetUtcNow());
+                        command.Parameters.AddWithValue("@UpdatedAt", GetUtcNow());
+                        
+                        await command.ExecuteNonQueryAsync();
+                        _logger.LogInformation("✅ Saved custom field value: TicketId={TicketId}, FieldId={FieldId}, Value={Value}", 
+                            createdTicket.Id, customFieldId, fieldValue.Value);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ Failed to save custom field values for ticket {TicketId}", createdTicket.Id);
+                    // Don't fail the ticket creation if custom field values fail to save
+                }
+            }
+            else
+            {
+                _logger.LogInformation("ℹ️ No custom field values provided for ticket {TicketId}", createdTicket.Id);
+            }
 
             // Handle file attachments if provided
             if (request.Attachments?.Any() == true)
@@ -349,7 +483,7 @@ public class TicketsController : ControllerBase
                             SizeBytes = fileBytes.Length,
                             StoragePath = $"temp/{attachmentReq.FileName}",
                             UploadedByUserId = GetCurrentUserId(),
-                            CreatedAt = DateTime.UtcNow
+                            CreatedAt = GetUtcNow()
                         };
                         
                         // Add attachment to database
@@ -358,7 +492,7 @@ public class TicketsController : ControllerBase
                     catch (Exception ex)
                     {
                         // Log attachment error but don't fail ticket creation
-                        Console.WriteLine($"Failed to process attachment {attachmentReq.FileName}: {ex.Message}");
+                        _logger.LogError(ex, "Failed to process attachment {FileName}", attachmentReq.FileName);
                     }
                 }
             }
@@ -374,8 +508,8 @@ public class TicketsController : ControllerBase
                 status = createdTicket.Status,
                 source = createdTicket.Source,
                 createdByUserId = createdTicket.CreatedByUserId,
-                createdAt = createdTicket.CreatedAt,
-                updatedAt = createdTicket.UpdatedAt,
+                createdAt = EnsureUtc(createdTicket.CreatedAt),
+                updatedAt = EnsureUtc(createdTicket.UpdatedAt),
                 attachmentCount = request.Attachments?.Count ?? 0
             };
 
@@ -513,7 +647,6 @@ public class TicketsController : ControllerBase
 
     // POST: api/tickets/{id}/comments
     [HttpPost("{id:guid}/comments")]
-    [AllowAnonymous] // TODO: Remove in production; for dev testing
     public async Task<ActionResult<object>> AddComment(Guid id, [FromBody] AddCommentRequest request)
     {
         try
@@ -538,7 +671,7 @@ public class TicketsController : ControllerBase
                 body = comment.Body,
                 authorUserId = comment.AuthorUserId,
                 isInternal = comment.IsInternal,
-                createdAt = comment.CreatedAt,
+                createdAt = EnsureUtc(comment.CreatedAt),
                 message = "Comment added successfully"
             });
         }
@@ -555,7 +688,6 @@ public class TicketsController : ControllerBase
 
     // GET: api/tickets/{id}/comments
     [HttpGet("{id:guid}/comments")]
-    [AllowAnonymous] // TODO: Remove in production; for dev testing
     public async Task<ActionResult<IEnumerable<object>>> GetComments(Guid id)
     {
         try
@@ -576,7 +708,7 @@ public class TicketsController : ControllerBase
                 body = c.Body ?? "",
                 authorUserId = c.AuthorUserId ?? "",
                 isInternal = c.IsInternal,
-                createdAt = c.CreatedAt
+                createdAt = EnsureUtc(c.CreatedAt)
                 // Note: Temporarily removing authorName to avoid circular references
                 // authorName = "User" // Will be fixed once circular references are resolved
             });
@@ -591,7 +723,6 @@ public class TicketsController : ControllerBase
 
     // GET: api/tickets/statistics
     [HttpGet("statistics")]
-    [AllowAnonymous] // TODO: Remove in production; for dev dashboard
     public async Task<ActionResult> GetStatistics()
     {
         try
@@ -708,6 +839,9 @@ public class CreateTicketRequest
     public int? SubcategoryId { get; set; }
     public int? DepartmentId { get; set; }
     public int? StatusId { get; set; }
+    
+    // Custom field values
+    public Dictionary<string, object>? CustomFieldValues { get; set; }
     
     // File attachments
     public List<AttachmentRequest>? Attachments { get; set; }

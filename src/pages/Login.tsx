@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield } from 'lucide-react';
-import { login } from '../lib/api';
+import { login as apiLogin } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -9,6 +10,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
 
   useEffect(() => {
     // Redirect to dashboard if already logged in
@@ -17,17 +19,35 @@ const Login: React.FC = () => {
     }
   }, [navigate]);
 
+  // Clear form when component mounts to prevent auto-fill issues
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const data = await login({ userName: email, password });
+      // Step 1: Call API login to get JWT token
+      console.log('🔐 Logging in...');
+      const data = await apiLogin({ userName: email, password });
+      
+      // Step 2: Store token and user data
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      console.log('✅ Token stored, expires:', data.expires);
+      
+      // Step 3: Fetch and store user permissions in AuthContext
+      await authLogin();
+      console.log('✅ User permissions loaded');
+      
+      // Step 4: Navigate to dashboard
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Login failed');
+      console.error('❌ Login failed:', err);
     } finally {
       setLoading(false);
     }
@@ -45,7 +65,7 @@ const Login: React.FC = () => {
             <p className="text-gray-600">Sign in to access the platform</p>
           </div>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
             <input
@@ -53,7 +73,10 @@ const Login: React.FC = () => {
               value={email}
               onChange={e => setEmail(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter your email"
+              placeholder="Enter your email (e.g., Gogulan@moojic.com)"
+              autoComplete="off"
+              name="email"
+              id="login-email"
               required
             />
           </div>
@@ -65,6 +88,9 @@ const Login: React.FC = () => {
               onChange={e => setPassword(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter your password"
+              autoComplete="new-password"
+              name="password"
+              id="login-password"
               required
             />
           </div>

@@ -6,7 +6,10 @@ import { AuthProvider } from './contexts/AuthContext';
 
 // Shared components
 import { Layout } from '@/shared';
-import { Dashboard, Login, Profile, LandingPage } from '@/shared';
+import { Dashboard, Profile, LandingPage } from '@/shared';
+
+// Auth pages - Use the correct JWT-based login
+import Login from './pages/Login';
 
 // Training module components
 import { 
