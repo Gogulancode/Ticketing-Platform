@@ -39,7 +39,7 @@ echo API URL: %STAGING_URL%
 echo.
 
 REM Set environment variable for frontend build
-set VITE_API_URL=%STAGING_URL%
+set VITE_API_BASE_URL=%STAGING_URL%/api
 
 echo Running npm build...
 call npm run build
