@@ -14,7 +14,7 @@ echo ╚════════════════════════
 echo.
 
 REM Configuration
-set STAGING_URL=http://support.solutionsnextwave.com/support-staging
+set STAGING_URL=https://support.solutionsnextwave.com/support-staging
 set BUILD_DIR=staging-build-hostbuddy
 set BACKEND_DIR=%BUILD_DIR%\backend
 set FRONTEND_DIR=%BUILD_DIR%\frontend
