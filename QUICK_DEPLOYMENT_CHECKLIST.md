@@ -1,8 +1,8 @@
-# QUICK DEPLOYMENT CHECKLIST - Staging 404 Fix
+# QUICK DEPLOYMENT CHECKLIST - Staging Deployment
 
 **Date:** October 15, 2025  
-**Build:** staging-build-hostbuddy/ (Latest with HTTPS)  
-**Commits:** 0bab59a, 67ce77e, 6eb9f49
+**Build:** staging-build-hostbuddy/ (Latest with HTTPS + CORS Fix)  
+**Commits:** 0bab59a, 67ce77e, 6eb9f49, 10c7989
 
 ---
 
@@ -21,7 +21,7 @@
 - URL: https://cp.hostbuddy.com
 - Navigate to staging site file manager
 
-### Upload Frontend Files (ONLY)
+### Step 1: Upload Frontend Files
 Navigate to your staging frontend directory and upload:
 
 ```
@@ -35,20 +35,50 @@ FILES TO UPLOAD:
 ├── _redirects ✓
 └── assets/
     ├── index-BS4MiUpG.css ✓
-    └── index-DHskee8F.js ✓ (NEW - HTTPS)
+    └── index-DHskee8F.js ✓ (HTTPS)
 ```
 
-### Delete Old Files
+**Delete Old Files:**
 ```
-DELETE THESE:
 - assets/index-ByWE9Cb0.js (old HTTP build)
 - assets/index-Cbq4w0ft.js (old wrong URL build)
 ```
 
-**Why only frontend?**
-- Backend hasn't changed
-- Only frontend had the API URL issue
-- Saves upload time
+### Step 2: Upload Backend Files (CORS FIX)
+**IMPORTANT:** Backend needs to be updated for CORS fix!
+
+Navigate to your staging backend directory and upload:
+
+```
+FROM: staging-build-hostbuddy/backend/
+TO: [Your HostBuddy staging backend folder]
+
+FILES TO UPLOAD:
+├── ERPTraining.API.dll ⭐ (CORS FIX)
+├── ERPTraining.Core.dll
+├── ERPTraining.Infrastructure.dll
+├── appsettings.json
+├── web.config
+└── (All other DLL files - 250+ files)
+```
+
+**Why backend update?**
+- Fixed CORS policy to allow staging URL
+- Without this, you'll get HTTP 405 errors
+- Backend now accepts requests from staging frontend
+
+### Step 3: Restart IIS Application Pool
+**CRITICAL:** After uploading backend files:
+
+1. In HostBuddy control panel, go to IIS settings
+2. Find your staging application pool
+3. Click "Restart" or "Recycle"
+4. Wait 10-15 seconds for app to reload
+
+**Why restart?**
+- IIS caches DLL files in memory
+- Restart forces IIS to load new DLL with CORS fix
+- Without restart, old DLL (without CORS fix) still runs
 
 ---
 
@@ -107,13 +137,32 @@ URL: https://support.solutionsnextwave.com/support-staging
 
 ## 🐛 Troubleshooting
 
+### If getting HTTP 405 errors:
+
+**Error Message:**
+```
+POST https://support.solutionsnextwave.com/support-staging/api/auth/login
+405 - HTTP verb used to access this page is not allowed
+```
+
+**This means:**
+- Backend CORS policy blocking requests
+- IIS not restarted after backend upload
+- Old DLL still loaded in memory
+
+**Fix:**
+1. ✅ Verify backend files uploaded (check ERPTraining.API.dll timestamp)
+2. ✅ Restart IIS application pool (CRITICAL!)
+3. ✅ Clear browser cache
+4. ✅ Try login again
+
 ### If still getting 404 errors:
 
 **Check #1: Files Uploaded Correctly**
 ```
 Verify these files exist in HostBuddy:
-- index.html
-- assets/index-DHskee8F.js (NEW file)
+- Frontend: index.html, assets/index-DHskee8F.js
+- Backend: ERPTraining.API.dll (check modified date is recent)
 ```
 
 **Check #2: Old Files Deleted**
@@ -189,20 +238,27 @@ http://... (wrong protocol)
 
 ## 📝 Deployment Notes
 
-**Time Estimate:** 5-10 minutes  
-**Downtime:** None (just replacing files)  
-**Rollback:** Keep backup of old frontend files  
+**Time Estimate:** 10-15 minutes  
+**Downtime:** ~10 seconds during IIS restart  
+**Rollback:** Keep backup of old files  
 
-**Backend:** No changes needed  
+**Frontend:** Updated with HTTPS API URLs  
+**Backend:** Updated with CORS fix (allows staging URL)  
 **Database:** No changes needed  
 **Configuration:** No changes needed  
+
+**Files Changed:**
+- Frontend: index-DHskee8F.js (new build with HTTPS)
+- Backend: ERPTraining.API.dll (CORS policy updated)  
 
 ---
 
 ## 📞 Need Help?
 
 **Developer:** Gogulan@moojic.com  
-**Documentation:** STAGING_404_FIX_SUMMARY.md  
+**Documentation:** 
+- STAGING_404_FIX_SUMMARY.md (URL configuration fixes)
+- STAGING_CORS_FIX_SUMMARY.md (HTTP 405 CORS fix)  
 **Build Location:** staging-build-hostbuddy/  
 
 ---
