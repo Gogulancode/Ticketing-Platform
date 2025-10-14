@@ -1,163 +1,73 @@
-using System.Text;
-using System.Reflection;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using System.Text;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Http.Features;
 using ERPTraining.Core.Entities;
 using ERPTraining.Core.Interfaces;
+using ERPTraining.Core.Services;
 using ERPTraining.Infrastructure.Data;
-using ERPTraining.Infrastructure.Mappings;
 using ERPTraining.Infrastructure.Services;
+using InfraServices = ERPTraining.Infrastructure.Services;
+using ERPTraining.Core.Ticketing.Settings.Interfaces;
+using ERPTraining.Infrastructure.Services.Ticketing.Settings;
+using ERPTraining.Infrastructure.Services.Ticketing;
+using ERPTraining.Core.Interfaces.Ticketing;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Force HTTP-only for development
-builder.WebHost.UseUrls("http://localhost:5000");
+// Configure IST timezone for the application
+var timeZoneConfig = builder.Configuration.GetSection("TimeZone");
+var useIST = timeZoneConfig.GetValue<bool>("UseIST", true);
+if (useIST)
+{
+    // Set application timezone to IST
+    TimeZoneInfo.ClearCachedData();
+    var istTimeZone = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+    builder.Logging.AddConsole().AddConfiguration(builder.Configuration.GetSection("Logging"));
+    Console.WriteLine($"Application configured for timezone: {istTimeZone.DisplayName}");
+}
 
-// Add services to the container.
+// Add CORS with permissive configuration for development
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(builder =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        builder.WithOrigins("http://localhost:5173")
-               .AllowAnyMethod()
-               .AllowAnyHeader()
-               .AllowCredentials()
-               .WithExposedHeaders("Content-Disposition");
+        policy.WithOrigins(
+                "http://localhost:5178",  // Default Vite port
+                "http://localhost:5180",  // Alternative port when 5178 is taken
+                "http://localhost:5173",  // Vite default port
+                "http://localhost:5182",  // Current frontend port
+                "http://localhost:3000",  // React dev server alternative
+                "http://localhost:8080",  // Generic dev server port
+                "https://support.solutionsnextwave.com"  // Staging/Production
+              )
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-
-// Configure Swagger with JWT support and comprehensive documentation
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo 
-    { 
-        Title = "ERP Training API", 
-        Version = "v1",
-        Description = @"
-            <h2>ERP Training Management System API</h2>
-            <p>This API provides comprehensive endpoints for managing ERP training modules, sections, assessments, and user progress tracking.</p>
-            
-            <h3>Key Features:</h3>
-            <ul>
-                <li><b>Module Management:</b> Create, read, update, and delete training modules</li>
-                <li><b>Section Management:</b> Manage sections within modules with detailed content</li>
-                <li><b>Assessment System:</b> Create and manage assessments with questions and scoring</li>
-                <li><b>User Progress:</b> Track user learning progress across modules and sections</li>
-                <li><b>Authentication:</b> JWT-based authentication with role-based access control</li>
-            </ul>
-            
-            <h3>Authentication:</h3>
-            <p>This API uses JWT Bearer token authentication. To access protected endpoints:</p>
-            <ol>
-                <li>Register a new user or login with existing credentials</li>
-                <li>Use the received JWT token in the Authorization header</li>
-                <li>Format: <code>Authorization: Bearer {your-jwt-token}</code></li>
-            </ol>
-            
-            <h3>Base URL:</h3>
-            <p><code>http://localhost:5000/api</code></p>
-        ",
-        Contact = new OpenApiContact
-        {
-            Name = "ERP Training Development Team",
-            Email = "support@erptraining.com",
-            Url = new Uri("https://github.com/Gogulancode/BabajiShivram_training")
-        },
-        License = new OpenApiLicense
-        {
-            Name = "MIT License",
-            Url = new Uri("https://opensource.org/licenses/MIT")
-        }
-    });
-    
-    // Include XML comments for detailed documentation
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-    {
-        c.IncludeXmlComments(xmlPath);
-    }
-
-    // Also include XML comments from Core project if available
-    var coreXmlFile = "ERPTraining.Core.xml";
-    var coreXmlPath = Path.Combine(AppContext.BaseDirectory, coreXmlFile);
-    if (File.Exists(coreXmlPath))
-    {
-        c.IncludeXmlComments(coreXmlPath);
-    }
-    
-    // Add JWT Authentication to Swagger
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = @"
-            <h4>JWT Authorization Header</h4>
-            <p>Enter your JWT token in the format: <strong>Bearer {your-token}</strong></p>
-            <p>Example: <code>Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code></p>
-            <h5>How to get a token:</h5>
-            <ol>
-                <li>Use the <strong>/api/auth/register</strong> endpoint to create a new account</li>
-                <li>Or use <strong>/api/auth/login</strong> to login with existing credentials</li>
-                <li>Copy the token from the response</li>
-                <li>Paste it in the field below (without 'Bearer' prefix)</li>
-            </ol>
-        ",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer",
-        BearerFormat = "JWT"
-    });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                },
-                Scheme = "oauth2",
-                Name = "Bearer",
-                In = ParameterLocation.Header
-            },
-            new List<string>()
-        }
-    });
-
-    // Add operation tags for better organization
-    c.TagActionsBy(api => new[] { api.GroupName ?? api.ActionDescriptor.RouteValues["controller"] });
-    c.DocInclusionPredicate((name, api) => true);
-});
-
-// Configure Entity Framework
+// Add database context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure Identity
+// Add Identity
 builder.Services.AddIdentity<User, IdentityRole>(options =>
-{
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 6;
-    options.User.RequireUniqueEmail = true;
-})
-.AddEntityFrameworkStores<ApplicationDbContext>()
-.AddDefaultTokenProviders();
+    {
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredLength = 6;
+        options.User.RequireUniqueEmail = true;
+    })
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
 
-// Configure JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
-
+// Add Authentication and JWT Bearer
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -171,67 +81,108 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-        ClockSkew = TimeSpan.Zero
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? ""))
     };
 });
 
-// Configure AutoMapper
-builder.Services.AddAutoMapper(typeof(MappingProfile));
-
-// Register services
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IModuleService, ModuleService>();
-builder.Services.AddScoped<IAssessmentService, AssessmentService>();
-builder.Services.AddScoped<IQuestionService, QuestionService>();
-builder.Services.AddScoped<ISectionService, SectionService>();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Add controllers and configure file upload limits
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Configure JSON serialization for DateTime to use ISO 8601 format
+        // System.Text.Json automatically serializes DateTime with Kind=UTC to ISO 8601 with 'Z' suffix
+        // No custom converter needed - just ensure DateTimes have DateTimeKind.Utc
+    });
+builder.Services.Configure<IISServerOptions>(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-// Configure CORS - must be before other middleware
-app.UseCors(builder =>
+    options.MaxRequestBodySize = 31457280; // 30MB in bytes
+});
+builder.Services.Configure<KestrelServerOptions>(options =>
 {
-    builder.SetIsOriginAllowed(origin => origin == "http://localhost:5173")
-           .AllowAnyMethod()
-           .AllowAnyHeader()
-           .AllowCredentials()
-           .WithExposedHeaders("Content-Disposition");
+    options.Limits.MaxRequestBodySize = 31457280; // 30MB in bytes
+});
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = 31457280; // 30MB in bytes
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+});
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.CustomSchemaIds(type => type.FullName?.Replace("+", "."));
 });
 
-// Disable HTTPS redirection for development
-// app.UseHttpsRedirection();
+// Add AutoMapper
+builder.Services.AddAutoMapper(typeof(Program));
 
+// Add core Training services that exist
+builder.Services.AddScoped<IModuleService, InfraServices.ModuleService>();
+builder.Services.AddScoped<ISectionService, InfraServices.SectionService>();
+builder.Services.AddScoped<IAssessmentService, InfraServices.AssessmentService>();
+builder.Services.AddScoped<IQuestionService, InfraServices.QuestionService>();
+
+// Add timezone service for IST handling
+builder.Services.AddScoped<ERPTraining.Core.Services.ITimeZoneService, ERPTraining.Core.Services.TimeZoneService>();
+
+// Add HttpClient for ERP API
+builder.Services.AddHttpClient<InfraServices.ERPApiService>();
+builder.Services.AddScoped<IERPApiService, InfraServices.ERPApiService>();
+
+// Use ERP SSO Authentication Service
+builder.Services.AddScoped<IAuthService, InfraServices.ERPSSOAuthService>();
+
+// Add Ticketing services
+builder.Services.AddScoped<ITicketService, InfraServices.TicketService>();
+builder.Services.AddScoped<ITicketingAclService, InfraServices.TicketingAclService>();
+// Comment out the ticket settings service registration for now
+// Ticket Settings (v2 minimal - categories only for now)
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<ERPTraining.Core.Ticketing.Settings.Interfaces.IA_TicketSettingsService, ERPTraining.Infrastructure.Services.Ticketing.Settings.TicketSettingsService>();
+
+// Email Configuration Service
+builder.Services.AddScoped<ERPTraining.Infrastructure.Services.Ticketing.IEmailConfigurationService, ERPTraining.Infrastructure.Services.Ticketing.EmailConfigurationService>();
+
+// Microsoft Graph Email Services
+builder.Services.AddScoped<ERPTraining.Infrastructure.Services.Ticketing.MicrosoftGraphEmailService>();
+builder.Services.AddScoped<ERPTraining.Infrastructure.Services.Ticketing.GraphEmailToTicketProcessor>();
+
+// Email Processing Background Service (Graph API) - Re-enabled for production
+builder.Services.AddHostedService<ERPTraining.Infrastructure.Services.Ticketing.EmailProcessingBackgroundService>();
+
+// Auto Assignment Service
+builder.Services.AddScoped<ERPTraining.Core.Interfaces.Ticketing.IAutoAssignmentService, ERPTraining.Infrastructure.Services.Ticketing.AutoAssignmentService>();
+
+// Advanced Ticketing Settings Services
+builder.Services.AddScoped<ERPTraining.Core.Interfaces.Ticketing.ITicketTagService, ERPTraining.Infrastructure.Services.Ticketing.TicketTagService>();
+builder.Services.AddScoped<ERPTraining.Core.Interfaces.Ticketing.IGraphEmailConfigService, ERPTraining.Infrastructure.Services.Ticketing.GraphEmailConfigService>();
+builder.Services.AddScoped<ERPTraining.Core.Interfaces.Ticketing.ITicketFieldSettingService, ERPTraining.Infrastructure.Services.Ticketing.TicketFieldSettingService>();
+builder.Services.AddScoped<ERPTraining.Core.Interfaces.Ticketing.ITicketGroupService, ERPTraining.Infrastructure.Services.Ticketing.TicketGroupService>();
+
+// SLA Services
+builder.Services.AddScoped<ERPTraining.Core.Interfaces.Ticketing.ISlaService, ERPTraining.Infrastructure.Services.Ticketing.SimpleSlaService>();
+builder.Services.AddScoped<ERPTraining.Core.Interfaces.Ticketing.INotificationService, ERPTraining.Infrastructure.Services.Ticketing.NotificationService>();
+
+// Custom Fields Service
+builder.Services.AddScoped<ERPTraining.Infrastructure.Services.Ticketing.ICustomFieldsService, ERPTraining.Infrastructure.Services.Ticketing.CustomFieldsService>();
+
+// TODO: Fix RoleAccessService and RoleImportService compilation issues
+// builder.Services.AddScoped<IRoleAccessService, InfraServices.RoleAccessService>();
+// builder.Services.AddScoped<IRoleImportService, InfraServices.RoleImportService>();
+
+// Build app
+var app = builder.Build();
+
+// Configure pipeline - Enable Swagger for all environments during development
+app.UseSwagger();
+app.UseSwaggerUI();
+
+app.UseStaticFiles(); // Enable static file serving
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
-// Seed database
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<ApplicationDbContext>();
-        var userManager = services.GetRequiredService<UserManager<User>>();
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        
-        await SeedData.Initialize(context, userManager, roleManager);
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred seeding the DB.");
-    }
-}
 
 app.Run();
