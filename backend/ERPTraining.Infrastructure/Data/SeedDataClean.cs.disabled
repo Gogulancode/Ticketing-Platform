@@ -1,0 +1,150 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using ERPTraining.Core.Entities;
+
+namespace ERPTraining.Infrastructure.Data;
+
+public static class SeedDataClean
+{
+    public static async Task SeedAsync(ApplicationDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
+    {
+        // Ensure database is created
+        await context.Database.EnsureCreatedAsync();
+
+        // Seed admin role
+        await SeedAdminRole(roleManager);
+
+        // Seed admin user
+        await SeedAdminUser(context, userManager);
+
+        // Seed basic test data if no ERP data exists
+        await SeedBasicModules(context);
+    }
+
+    private static async Task SeedAdminRole(RoleManager<IdentityRole> roleManager)
+    {
+        var adminRole = "Admin";
+        if (!await roleManager.RoleExistsAsync(adminRole))
+        {
+            await roleManager.CreateAsync(new IdentityRole(adminRole));
+        }
+    }
+
+    private static async Task SeedAdminUser(ApplicationDbContext context, UserManager<User> userManager)
+    {
+        var adminEmail = "admin@erptraining.com";
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+        if (adminUser == null)
+        {
+            adminUser = new User
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                EmailConfirmed = true,
+                FirstName = "Admin",
+                LastName = "User",
+                IsActive = true,
+                Department = "Administration",
+                JoinDate = DateTime.UtcNow,
+                // Mark as exception user (not from ERP)
+                ERPUserId = null,
+                IsERPUser = false,
+                ERPSource = "Local"
+            };
+
+            var result = await userManager.CreateAsync(adminUser, "Admin@123");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+            }
+        }
+        else
+        {
+            // Ensure admin user always has admin role
+            if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+            }
+        }
+    }
+
+    private static async Task SeedBasicModules(ApplicationDbContext context)
+    {
+        if (await context.Modules.AnyAsync())
+        {
+            return; // Modules already exist
+        }
+
+        // Create basic test modules only if no modules exist
+        var modules = new List<Module>
+        {
+            new Module
+            {
+                Title = "Getting Started",
+                Description = "Introduction to the ERP Training System",
+                Category = "System",
+                Difficulty = "Beginner",
+                EstimatedTime = "30 minutes",
+                Icon = "play-circle",
+                Color = "#3B82F6",
+                Order = 1,
+                IsActive = true,
+                Prerequisites = new string[0],
+                LearningObjectives = new[] { "Understand system navigation", "Learn basic features" }
+            },
+            new Module
+            {
+                Title = "User Management",
+                Description = "Learn how to manage users and roles",
+                Category = "Administration",
+                Difficulty = "Intermediate",
+                EstimatedTime = "45 minutes",
+                Icon = "users",
+                Color = "#10B981",
+                Order = 2,
+                IsActive = true,
+                Prerequisites = new[] { "Getting Started" },
+                LearningObjectives = new[] { "Create and edit users", "Assign roles and permissions" }
+            }
+        };
+
+        context.Modules.AddRange(modules);
+        await context.SaveChangesAsync();
+
+        // Add basic sections for these modules
+        await SeedBasicSections(context);
+    }
+
+    private static async Task SeedBasicSections(ApplicationDbContext context)
+    {
+        var modules = await context.Modules.ToListAsync();
+        var sections = new List<Section>();
+
+        foreach (var module in modules)
+        {
+            sections.AddRange(new[]
+            {
+                new Section
+                {
+                    Title = $"Introduction to {module.Title}",
+                    Description = $"Overview and introduction to {module.Title}",
+                    ModuleId = module.Id,
+                    Order = 1,
+                    IsActive = true
+                },
+                new Section
+                {
+                    Title = $"{module.Title} - Practical Examples",
+                    Description = $"Hands-on examples and exercises for {module.Title}",
+                    ModuleId = module.Id,
+                    Order = 2,
+                    IsActive = true
+                }
+            });
+        }
+
+        context.Sections.AddRange(sections);
+        await context.SaveChangesAsync();
+    }
+}

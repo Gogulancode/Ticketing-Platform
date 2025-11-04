@@ -1,5 +1,5 @@
 // Client-side authentication API functions
-const API_BASE = 'http://localhost:5015/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api';
 
 interface LoginData {
   email: string;
@@ -81,11 +81,14 @@ export const register = async (data: RegisterData): Promise<{ user: User; token:
 };
 
 export const getCurrentUser = async (): Promise<User> => {
-  return apiFetch('/auth/current-user');
+  return apiFetch('/auth/me');
 };
 
 export const logout = (): void => {
   removeToken();
+  localStorage.removeItem('user');
+  // Clear any other cached data
+  localStorage.removeItem('currentUser');
 };
 
 export const updateProfile = async (profileData: Partial<User>): Promise<User> => {

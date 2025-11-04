@@ -1,0 +1,387 @@
+[
+  {
+    "lModuleId": "9",
+    "SectionId": "9012",
+    "SectionName": "Payment Approval"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "9013",
+    "SectionName": "Payment Details"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "9014",
+    "SectionName": "Archive Payment"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "9015",
+    "SectionName": "Expense Report"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "9016",
+    "SectionName": "Payment Cancel"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3091",
+    "SectionName": "New Invoice"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3092",
+    "SectionName": "A/C Received"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3093",
+    "SectionName": "Invoice Tracking"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3090",
+    "SectionName": "Vendor Invoice"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3094",
+    "SectionName": "Payment Request"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3095",
+    "SectionName": "Payment Approval"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3098",
+    "SectionName": "Final Invoice"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "30398",
+    "SectionName": "Finance Approval"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3099",
+    "SectionName": "Invoice Tracking"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "30399",
+    "SectionName": "Invoice Excel"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "309010",
+    "SectionName": "Bank Transfer"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "309020",
+    "SectionName": "Bank Transfer History"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "309001",
+    "SectionName": "Vendor Bank Info"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "30932",
+    "SectionName": "Invoice Audit - Final"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "30931",
+    "SectionName": "Invoice Audit - Credit"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "9052",
+    "SectionName": "Cheque Issue"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "9053",
+    "SectionName": "Cheque Invoice Submission"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "9051",
+    "SectionName": "Cheque Book Entry"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "309002",
+    "SectionName": "Expense Report"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "9050",
+    "SectionName": "Bank Cheque"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "30935",
+    "SectionName": "Payment Receipt"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "309022",
+    "SectionName": "Bank Statement"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "309011",
+    "SectionName": "Bank Transfer - Credit"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4500",
+    "SectionName": "Credit Vendor Invoice"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4501",
+    "SectionName": "Credit Vendor Audit L1"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4502",
+    "SectionName": "Credit Vendor Approval"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4503",
+    "SectionName": "Credit Vendor Audit L2"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4504",
+    "SectionName": "HOD Approval"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4602",
+    "SectionName": "Audit L1"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4603",
+    "SectionName": "Audit L2"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4620",
+    "SectionName": "Tracking"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4604",
+    "SectionName": "Payment"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4600",
+    "SectionName": "Transporter Invoice"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4601",
+    "SectionName": "Mgmt Approval"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4605",
+    "SectionName": "Payment Rejected"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "309003",
+    "SectionName": "Customer Report"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4606",
+    "SectionName": "Bank Transfer"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4608",
+    "SectionName": "Bank Transfer History"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4607",
+    "SectionName": "Batch Payment"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4609",
+    "SectionName": "Memo Preparation"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4610",
+    "SectionName": "Memo Approval"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4611",
+    "SectionName": "Memo Payment"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4612",
+    "SectionName": "Memo Track"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "4613",
+    "SectionName": "Memo Audit"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3100",
+    "SectionName": "Vendor Pay Memo"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3101",
+    "SectionName": "Memo Preparation"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3103",
+    "SectionName": "Memo Audit"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3105",
+    "SectionName": "Memo Approval"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3107",
+    "SectionName": "Memo Payment"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3110",
+    "SectionName": "Memo Track"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3108",
+    "SectionName": "Pending Batch Pay"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "101623",
+    "SectionName": "New Vendor"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "101626",
+    "SectionName": "Rejected Vendor"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "101640",
+    "SectionName": "Vendor Tracking"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "101622",
+    "SectionName": "New Vendor Registration"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "101624",
+    "SectionName": "Vendor Approval"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "309004",
+    "SectionName": "Audit Aging Report"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5601",
+    "SectionName": "Mgmt Approval"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5605",
+    "SectionName": "Payment Rejected"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5602",
+    "SectionName": "Audit L1"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5603",
+    "SectionName": "Audit L2"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5604",
+    "SectionName": "Payment - Manual"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5606",
+    "SectionName": "Bank Transfer - Babaji"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5608",
+    "SectionName": "Bank Transfer History"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "30401",
+    "SectionName": "Stamp Excel"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "3109",
+    "SectionName": "Remittance Payment"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5600",
+    "SectionName": "Babaji Transport"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5609",
+    "SectionName": "Memo Preparation"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5610",
+    "SectionName": "Memo Audit"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5611",
+    "SectionName": "Memo Approval"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5612",
+    "SectionName": "Memo Payment"
+  },
+  {
+    "lModuleId": "9",
+    "SectionId": "5613",
+    "SectionName": "Memo Track"
+  }
+]

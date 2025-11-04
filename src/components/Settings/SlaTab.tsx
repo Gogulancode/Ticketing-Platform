@@ -16,8 +16,8 @@ import {
   useCreateSlaPolicy,
   useUpdateSlaPolicy,
   useDeleteSlaPolicy,
-  // useCreateEscalationContact, // for future use
-  // useUpdateEscalationContact, // for future use 
+  useCreateEscalationContact,
+  useUpdateEscalationContact,
   useDeleteEscalationContact
 } from '../../hooks/useAdvancedSettings';
 import { settingsApi } from '../../api/settingsApi';
@@ -36,7 +36,7 @@ const slaPolicySchema = yup.object({
 
 // Interfaces
 interface SlaPolicy {
-  id: number;
+  id: string | number; // Support both GUID and number
   name: string;
   priorityId: number;
   priorityName?: string;
@@ -88,6 +88,13 @@ const SlaTab: React.FC = () => {
   // Contact management state
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<EscalationContact | null>(null);
+  const [contactForm, setContactForm] = useState({
+    slaPolicyId: '',
+    escalationLevel: '',
+    contactName: '',
+    contactEmail: '',
+    isActive: true
+  });
 
   // React Query hooks
   const { data: slaPolicies = [], isLoading: loadingPolicies } = useSlaPolicies();
@@ -95,9 +102,8 @@ const SlaTab: React.FC = () => {
   const createPolicyMutation = useCreateSlaPolicy();
   const updatePolicyMutation = useUpdateSlaPolicy();
   const deletePolicyMutation = useDeleteSlaPolicy();
-  // Contact management mutations (for future use)
-  // const createContactMutation = useCreateEscalationContact();
-  // const updateContactMutation = useUpdateEscalationContact();
+  const createContactMutation = useCreateEscalationContact();
+  const updateContactMutation = useUpdateEscalationContact();
   const deleteContactMutation = useDeleteEscalationContact();
 
   // Load priorities from API
@@ -191,6 +197,25 @@ const SlaTab: React.FC = () => {
   // Contact management functions
   const openEditContact = (contact: EscalationContact) => {
     setEditingContact(contact);
+    setContactForm({
+      slaPolicyId: contact.slaPolicyId?.toString() || '',
+      escalationLevel: contact.level?.toString() || '',
+      contactName: contact.name || '',
+      contactEmail: contact.email || '',
+      isActive: true
+    });
+    setIsContactModalOpen(true);
+  };
+
+  const openCreateContact = () => {
+    setEditingContact(null);
+    setContactForm({
+      slaPolicyId: '',
+      escalationLevel: '',
+      contactName: '',
+      contactEmail: '',
+      isActive: true
+    });
     setIsContactModalOpen(true);
   };
 
@@ -203,6 +228,54 @@ const SlaTab: React.FC = () => {
         console.error('Failed to delete escalation contact:', error);
       }
     }
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingContact) {
+        const updateData = {
+          level: parseInt(contactForm.escalationLevel),
+          name: contactForm.contactName,
+          email: contactForm.contactEmail,
+          notifyByEmail: true,
+          notifyBySystem: true
+        };
+        await updateContactMutation.mutateAsync({ contactId: editingContact.id, data: updateData });
+      } else {
+        const createData = {
+          level: parseInt(contactForm.escalationLevel),
+          name: contactForm.contactName,
+          email: contactForm.contactEmail,
+          notifyByEmail: true,
+          notifyBySystem: true
+        };
+        await createContactMutation.mutateAsync({ 
+          policyId: contactForm.slaPolicyId, // Keep as string (GUID)
+          data: createData 
+        });
+      }
+
+      // Reset form and close modal
+      setContactForm({
+        slaPolicyId: '',
+        escalationLevel: '',
+        contactName: '',
+        contactEmail: '',
+        isActive: true
+      });
+      setIsContactModalOpen(false);
+      setEditingContact(null);
+    } catch (error) {
+      console.error('Failed to save escalation contact:', error);
+    }
+  };
+
+  const handleContactInputChange = (field: string, value: string | boolean) => {
+    setContactForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   return (
@@ -378,7 +451,7 @@ const SlaTab: React.FC = () => {
             <p className="text-sm text-gray-500">Configure who gets notified when SLAs are breached</p>
           </div>
           <button
-            onClick={() => setIsContactModalOpen(true)}
+            onClick={openCreateContact}
             className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
           >
             <UserGroupIcon className="h-4 w-4 mr-1.5" />
@@ -707,12 +780,17 @@ const SlaTab: React.FC = () => {
                 </button>
               </div>
               
-              <div className="space-y-4">
+              <form onSubmit={handleContactSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     SLA Policy
                   </label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <select 
+                    value={contactForm.slaPolicyId}
+                    onChange={(e) => handleContactInputChange('slaPolicyId', e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="">Select SLA Policy</option>
                     {slaPolicies.map(policy => (
                       <option key={policy.id} value={policy.id}>
@@ -726,7 +804,12 @@ const SlaTab: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Escalation Level
                   </label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <select 
+                    value={contactForm.escalationLevel}
+                    onChange={(e) => handleContactInputChange('escalationLevel', e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="">Select Level</option>
                     <option value="1">Level 1</option>
                     <option value="2">Level 2</option>
@@ -740,6 +823,9 @@ const SlaTab: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    value={contactForm.contactName}
+                    onChange={(e) => handleContactInputChange('contactName', e.target.value)}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Enter contact name"
                   />
@@ -751,23 +837,12 @@ const SlaTab: React.FC = () => {
                   </label>
                   <input
                     type="email"
+                    value={contactForm.contactEmail}
+                    onChange={(e) => handleContactInputChange('contactEmail', e.target.value)}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Enter email address"
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <span className="block text-sm font-medium text-gray-700">Notification Preferences</span>
-                  <div className="flex items-center space-x-4">
-                    <label className="flex items-center">
-                      <input type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-                      <span className="ml-2 text-sm text-gray-700">Email Notifications</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-                      <span className="ml-2 text-sm text-gray-700">System Notifications</span>
-                    </label>
-                  </div>
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4">
@@ -776,6 +851,13 @@ const SlaTab: React.FC = () => {
                     onClick={() => {
                       setIsContactModalOpen(false);
                       setEditingContact(null);
+                      setContactForm({
+                        slaPolicyId: '',
+                        escalationLevel: '',
+                        contactName: '',
+                        contactEmail: '',
+                        isActive: true
+                      });
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
                   >
@@ -783,12 +865,23 @@ const SlaTab: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={createContactMutation.isPending || updateContactMutation.isPending}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                   >
-                    {editingContact ? 'Update Contact' : 'Add Contact'}
+                    {createContactMutation.isPending || updateContactMutation.isPending ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Saving...
+                      </>
+                    ) : (
+                      editingContact ? 'Update Contact' : 'Add Contact'
+                    )}
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         </div>

@@ -6,6 +6,8 @@ using ERPTraining.Core.Services;
 using ERPTraining.Core.Ticketing.Settings.Interfaces;
 using System.Security.Claims;
 using Microsoft.Data.SqlClient;
+using ERPTraining.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ERPTraining.API.Controllers.Ticketing;
 
@@ -18,13 +20,20 @@ public class TicketsController : ControllerBase
     private readonly IA_TicketSettingsService _settingsService;
     private readonly ILogger<TicketsController> _logger;
     private readonly string _connectionString;
+    private readonly ApplicationDbContext _context;
 
-    public TicketsController(ITicketService ticketService, IA_TicketSettingsService settingsService, ILogger<TicketsController> logger, IConfiguration configuration)
+    public TicketsController(
+        ITicketService ticketService, 
+        IA_TicketSettingsService settingsService, 
+        ILogger<TicketsController> logger, 
+        IConfiguration configuration,
+        ApplicationDbContext context)
     {
         _ticketService = ticketService;
         _settingsService = settingsService;
         _logger = logger;
         _connectionString = configuration.GetConnectionString("DefaultConnection") ?? "";
+        _context = context;
     }
 
     // Helper method to ensure DateTime is properly stored as UTC
@@ -73,6 +82,56 @@ public class TicketsController : ControllerBase
         {
             // If there's any error, default to not showing internal notes
             return false;
+        }
+    }
+
+    // Helper method to send notifications
+    private async Task SendNotificationAsync(string userId, string title, string message, string type = "Info", string? actionUrl = null)
+    {
+        try
+        {
+            var notification = new UserNotification
+            {
+                UserId = userId,
+                Title = title,
+                Message = message,
+                Type = type,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow,
+                ActionUrl = actionUrl
+            };
+
+            await _context.UserNotifications.AddAsync(notification);
+            await _context.SaveChangesAsync();
+            
+            _logger.LogInformation($"📬 Notification sent to user {userId}: {title}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to send notification to user {userId}");
+            // Don't throw - notification failure shouldn't break ticket operations
+        }
+    }
+
+    // Helper to get ticket creator's user ID
+    private async Task<string?> GetTicketCreatorIdAsync(Guid ticketId)
+    {
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+            
+            var sql = "SELECT CreatedByUserId FROM Tickets WHERE Id = @TicketId";
+            using var command = new SqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@TicketId", ticketId);
+            
+            var result = await command.ExecuteScalarAsync();
+            return result?.ToString();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to get creator ID for ticket {ticketId}");
+            return null;
         }
     }
 
@@ -196,7 +255,12 @@ public class TicketsController : ControllerBase
         try
         {
             var userId = GetCurrentUserId();
-            var tickets = await _ticketService.GetTicketsByUserAsync(userId);
+            
+            // Check if user is Admin - if so, return ALL tickets
+            var isAdmin = User.IsInRole("Admin");
+            var tickets = isAdmin 
+                ? await _ticketService.GetAllTicketsAsync() 
+                : await _ticketService.GetUserTicketsAsync(userId);
             
             // Create response with basic user information
             var response = new List<object>();
@@ -564,6 +628,56 @@ public class TicketsController : ControllerBase
             if (request.Status.HasValue)
             {
                 var updatedTicket = await _ticketService.UpdateTicketStatusAsync(id, request.Status.Value, GetCurrentUserId());
+                
+                // Send notification to ticket creator about status change
+                var creatorId = await GetTicketCreatorIdAsync(id);
+                if (!string.IsNullOrEmpty(creatorId) && creatorId != GetCurrentUserId())
+                {
+                    var statusName = request.Status.Value switch
+                    {
+                        TicketStatus.New => "New",
+                        TicketStatus.InReview => "In Review",
+                        TicketStatus.WaitingUser => "Waiting for User",
+                        TicketStatus.Resolved => "Resolved",
+                        TicketStatus.Closed => "Closed",
+                        _ => "Unknown"
+                    };
+                    
+                    var ticketNumber = updatedTicket.PublicId?.ToString() ?? id.ToString().Substring(0, 8);
+                    await SendNotificationAsync(
+                        creatorId,
+                        "Ticket Status Updated",
+                        $"Your ticket #{ticketNumber} status has been changed to {statusName}",
+                        "Info",
+                        $"/tickets/{id}"
+                    );
+                }
+                
+                // Also notify assigned agent if different from updater
+                if (!string.IsNullOrEmpty(updatedTicket.AssignedToUserId) && 
+                    updatedTicket.AssignedToUserId != GetCurrentUserId() &&
+                    updatedTicket.AssignedToUserId != creatorId)
+                {
+                    var statusName = request.Status.Value switch
+                    {
+                        TicketStatus.New => "New",
+                        TicketStatus.InReview => "In Review",
+                        TicketStatus.WaitingUser => "Waiting for User",
+                        TicketStatus.Resolved => "Resolved",
+                        TicketStatus.Closed => "Closed",
+                        _ => "Unknown"
+                    };
+                    
+                    var ticketNumber = updatedTicket.PublicId?.ToString() ?? id.ToString().Substring(0, 8);
+                    await SendNotificationAsync(
+                        updatedTicket.AssignedToUserId,
+                        "Assigned Ticket Status Changed",
+                        $"Ticket #{ticketNumber} assigned to you has been changed to {statusName}",
+                        "Info",
+                        $"/tickets/{id}"
+                    );
+                }
+                
                 return Ok(new {
                     id = updatedTicket.Id,
                     title = updatedTicket.Title,
@@ -585,6 +699,30 @@ public class TicketsController : ControllerBase
             if (!string.IsNullOrEmpty(request.AssignedToUserId))
             {
                 var assignedTicket = await _ticketService.AssignTicketAsync(id, request.AssignedToUserId, GetCurrentUserId());
+                
+                // Send notification to the assigned agent
+                var ticketNumber = assignedTicket.PublicId?.ToString() ?? id.ToString().Substring(0, 8);
+                await SendNotificationAsync(
+                    request.AssignedToUserId,
+                    "New Ticket Assigned",
+                    $"Ticket #{ticketNumber} - {assignedTicket.Title} has been assigned to you",
+                    "Info",
+                    $"/tickets/{id}"
+                );
+                
+                // Also notify ticket creator that their ticket was assigned
+                var creatorId = await GetTicketCreatorIdAsync(id);
+                if (!string.IsNullOrEmpty(creatorId) && creatorId != GetCurrentUserId())
+                {
+                    await SendNotificationAsync(
+                        creatorId,
+                        "Ticket Assigned to Agent",
+                        $"Your ticket #{ticketNumber} has been assigned to an agent",
+                        "Success",
+                        $"/tickets/{id}"
+                    );
+                }
+                
                 return Ok(new {
                     id = assignedTicket.Id,
                     title = assignedTicket.Title,
@@ -824,6 +962,90 @@ public class TicketsController : ControllerBase
             return StatusCode(500, $"Error unassigning ticket: {ex.Message}");
         }
     }
+
+    // GET: api/tickets/{id}/collaborators
+    [HttpGet("{id:guid}/collaborators")]
+    public async Task<ActionResult> GetCollaborators(Guid id)
+    {
+        try
+        {
+            var collaborators = await _ticketService.GetCollaboratorsAsync(id);
+            
+            var response = collaborators.Select(c => new
+            {
+                id = c.Id,
+                ticketId = c.TicketId,
+                userId = c.UserId,
+                userName = c.User != null ? $"{c.User.FirstName} {c.User.LastName}" : "Unknown",
+                userEmail = c.User?.Email,
+                role = c.Role,
+                addedByUserId = c.AddedByUserId,
+                addedByUserName = c.AddedByUser != null ? $"{c.AddedByUser.FirstName} {c.AddedByUser.LastName}" : "Unknown",
+                addedAt = c.AddedAt
+            });
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting collaborators for ticket {TicketId}", id);
+            return StatusCode(500, $"Error getting collaborators: {ex.Message}");
+        }
+    }
+
+    // POST: api/tickets/{id}/collaborators
+    [HttpPost("{id:guid}/collaborators")]
+    public async Task<ActionResult> AddCollaborator(Guid id, [FromBody] AddCollaboratorRequest request)
+    {
+        try
+        {
+            var currentUserId = GetCurrentUserId();
+            var collaborator = await _ticketService.AddCollaboratorAsync(id, request.UserId, currentUserId, request.Role ?? "Collaborator");
+            
+            var response = new
+            {
+                id = collaborator.Id,
+                ticketId = collaborator.TicketId,
+                userId = collaborator.UserId,
+                role = collaborator.Role,
+                addedByUserId = collaborator.AddedByUserId,
+                addedAt = collaborator.AddedAt
+            };
+
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding collaborator to ticket {TicketId}", id);
+            return StatusCode(500, $"Error adding collaborator: {ex.Message}");
+        }
+    }
+
+    // DELETE: api/tickets/{id}/collaborators/{userId}
+    [HttpDelete("{id:guid}/collaborators/{userId}")]
+    public async Task<ActionResult> RemoveCollaborator(Guid id, string userId)
+    {
+        try
+        {
+            var removed = await _ticketService.RemoveCollaboratorAsync(id, userId);
+            
+            if (!removed)
+            {
+                return NotFound("Collaborator not found on this ticket");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing collaborator from ticket {TicketId}", id);
+            return StatusCode(500, $"Error removing collaborator: {ex.Message}");
+        }
+    }
 }
 
 // DTOs for request/response
@@ -879,4 +1101,10 @@ public class AddCommentRequest
 public class AssignTicketRequest
 {
     public string AgentId { get; set; } = string.Empty;
+}
+
+public class AddCollaboratorRequest
+{
+    public string UserId { get; set; } = string.Empty;
+    public string? Role { get; set; }
 }

@@ -143,7 +143,7 @@ const StatusCheck: React.FC = () => {
             Clear Storage & Reload
           </button>
           <button 
-            onClick={() => window.open('http://localhost:5015/swagger', '_blank')} 
+            onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5015'}/swagger`, '_blank')} 
             className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
           >
             Open API Docs

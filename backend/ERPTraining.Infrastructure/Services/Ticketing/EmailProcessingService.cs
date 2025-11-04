@@ -225,7 +225,7 @@ public class EmailProcessingService : BackgroundService
                 CreatedByUserId = user.Id,
                 CategoryId = config.Category?.Id, // Use the mapped category
                 Priority = DeterminePriorityFromContent(cleanSubject + " " + cleanBody),
-                Status = ERPTraining.Core.Entities.Ticketing.TicketStatus.New,
+                Status = 1, // New status ID
                 Source = TicketSource.Email,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow

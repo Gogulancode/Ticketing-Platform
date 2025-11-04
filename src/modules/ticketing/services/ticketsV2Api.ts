@@ -39,6 +39,7 @@ export interface TicketUpdateRequest {
   subcategoryId?: number;
   departmentId?: number;
   assignedToUserId?: string;
+  customFields?: { [key: string]: any }; // Add support for custom fields
 }
 
 export interface CommentRequest {
@@ -61,12 +62,23 @@ export interface MergeRequest {
   reason: string;
 }
 
-const API_BASE = 'http://localhost:5015/api/tickets-v2';
+const API_BASE = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets-v2`;
+
+// Helper function to get auth headers
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 export const ticketsV2Api = {
-  // Get Single Ticket
+  // Get single ticket
   async getTicket(ticketId: string): Promise<any> {
-    const response = await fetch(`${API_BASE}/${ticketId}`);
+    const response = await fetch(`${API_BASE}/${ticketId}`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get ticket: ${response.statusText}`);
     }
@@ -75,19 +87,19 @@ export const ticketsV2Api = {
 
   // Comments
   async getComments(ticketId: string): Promise<TicketV2Comment[]> {
-    const response = await fetch(`${API_BASE}/${ticketId}/comments`);
+    const response = await fetch(`${API_BASE}/${ticketId}/comments`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get comments: ${response.statusText}`);
     }
     return response.json();
   },
 
-  async addComment(ticketId: string, comment: CommentRequest): Promise<any> {
+  async addComment(ticketId: string, comment: { content: string; isInternal: boolean }): Promise<any> {
     const response = await fetch(`${API_BASE}/${ticketId}/comments`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(comment),
     });
     if (!response.ok) {
@@ -98,7 +110,9 @@ export const ticketsV2Api = {
 
   // Categories
   async getCategories(): Promise<Category[]> {
-    const response = await fetch(`${API_BASE}/categories`);
+    const response = await fetch(`${API_BASE}/categories`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get categories: ${response.statusText}`);
     }
@@ -107,7 +121,9 @@ export const ticketsV2Api = {
 
   // SubCategories
   async getSubCategories(categoryId: number): Promise<SubCategory[]> {
-    const response = await fetch(`${API_BASE}/categories/${categoryId}/subcategories`);
+    const response = await fetch(`${API_BASE}/categories/${categoryId}/subcategories`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get subcategories: ${response.statusText}`);
     }
@@ -116,7 +132,9 @@ export const ticketsV2Api = {
 
   // Agents
   async getAgents(): Promise<Agent[]> {
-    const response = await fetch(`${API_BASE}/agents`);
+    const response = await fetch(`${API_BASE}/agents`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get agents: ${response.statusText}`);
     }
@@ -127,9 +145,7 @@ export const ticketsV2Api = {
   async updateTicket(ticketId: string, update: TicketUpdateRequest): Promise<any> {
     const response = await fetch(`${API_BASE}/${ticketId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(update),
     });
     if (!response.ok) {
@@ -142,9 +158,7 @@ export const ticketsV2Api = {
   async deleteTicket(ticketId: string, reason: string): Promise<any> {
     const response = await fetch(`${API_BASE}/${ticketId}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ reason }),
     });
     if (!response.ok) {
@@ -160,7 +174,9 @@ export const ticketsV2Api = {
       params.append('excludeTicketId', excludeTicketId);
     }
     
-    const response = await fetch(`${API_BASE}/search?${params}`);
+    const response = await fetch(`${API_BASE}/search?${params}`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to search tickets: ${response.statusText}`);
     }
@@ -171,9 +187,7 @@ export const ticketsV2Api = {
   async mergeTickets(primaryTicketId: string, mergeRequest: MergeRequest): Promise<any> {
     const response = await fetch(`${API_BASE}/${primaryTicketId}/merge`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(mergeRequest),
     });
     if (!response.ok) {
@@ -184,7 +198,9 @@ export const ticketsV2Api = {
 
   // Get Merged Tickets Info
   async getMergedInfo(ticketId: string): Promise<any> {
-    const response = await fetch(`${API_BASE}/${ticketId}/merged-info`);
+    const response = await fetch(`${API_BASE}/${ticketId}/merged-info`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get merged info: ${response.statusText}`);
     }
@@ -195,9 +211,7 @@ export const ticketsV2Api = {
   async replyEmail(ticketId: string, replyMessage: string, sentByUserId?: string): Promise<any> {
     const response = await fetch(`${API_BASE}/${ticketId}/reply-email`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ replyMessage, sentByUserId }),
     });
     if (!response.ok) {
@@ -209,9 +223,7 @@ export const ticketsV2Api = {
   async forwardEmail(ticketId: string, recipientEmail: string, forwardMessage: string, recipientName?: string, sentByUserId?: string): Promise<any> {
     const response = await fetch(`${API_BASE}/${ticketId}/forward-email`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ recipientEmail, recipientName, forwardMessage, sentByUserId }),
     });
     if (!response.ok) {
@@ -223,9 +235,7 @@ export const ticketsV2Api = {
   async processEmail(fromEmail: string, subject: string, body: string): Promise<any> {
     const response = await fetch(`${API_BASE}/process-email`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ fromEmail, subject, body }),
     });
     if (!response.ok) {

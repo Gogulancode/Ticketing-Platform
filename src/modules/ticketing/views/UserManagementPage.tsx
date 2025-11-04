@@ -68,6 +68,20 @@ const UserManagementPage: React.FC = () => {
     isAgent: false,
   });
 
+  // Edit user form state
+  const [editUserForm, setEditUserForm] = useState({
+    username: '',
+    email: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    roles: [] as string[],
+    department: '',
+    position: '',
+    isActive: true,
+    isAgent: false,
+  });
+
   // View user modal
   const [viewingUser, setViewingUser] = useState<User | null>(null);
 
@@ -120,7 +134,7 @@ const UserManagementPage: React.FC = () => {
       }
 
       // API call via proxy to backend server with pagination and search
-      const response = await fetch(`/api/users?${params.toString()}`);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users?${params.toString()}`);
       if (response.ok) {
         const userData = await response.json();
         // Backend returns {users: [...], pagination: {...}} structure
@@ -194,7 +208,7 @@ const UserManagementPage: React.FC = () => {
     setLoading(true);
     try {
       // API call via proxy to backend server
-      const response = await fetch('/api/tickets/settings/agents');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets/settings/agents`);
       if (response.ok) {
         const agentData = await response.json();
         // Backend returns array directly for agents
@@ -248,7 +262,7 @@ const UserManagementPage: React.FC = () => {
     setLoading(true);
     try {
       // API call via proxy to backend server
-      const response = await fetch('/api/users', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -295,8 +309,8 @@ const UserManagementPage: React.FC = () => {
   const handleConvertToAgent = async (userId: string) => {
     setLoading(true);
     try {
-      // API call via proxy to backend server for agent conversion
-      const response = await fetch(`/api/ticketing/acl/convert-to-agent/${userId}`, {
+      // API call to backend server for agent conversion
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/ticketing/acl/convert-to-agent/${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -306,7 +320,8 @@ const UserManagementPage: React.FC = () => {
         loadUsers(currentPage, searchTerm);
         loadAgents();
       } else {
-        setError('Failed to convert user to agent');
+        const errorData = await response.json();
+        setError(errorData.Message || 'Failed to convert user to agent');
       }
     } catch (err) {
       setError('Failed to convert user to agent');
@@ -320,7 +335,7 @@ const UserManagementPage: React.FC = () => {
     setLoading(true);
     try {
       // API call via proxy to backend server for user status toggle
-      const response = await fetch(`/api/users/${userId}/status`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users/${userId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !currentStatus }),
@@ -340,11 +355,81 @@ const UserManagementPage: React.FC = () => {
     }
   };
 
+  // Handle editing user
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setEditUserForm({
+      username: user.username,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phone: user.phone || '',
+      roles: user.roles || [],
+      department: user.department || '',
+      position: user.position || '',
+      isActive: user.isActive,
+      isAgent: user.isAgent || false,
+    });
+  };
+
+  // Update user
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('🔄 Updating user:', editingUser.id);
+      console.log('📝 Update data:', editUserForm);
+      
+      const apiUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users/${editingUser.id}`;
+      console.log('🌐 API URL:', apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editUserForm),
+      });
+
+      console.log('📡 Response status:', response.status);
+      
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log('✅ Update successful:', responseData);
+        setSuccess('User updated successfully');
+        setEditingUser(null);
+        setEditUserForm({
+          username: '',
+          email: '',
+          firstName: '',
+          lastName: '',
+          phone: '',
+          roles: [],
+          department: '',
+          position: '',
+          isActive: true,
+          isAgent: false,
+        });
+        await loadUsers(currentPage);
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Update failed:', errorData);
+        setError(errorData.message || 'Failed to update user');
+      }
+    } catch (err) {
+      setError('Failed to update user');
+      console.error('Error updating user:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const toggleAgentStatus = async (agentId: number) => {
     setLoading(true);
     try {
       // API call via proxy to backend server for agent status toggle
-      const response = await fetch(`/api/tickets/settings/agents/${agentId}/status`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets/settings/agents/${agentId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -638,7 +723,7 @@ const UserManagementPage: React.FC = () => {
                             <Eye className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => setEditingUser(user)}
+                            onClick={() => handleEditUser(user)}
                             className="text-gray-600 hover:text-gray-900"
                             title="Edit User"
                           >
@@ -842,7 +927,7 @@ const UserManagementPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(agent.createdAt).toLocaleDateString()}
+                        {new Date(agent.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
@@ -1136,7 +1221,7 @@ const UserManagementPage: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Created</label>
                     <p className="text-sm text-gray-900">
-                      {new Date(viewingUser.createdAt).toLocaleDateString()}
+                      {new Date(viewingUser.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                     </p>
                   </div>
                   <div>
@@ -1230,30 +1315,154 @@ const UserManagementPage: React.FC = () => {
       {/* Edit User Dialog */}
       {editingUser && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Edit User: {editingUser.firstName} {editingUser.lastName}
             </h3>
-            <p className="text-sm text-gray-600 mb-6">
-              User editing functionality will be implemented in the next phase. For now, you can view user details and convert to agent.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setEditingUser(null)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  // TODO: Implement edit functionality
-                  setEditingUser(null);
-                }}
-                className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700"
-              >
-                Edit (Coming Soon)
-              </button>
-            </div>
+            
+            <form onSubmit={(e) => { e.preventDefault(); handleUpdateUser(); }} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                  <input
+                    type="text"
+                    value={editUserForm.username}
+                    onChange={(e) => setEditUserForm({...editUserForm, username: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={editUserForm.email}
+                    onChange={(e) => setEditUserForm({...editUserForm, email: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                  <input
+                    type="text"
+                    value={editUserForm.firstName}
+                    onChange={(e) => setEditUserForm({...editUserForm, firstName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    value={editUserForm.lastName}
+                    onChange={(e) => setEditUserForm({...editUserForm, lastName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={editUserForm.phone}
+                    onChange={(e) => setEditUserForm({...editUserForm, phone: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                  <select
+                    value={editUserForm.department}
+                    onChange={(e) => setEditUserForm({...editUserForm, department: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="">Select Department</option>
+                    {availableDepartments.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
+                <input
+                  type="text"
+                  value={editUserForm.position}
+                  onChange={(e) => setEditUserForm({...editUserForm, position: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Roles</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {availableRoles.map(role => (
+                    <label key={role} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={editUserForm.roles.includes(role)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setEditUserForm({...editUserForm, roles: [...editUserForm.roles, role]});
+                          } else {
+                            setEditUserForm({...editUserForm, roles: editUserForm.roles.filter(r => r !== role)});
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      {role}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={editUserForm.isActive}
+                    onChange={(e) => setEditUserForm({...editUserForm, isActive: e.target.checked})}
+                    className="mr-2"
+                  />
+                  Active User
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={editUserForm.isAgent}
+                    onChange={(e) => setEditUserForm({...editUserForm, isAgent: e.target.checked})}
+                    className="mr-2"
+                  />
+                  Ticketing Agent
+                </label>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loading ? 'Updating...' : 'Update User'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -6,7 +6,7 @@ import { AuthProvider } from './contexts/AuthContext';
 
 // Shared components
 import { Layout } from '@/shared';
-import { Dashboard, Profile, LandingPage } from '@/shared';
+import { Dashboard, LandingPage, Profile, Notifications } from '@/shared';
 
 // Auth pages - Use the correct JWT-based login
 import Login from './pages/Login';
@@ -97,6 +97,18 @@ function App() {
               <Route path=":ticketId" element={<TicketDetailPage />} />
               <Route path=":ticketId/edit" element={<TicketEditPage />} />
             </Route>
+
+            {/* Profile and Notifications - accessible from both modules, standalone pages */}
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/notifications" element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            } />
 
             {/* Training routes with training layout */}
             <Route path="/training/*" element={

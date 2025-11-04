@@ -4,6 +4,7 @@ using ERPTraining.Core.DTOs;
 using ERPTraining.Core.Entities;
 using ERPTraining.Core.Interfaces;
 using ERPTraining.Infrastructure.Data;
+using TrainingModule = ERPTraining.Core.Training.Entities.Module;
 
 namespace ERPTraining.Infrastructure.Services;
 
@@ -37,7 +38,7 @@ public class ModuleService : IModuleService
         foreach (var moduleDto in moduleDtos)
         {
             var progress = userProgress.FirstOrDefault(up => up.ModuleId == moduleDto.Id);
-            moduleDto.Progress = progress?.CompletionPercentage ?? 0;
+            moduleDto.Progress = (int)(progress?.CompletionPercentage ?? 0);
             
             // Check if module is locked based on prerequisites
             moduleDto.IsLocked = await IsModuleLockedAsync(moduleDto.Id, userId);
@@ -61,7 +62,7 @@ public class ModuleService : IModuleService
         var progress = await _context.UserModuleProgress
             .FirstOrDefaultAsync(ump => ump.UserId == userId && ump.ModuleId == id);
 
-        moduleDto.Progress = progress?.CompletionPercentage ?? 0;
+        moduleDto.Progress = (int)(progress?.CompletionPercentage ?? 0);
         moduleDto.IsLocked = await IsModuleLockedAsync(id, userId);
 
         return moduleDto;
@@ -69,7 +70,7 @@ public class ModuleService : IModuleService
 
     public async Task<ModuleDto> CreateModuleAsync(CreateModuleDto createModuleDto)
     {
-        var module = _mapper.Map<Module>(createModuleDto);
+        var module = _mapper.Map<TrainingModule>(createModuleDto);
         module.CreatedAt = DateTime.UtcNow;
         module.UpdatedAt = DateTime.UtcNow;
 

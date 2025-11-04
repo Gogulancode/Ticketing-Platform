@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ArrowLeft, ArrowRight, GitMerge, Calendar, User, MessageSquare, ExternalLink, Eye } from 'lucide-react';
 import { settingsApi, TicketStatusConfig, PriorityLevel } from '../../../shared/services/api/settingsApi';
+import { API_CONFIG } from '../../../config/api';
 
 interface MergedTicket {
   id: string;
@@ -85,7 +86,7 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
       const ticketDetails = await Promise.all(
         mergedTickets.map(async (ticketId) => {
           try {
-            const response = await fetch(`http://localhost:5015/api/tickets-v2/${ticketId}`);
+            const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${ticketId}`);
             if (response.ok) {
               return await response.json();
             }
@@ -280,7 +281,8 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
                       <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4 text-gray-400" />
                         <span className="text-gray-600">
-                          {new Date(currentTicket.createdAt).toLocaleDateString('en-US', {
+                          {new Date(currentTicket.createdAt).toLocaleDateString('en-IN', {
+                            timeZone: 'Asia/Kolkata',
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric',

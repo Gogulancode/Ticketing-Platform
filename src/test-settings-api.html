@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .loading { background-color: #fff3cd; color: #856404; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        input, textarea { width: 300px; padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
+        .form-group { margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Settings API Test - Database Integration</h1>
+        
+        <div class="test-section">
+            <h2>📊 Get Categories (Database)</h2>
+            <button onclick="getCategories()">Get All Categories from Database</button>
+            <div id="categories-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>➕ Create New Category</h2>
+            <div class="form-group">
+                <label>Category Name:</label><br>
+                <input type="text" id="category-name" value="Custom Category Test" />
+            </div>
+            <div class="form-group">
+                <label>Description:</label><br>
+                <textarea id="category-description" rows="3">This is a test category created to verify database integration</textarea>
+            </div>
+            <button onclick="createCategory()">Create Category in Database</button>
+            <div id="create-category-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Database Verification</h2>
+            <p>After creating a category, check if it appears in the database and frontend.</p>
+            <button onclick="verifyDatabase()">Verify Category in Database</button>
+            <div id="verify-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5015/api';
+        
+        // Mock token for testing
+        const mockToken = 'test-token';
+
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${mockToken}`,
+                        ...options.headers
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        function updateResult(elementId, content, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = content;
+            element.className = isError ? 'error' : 'success';
+        }
+
+        function setLoading(elementId, message = 'Loading...') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = 'loading';
+        }
+
+        async function getCategories() {
+            setLoading('categories-result', 'Getting categories from database...');
+            try {
+                const categories = await apiCall('/settings/categories');
+                updateResult('categories-result', `
+                    <h3>📋 Categories in Database (${categories.length})</h3>
+                    ${categories.length === 0 ? 
+                        '<p>No categories found in database</p>' : 
+                        categories.map(cat => `
+                            <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                                <strong>${cat.name}</strong> (ID: ${cat.id})<br>
+                                Description: ${cat.description || 'No description'}<br>
+                                Active: ${cat.isActive ? 'Yes' : 'No'} | Order: ${cat.order}<br>
+                                <small>Created: ${new Date(cat.createdAt).toLocaleString()}</small>
+                            </div>
+                        `).join('')
+                    }
+                    <pre>${JSON.stringify(categories, null, 2)}</pre>
+                `);
+            } catch (error) {
+                updateResult('categories-result', `❌ Error getting categories: ${error.message}`, true);
+            }
+        }
+
+        async function createCategory() {
+            setLoading('create-category-result', 'Creating category in database...');
+            try {
+                const categoryData = {
+                    name: document.getElementById('category-name').value,
+                    description: document.getElementById('category-description').value,
+                    isActive: true,
+                    order: 0
+                };
+
+                const result = await apiCall('/settings/categories', {
+                    method: 'POST',
+                    body: JSON.stringify(categoryData)
+                });
+
+                updateResult('create-category-result', `
+                    <h3>✅ Category Created Successfully!</h3>
+                    <p><strong>ID:</strong> ${result.id}</p>
+                    <p><strong>Name:</strong> ${result.name}</p>
+                    <p><strong>Description:</strong> ${result.description}</p>
+                    <p><strong>Created:</strong> ${new Date(result.createdAt).toLocaleString()}</p>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `);
+
+                // Auto-refresh categories list
+                setTimeout(() => getCategories(), 1000);
+            } catch (error) {
+                updateResult('create-category-result', `❌ Error creating category: ${error.message}`, true);
+            }
+        }
+
+        async function verifyDatabase() {
+            setLoading('verify-result', 'Verifying database integration...');
+            try {
+                // Test multiple endpoints to verify full integration
+                const [categories, departments, priorities] = await Promise.all([
+                    apiCall('/settings/categories'),
+                    apiCall('/settings/departments'),
+                    apiCall('/settings/priorities')
+                ]);
+
+                updateResult('verify-result', `
+                    <h3>✅ Database Integration Verified!</h3>
+                    <ul>
+                        <li><strong>Categories:</strong> ${categories.length} found</li>
+                        <li><strong>Departments:</strong> ${departments.length} found</li>
+                        <li><strong>Priorities:</strong> ${priorities.length} found</li>
+                    </ul>
+                    <p>🎉 Settings system is now fully integrated with the database!</p>
+                    <p><strong>Next Steps:</strong></p>
+                    <ol>
+                        <li>Go to <a href="/tickets/settings" target="_blank">Settings Page</a></li>
+                        <li>Create a new category</li>
+                        <li>Verify it appears in both the UI and database</li>
+                    </ol>
+                `);
+            } catch (error) {
+                updateResult('verify-result', `❌ Database integration issue: ${error.message}`, true);
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = function() {
+            getCategories();
+        };
+    </script>
+</body>
+</html>

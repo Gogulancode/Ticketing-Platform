@@ -5,6 +5,8 @@ using ERPTraining.Core.Entities;
 using ERPTraining.Core.Interfaces;
 using ERPTraining.Infrastructure.Data;
 
+using ERPTraining.Core.Training.Entities;
+
 namespace ERPTraining.Infrastructure.Services;
 
 public class AssessmentService : IAssessmentService

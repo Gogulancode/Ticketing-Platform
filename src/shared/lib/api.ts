@@ -66,7 +66,7 @@ export const deleteSection = async (sectionId: number) => {
 
 // Auth API
 export const getCurrentUser = async () => {
-  return apiFetch('/auth/current-user');
+  return apiFetch('/auth/me');
 };
 
 export const updateProfile = async (profileData: any) => {

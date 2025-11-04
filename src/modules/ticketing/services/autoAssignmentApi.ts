@@ -1,6 +1,6 @@
 // Auto Assignment API service
-const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5015';
-const API_ENDPOINT = `${API_BASE}/api`;
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5015/api';
+const API_ENDPOINT = API_BASE;
 
 function getToken(): string | null {
   return localStorage.getItem('token');

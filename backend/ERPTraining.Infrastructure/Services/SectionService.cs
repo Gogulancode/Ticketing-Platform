@@ -4,6 +4,7 @@ using ERPTraining.Core.DTOs;
 using ERPTraining.Core.Entities;
 using ERPTraining.Core.Interfaces;
 using ERPTraining.Infrastructure.Data;
+using TrainingSection = ERPTraining.Core.Training.Entities.Section;
 
 namespace ERPTraining.Infrastructure.Services;
 
@@ -60,6 +61,7 @@ public class SectionService : ISectionService
             Console.WriteLine($"Error in GetSectionsByModuleAsync: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
             throw; // Re-throw to let the controller handle it
+        }
     }
 
     public async Task<List<SectionDto>> GetSectionsByModuleIdAsync(int moduleId, string userId)
@@ -97,7 +99,7 @@ public class SectionService : ISectionService
 
     public async Task<SectionDto> CreateSectionAsync(CreateSectionDto createSectionDto)
     {
-        var section = _mapper.Map<Section>(createSectionDto);
+        var section = _mapper.Map<TrainingSection>(createSectionDto);
         section.CreatedAt = DateTime.UtcNow;
         section.UpdatedAt = DateTime.UtcNow;
 

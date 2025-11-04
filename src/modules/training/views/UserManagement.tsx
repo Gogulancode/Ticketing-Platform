@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Edit, Trash2, UserPlus, Shield, Mail, Phone, CheckCircle, XCircle, Eye, X, Save } from 'lucide-react';
+import { formatDateIST } from '../../../shared/utils/dateUtils';
 
 interface User {
   id: string;
@@ -1407,7 +1408,7 @@ const UserManagement: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Created</label>
-                  <p className="text-sm text-gray-900 mt-1">{new Date(viewingUser.createdAt).toLocaleDateString()}</p>
+                  <p className="text-sm text-gray-900 mt-1">{formatDateIST(viewingUser.createdAt)}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Last Login</label>

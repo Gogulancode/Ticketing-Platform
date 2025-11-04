@@ -3,8 +3,10 @@ import AdvancedSettingsTabs from '../../../components/ticketing/settings/Advance
 
 const TicketSettingsPage: React.FC = () => {
   return (
-    <div className="text-sm leading-snug space-y-sm">
-      <AdvancedSettingsTabs />
+    <div className="text-sm leading-snug space-y-sm max-w-full overflow-hidden">
+      <div className="px-4 lg:px-6 xl:px-8">
+        <AdvancedSettingsTabs />
+      </div>
     </div>
   );
 };

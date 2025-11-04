@@ -1,5 +1,6 @@
 using ERPTraining.Core.DTOs.Ticketing.Sla;
 using ERPTraining.Core.Interfaces.Ticketing;
+using ERPTraining.Infrastructure.Services.Ticketing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,7 +8,6 @@ namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
 [Route("api/tickets/settings/sla")]
-[Authorize] // Enable when JWT is fully implemented
 // [Authorize] // Temporarily disabled for testing
 public class SlaController : ControllerBase
 {
@@ -172,6 +172,40 @@ public class SlaController : ControllerBase
     }
 
     // Escalation Contacts Management
+
+    /// <summary>
+    /// Get all escalation contacts (optionally filtered by policy)
+    /// </summary>
+    [HttpGet("contacts")]
+    public async Task<ActionResult<IEnumerable<SlaEscalationContactDto>>> GetAllEscalationContacts(
+        [FromQuery] int? policyId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Cast to SimpleSlaService to access the method with optional parameter
+            if (_slaService is SimpleSlaService simpleSlaService)
+            {
+                var contacts = await simpleSlaService.GetEscalationContactsAsync(policyId, cancellationToken);
+                return Ok(contacts);
+            }
+            else if (policyId.HasValue)
+            {
+                var contacts = await _slaService.GetEscalationContactsAsync(policyId.Value, cancellationToken);
+                return Ok(contacts);
+            }
+            else
+            {
+                // Return empty list if no policyId and not SimpleSlaService
+                return Ok(new List<SlaEscalationContactDto>());
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving escalation contacts");
+            return BadRequest($"Error retrieving escalation contacts: {ex.Message}");
+        }
+    }
 
     /// <summary>
     /// Get escalation contacts for an SLA policy

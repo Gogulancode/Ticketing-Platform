@@ -64,26 +64,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return null;
       }
 
-      // Get the current user from the auth endpoint with JWT token
-      const userResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/auth/me`, {
+      // Fetch current user info from the API
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api';
+      const response = await fetch(`${apiBaseUrl}/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        },
       });
 
-      if (!userResponse.ok) {
-        console.error('❌ Failed to get current user, clearing invalid token');
-        // Clear invalid token
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+      if (!response.ok) {
+        console.error('❌ Failed to fetch user:', response.status);
         return null;
       }
+
+      const userData = await response.json();
+      console.log('✅ User fetched from API:', userData.email);
       
-      const userData = await userResponse.json();
-      console.log('✅ Authenticated user loaded:', userData.email);
-      
-      // For now, create a mock permission set for the authenticated user
+      // Create permission set for the authenticated user
       return {
         userId: userData.id,
         userName: userData.userName || `${userData.firstName} ${userData.lastName}`,

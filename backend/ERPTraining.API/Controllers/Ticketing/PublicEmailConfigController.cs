@@ -6,14 +6,14 @@ namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
 [Route("api")]
-public class PublicEmailConfigController : ControllerBase
+public class PublicEmailConfigController_Disabled : ControllerBase
 {
     private readonly ApplicationDbContext _context;
-    private readonly ILogger<PublicEmailConfigController> _logger;
+    private readonly ILogger<PublicEmailConfigController_Disabled> _logger;
 
-    public PublicEmailConfigController(
+    public PublicEmailConfigController_Disabled(
         ApplicationDbContext context,
-        ILogger<PublicEmailConfigController> logger)
+        ILogger<PublicEmailConfigController_Disabled> logger)
     {
         _context = context;
         _logger = logger;
@@ -55,7 +55,7 @@ public class PublicEmailConfigController : ControllerBase
     /// <summary>
     /// Public endpoint for email accounts (no auth required)
     /// </summary>
-    [HttpGet("email-config/accounts")]
+    [HttpGet("public/email-config/accounts")]
     public async Task<ActionResult<object[]>> GetEmailAccounts()
     {
         try
@@ -90,7 +90,7 @@ public class PublicEmailConfigController : ControllerBase
     /// <summary>
     /// Public endpoint for specific email account (no auth required)
     /// </summary>
-    [HttpGet("email-config/accounts/{id:int}")]
+    [HttpGet("public/email-config/accounts/{id:int}")]
     public async Task<ActionResult<object>> GetEmailAccount(int id)
     {
         try
@@ -135,7 +135,7 @@ public class PublicEmailConfigController : ControllerBase
     /// <summary>
     /// Get available categories for email configuration
     /// </summary>
-    [HttpGet("email-config/categories")]
+    [HttpGet("public/email-config/categories")]
     public async Task<ActionResult<object[]>> GetAvailableCategories()
     {
         try

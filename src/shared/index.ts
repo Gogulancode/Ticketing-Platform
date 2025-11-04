@@ -13,6 +13,7 @@ export { default as PermissionManager } from './components/PermissionManager';
 export { default as Dashboard } from './components/Dashboard';
 export { default as LoginOld } from './components/Login'; // OLD DEMO LOGIN - DO NOT USE
 export { default as Profile } from './components/Profile';
+export { default as Notifications } from './components/Notifications';
 export { default as LandingPage } from './views/LandingPage';
 
 // Add shared utilities, hooks, and services here as they are created

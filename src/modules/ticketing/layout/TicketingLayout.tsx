@@ -38,17 +38,13 @@ const TicketingLayout: React.FC = () => {
     window.location.replace('/login');
   };
 
-  // Check if we're on mobile/tablet and auto-open sidebar on desktop
+  // Check if we're on mobile/tablet - sidebar closed by default
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 1024; // lg breakpoint
       setIsMobile(mobile);
-      // Auto-open sidebar on desktop, closed on mobile
-      if (!mobile) {
-        setIsSidebarOpen(true);
-      } else {
-        setIsSidebarOpen(false);
-      }
+      // Sidebar closed by default on both mobile and desktop
+      // User can expand it using the hamburger menu
     };
     
     checkMobile();
@@ -126,10 +122,18 @@ const TicketingLayout: React.FC = () => {
             )}
             
             <div className="flex items-center space-x-3">
-              <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+              <button 
+                onClick={() => navigate('/notifications')}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Notifications"
+              >
                 <Bell className="w-5 h-5" />
               </button>
-              <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+              <button 
+                onClick={() => navigate('/profile')}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Profile"
+              >
                 <User className="w-5 h-5" />
               </button>
               <button 

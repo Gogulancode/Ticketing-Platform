@@ -56,7 +56,7 @@ const Settings: React.FC = () => {
   // Function to load data from API
   const checkAPIHealth = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/health');
+      const response = await fetch('http://localhost:5015/api/health');
       if (!response.ok) {
         console.warn('API health check returned non-OK status:', response.status);
         return false;

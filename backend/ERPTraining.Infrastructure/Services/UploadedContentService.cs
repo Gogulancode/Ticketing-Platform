@@ -1,4 +1,5 @@
-using ERPTraining.Core.Entities;
+using ERPTraining.Core.Training.Entities;
+using ERPTraining.Core.Interfaces;
 using ERPTraining.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;

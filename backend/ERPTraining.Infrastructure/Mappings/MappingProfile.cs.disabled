@@ -1,0 +1,60 @@
+using AutoMapper;
+using ERPTraining.Core.DTOs;
+using ERPTraining.Core.Entities;
+
+namespace ERPTraining.Infrastructure.Mappings;
+
+public class MappingProfile : Profile
+{
+    public MappingProfile()
+    {
+        // User mappings
+        CreateMap<User, UserDto>();
+        CreateMap<RegisterDto, User>()
+            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Email));
+
+        // Module mappings
+        CreateMap<Module, ModuleDto>()
+            .ForMember(dest => dest.Progress, opt => opt.Ignore())
+            .ForMember(dest => dest.IsLocked, opt => opt.Ignore());
+        CreateMap<CreateModuleDto, Module>();
+        CreateMap<UpdateModuleDto, Module>();
+
+        // Section mappings
+        CreateMap<Section, SectionDto>();
+        CreateMap<CreateSectionDto, Section>();
+        CreateMap<UpdateSectionDto, Section>();
+
+        // Lesson mappings
+        CreateMap<Lesson, LessonDto>()
+            .ForMember(dest => dest.IsCompleted, opt => opt.Ignore())
+            .ForMember(dest => dest.IsLocked, opt => opt.Ignore());
+        CreateMap<CreateLessonDto, Lesson>();
+        CreateMap<UpdateLessonDto, Lesson>();
+
+        // Assessment mappings
+        CreateMap<Assessment, AssessmentDto>()
+            .ForMember(dest => dest.ModuleName, opt => opt.MapFrom(src => src.Module.Title))
+            .ForMember(dest => dest.SectionName, opt => opt.MapFrom(src => src.Section != null ? src.Section.Title : null))
+            .ForMember(dest => dest.TotalQuestions, opt => opt.MapFrom(src => src.Questions.Count));
+        CreateMap<CreateAssessmentDto, Assessment>();
+        CreateMap<UpdateAssessmentDto, Assessment>();
+
+        // Question mappings
+        CreateMap<Question, QuestionDto>();
+        CreateMap<CreateQuestionDto, Question>();
+        CreateMap<UpdateQuestionDto, Question>();
+
+        // RoleMaster mappings
+        CreateMap<RoleMaster, RoleMasterDto>()
+            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.RoleId))
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.RoleName))
+            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Remarks));
+        CreateMap<CreateRoleMasterDto, RoleMaster>()
+            .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Name))
+            .ForMember(dest => dest.Remarks, opt => opt.MapFrom(src => src.Description));
+        CreateMap<UpdateRoleMasterDto, RoleMaster>()
+            .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Name))
+            .ForMember(dest => dest.Remarks, opt => opt.MapFrom(src => src.Description));
+    }
+}

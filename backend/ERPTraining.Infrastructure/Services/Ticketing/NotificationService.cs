@@ -5,11 +5,11 @@ namespace ERPTraining.Infrastructure.Services.Ticketing;
 
 public class NotificationService : INotificationService
 {
-    private readonly IEmailConfigurationService _emailService;
+    private readonly MicrosoftGraphEmailService _emailService;
     private readonly ILogger<NotificationService> _logger;
 
     public NotificationService(
-        IEmailConfigurationService emailService,
+        MicrosoftGraphEmailService emailService,
         ILogger<NotificationService> logger)
     {
         _emailService = emailService;
@@ -83,12 +83,11 @@ public class NotificationService : INotificationService
             
             foreach (var email in recipients)
             {
-                // Since we don't have direct access to email sending in the current EmailConfigurationService,
-                // we'll log the notification for now and recommend implementing email sending
-                _logger.LogWarning("SLA Breach Email would be sent to {Email}: {Subject}", email, subject);
+                // Send actual email using MicrosoftGraphEmailService
+                _logger.LogInformation("Sending SLA Breach Email to {Email}: {Subject}", email, subject);
                 
-                // TODO: Implement actual email sending when email service supports it
-                // await _emailService.SendEmailAsync(email, subject, body, cancellationToken);
+                await _emailService.SendEmailAsync(email, subject, body, isHtml: true);
+                _logger.LogInformation("Successfully sent SLA breach email to {Email}", email);
             }
 
             return true;
@@ -197,10 +196,10 @@ public class NotificationService : INotificationService
 
             foreach (var email in recipients)
             {
-                _logger.LogInformation("SLA Warning Email would be sent to {Email}: {Subject}", email, subject);
+                _logger.LogInformation("Sending SLA Warning Email to {Email}: {Subject}", email, subject);
                 
-                // TODO: Implement actual email sending
-                // await _emailService.SendEmailAsync(email, subject, body, cancellationToken);
+                await _emailService.SendEmailAsync(email, subject, body, isHtml: true);
+                _logger.LogInformation("Successfully sent SLA warning email to {Email}", email);
             }
 
             return true;

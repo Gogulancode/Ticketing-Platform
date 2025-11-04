@@ -6,7 +6,7 @@ public class SlaEscalationContact
 {
     public int Id { get; set; }
     
-    public int SlaPolicyId { get; set; }
+    public Guid SlaPolicyId { get; set; }
     public SlaPolicy SlaPolicy { get; set; } = null!;
     
     [Required]

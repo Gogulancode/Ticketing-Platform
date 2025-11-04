@@ -85,7 +85,8 @@ const MergedTicketsUI: React.FC<MergedTicketsUIProps> = ({ mergedInfo, onNavigat
                           </label>
                           <div className="mt-1 flex items-center text-sm text-gray-700">
                             <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                            {new Date(merge.mergedAt).toLocaleDateString('en-US', {
+                            {new Date(merge.mergedAt).toLocaleDateString('en-IN', {
+                              timeZone: 'Asia/Kolkata',
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric',
@@ -151,7 +152,8 @@ const MergedTicketsUI: React.FC<MergedTicketsUIProps> = ({ mergedInfo, onNavigat
                   </label>
                   <div className="mt-1 flex items-center text-sm text-gray-700">
                     <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                    {new Date(mergedInfo.wasMergedInto.mergedAt).toLocaleDateString('en-US', {
+                    {new Date(mergedInfo.wasMergedInto.mergedAt).toLocaleDateString('en-IN', {
+                      timeZone: 'Asia/Kolkata',
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',

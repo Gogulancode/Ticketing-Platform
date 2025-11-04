@@ -103,10 +103,10 @@ namespace ERPTraining.API.Controllers
                         email = GetAgentEmail(g.Key),
                         department = GetAgentDepartment(g.Key),
                         totalTickets = g.Count(),
-                        resolvedTickets = g.Count(t => t.Status == TicketStatus.Resolved), // Resolved status
+                        resolvedTickets = g.Count(t => t.Status == 4), // Resolved status ID
                         avgResponseTime = CalculateAverageResponseTime(g.ToList()),
                         avgResolutionTime = CalculateAverageResolutionTime(g.ToList()),
-                        resolutionRate = g.Count() > 0 ? (double)g.Count(t => t.Status == TicketStatus.Resolved) / g.Count() * 100 : 0,
+                        resolutionRate = g.Count() > 0 ? (double)g.Count(t => t.Status == 4) / g.Count() * 100 : 0,
                         satisfactionRating = GetAgentSatisfactionRating(g.Key)
                     }).ToList();
 
@@ -131,7 +131,7 @@ namespace ERPTraining.API.Controllers
             try
             {
                 var query = _context.Tickets
-                    .Where(t => t.Status != TicketStatus.Resolved && t.Status != TicketStatus.Closed) // Not resolved or closed
+                    .Where(t => t.Status != 4 && t.Status != 5) // Not resolved or closed
                     .AsQueryable();
 
                 // Apply filters
@@ -195,8 +195,8 @@ namespace ERPTraining.API.Controllers
                     query = query.Where(t => t.Category == categoryEnum);
                 if (!string.IsNullOrEmpty(priority) && Enum.TryParse<TicketPriority>(priority, out var priorityEnum))
                     query = query.Where(t => t.Priority == priorityEnum);
-                if (!string.IsNullOrEmpty(status) && Enum.TryParse<TicketStatus>(status, out var statusEnum))
-                    query = query.Where(t => t.Status == statusEnum);
+                if (!string.IsNullOrEmpty(status) && int.TryParse(status, out var statusId))
+                    query = query.Where(t => t.Status == statusId);
                 if (!string.IsNullOrEmpty(agent))
                     query = query.Where(t => t.AssignedToUserId == agent);
                 if (!string.IsNullOrEmpty(search))

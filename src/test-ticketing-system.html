@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticketing System Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .loading { background-color: #fff3cd; color: #856404; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        input, textarea, select { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        .form-group { margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎫 Ticketing System Test - September 25th Deadline</h1>
+        
+        <div class="test-section">
+            <h2>🔍 API Connectivity Test</h2>
+            <button onclick="testApiConnectivity()">Test API Connection</button>
+            <div id="connectivity-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Statistics Test</h2>
+            <button onclick="getStatistics()">Get Ticket Statistics</button>
+            <div id="stats-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎫 Create Test Ticket</h2>
+            <div class="form-group">
+                <label>Title:</label>
+                <input type="text" id="ticket-title" value="Test Ticket - Sept 25th Ready" />
+            </div>
+            <div class="form-group">
+                <label>Description:</label>
+                <textarea id="ticket-description" rows="3">This is a test ticket to verify the ticketing system is working for the September 25th, 2025 deadline.</textarea>
+            </div>
+            <div class="form-group">
+                <label>Category:</label>
+                <select id="ticket-category">
+                    <option value="0">General</option>
+                    <option value="1">Technical</option>
+                    <option value="2">Content</option>
+                    <option value="3">Assessment</option>
+                    <option value="4">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Priority:</label>
+                <select id="ticket-priority">
+                    <option value="0">Low</option>
+                    <option value="1">Medium</option>
+                    <option value="2">High</option>
+                    <option value="3">Critical</option>
+                </select>
+            </div>
+            <button onclick="createTicket()">Create Ticket</button>
+            <div id="create-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 View All Tickets</h2>
+            <button onclick="getAllTickets()">Get All Tickets</button>
+            <div id="tickets-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>💬 Test Comment (on last created ticket)</h2>
+            <div class="form-group">
+                <label>Comment:</label>
+                <input type="text" id="comment-text" value="System verification comment - ticketing ready for production!" />
+            </div>
+            <button onclick="addComment()">Add Comment</button>
+            <div id="comment-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5015/api';
+        let lastCreatedTicketId = null;
+
+        // Mock authentication token for testing
+        const mockToken = 'test-token';
+
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${mockToken}`,
+                        ...options.headers
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        function updateResult(elementId, content, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = content;
+            element.className = isError ? 'error' : 'success';
+        }
+
+        function setLoading(elementId, message = 'Loading...') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = 'loading';
+        }
+
+        async function testApiConnectivity() {
+            setLoading('connectivity-result', 'Testing API connectivity...');
+            try {
+                // Try to hit the simplest endpoint
+                const response = await fetch(`${API_BASE}/tickets/statistics`);
+                if (response.status === 401) {
+                    updateResult('connectivity-result', '✅ API is accessible (401 Unauthorized expected - need authentication)');
+                } else if (response.ok) {
+                    updateResult('connectivity-result', '✅ API is accessible and working!');
+                } else {
+                    updateResult('connectivity-result', `⚠️ API responded with status: ${response.status}`, true);
+                }
+            } catch (error) {
+                updateResult('connectivity-result', `❌ API Connection Failed: ${error.message}`, true);
+            }
+        }
+
+        async function getStatistics() {
+            setLoading('stats-result', 'Getting ticket statistics...');
+            try {
+                const stats = await apiCall('/tickets/statistics');
+                updateResult('stats-result', `
+                    <h3>📊 Ticket Statistics</h3>
+                    <ul>
+                        <li>Total: ${stats.total}</li>
+                        <li>Open: ${stats.open}</li>
+                        <li>In Progress: ${stats.inProgress}</li>
+                        <li>Resolved: ${stats.resolved}</li>
+                        <li>Closed: ${stats.closed}</li>
+                    </ul>
+                    <pre>${JSON.stringify(stats, null, 2)}</pre>
+                `);
+            } catch (error) {
+                updateResult('stats-result', `❌ Statistics Error: ${error.message}`, true);
+            }
+        }
+
+        async function createTicket() {
+            setLoading('create-result', 'Creating ticket...');
+            try {
+                const ticket = {
+                    title: document.getElementById('ticket-title').value,
+                    description: document.getElementById('ticket-description').value,
+                    category: parseInt(document.getElementById('ticket-category').value),
+                    priority: parseInt(document.getElementById('ticket-priority').value)
+                };
+
+                const result = await apiCall('/tickets', {
+                    method: 'POST',
+                    body: JSON.stringify(ticket)
+                });
+
+                lastCreatedTicketId = result.id;
+                updateResult('create-result', `
+                    <h3>✅ Ticket Created Successfully!</h3>
+                    <p><strong>ID:</strong> ${result.id}</p>
+                    <p><strong>Title:</strong> ${result.title}</p>
+                    <p><strong>Status:</strong> ${result.status}</p>
+                    <p><strong>Created:</strong> ${new Date(result.createdAt).toLocaleString()}</p>
+                `);
+            } catch (error) {
+                updateResult('create-result', `❌ Create Ticket Error: ${error.message}`, true);
+            }
+        }
+
+        async function getAllTickets() {
+            setLoading('tickets-result', 'Getting all tickets...');
+            try {
+                const tickets = await apiCall('/tickets');
+                updateResult('tickets-result', `
+                    <h3>📋 All Tickets (${tickets.length})</h3>
+                    ${tickets.length === 0 ? '<p>No tickets found</p>' : 
+                      tickets.map(ticket => `
+                        <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                            <strong>${ticket.title}</strong> (ID: ${ticket.id})<br>
+                            Status: ${ticket.status} | Priority: ${ticket.priority} | Category: ${ticket.category}<br>
+                            <small>Created: ${new Date(ticket.createdAt).toLocaleString()}</small>
+                        </div>
+                      `).join('')
+                    }
+                `);
+            } catch (error) {
+                updateResult('tickets-result', `❌ Get Tickets Error: ${error.message}`, true);
+            }
+        }
+
+        async function addComment() {
+            if (!lastCreatedTicketId) {
+                updateResult('comment-result', '❌ Please create a ticket first!', true);
+                return;
+            }
+
+            setLoading('comment-result', 'Adding comment...');
+            try {
+                const comment = {
+                    content: document.getElementById('comment-text').value,
+                    isInternal: false
+                };
+
+                const result = await apiCall(`/tickets/${lastCreatedTicketId}/comments`, {
+                    method: 'POST',
+                    body: JSON.stringify(comment)
+                });
+
+                updateResult('comment-result', `
+                    <h3>✅ Comment Added Successfully!</h3>
+                    <p><strong>Ticket ID:</strong> ${lastCreatedTicketId}</p>
+                    <p><strong>Comment:</strong> ${result.body}</p>
+                    <p><strong>Created:</strong> ${new Date(result.createdAt).toLocaleString()}</p>
+                `);
+            } catch (error) {
+                updateResult('comment-result', `❌ Add Comment Error: ${error.message}`, true);
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = function() {
+            testApiConnectivity();
+        };
+    </script>
+</body>
+</html>

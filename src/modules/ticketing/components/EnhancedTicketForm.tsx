@@ -263,8 +263,8 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
           <textarea
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            rows={6}
-            className={`w-full px-3 py-2 border rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            rows={12}
+            className={`w-full px-3 py-2 border rounded-lg resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
               errors.description ? 'border-red-300' : 'border-gray-300'
             }`}
             placeholder="Please provide detailed information about your issue..."

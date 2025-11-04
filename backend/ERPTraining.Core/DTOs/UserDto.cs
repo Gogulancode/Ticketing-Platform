@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ERPTraining.Core.DTOs;
 
 public class UserDto
@@ -27,7 +29,13 @@ public class RegisterDto
 
 public class LoginDto
 {
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = string.Empty;
+    
+    [JsonPropertyName("userName")]
     public string UserName { get; set; } = string.Empty; // This should be an email address
+    
+    [JsonPropertyName("password")]
     public string Password { get; set; } = string.Empty;
 }
 

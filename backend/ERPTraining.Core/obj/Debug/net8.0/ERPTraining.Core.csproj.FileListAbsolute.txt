@@ -1,13 +1,13 @@
+D:\BabajiShivram_training\backend\ERPTraining.Core\bin\Debug\net8.0\ERPTraining.Core.deps.json
+D:\BabajiShivram_training\backend\ERPTraining.Core\bin\Debug\net8.0\ERPTraining.Core.runtimeconfig.json
+D:\BabajiShivram_training\backend\ERPTraining.Core\bin\Debug\net8.0\ERPTraining.Core.dll
+D:\BabajiShivram_training\backend\ERPTraining.Core\bin\Debug\net8.0\ERPTraining.Core.pdb
 D:\BabajiShivram_training\backend\ERPTraining.Core\obj\Debug\net8.0\ERPTraining.Core.csproj.AssemblyReference.cache
 D:\BabajiShivram_training\backend\ERPTraining.Core\obj\Debug\net8.0\ERPTraining.Core.GeneratedMSBuildEditorConfig.editorconfig
 D:\BabajiShivram_training\backend\ERPTraining.Core\obj\Debug\net8.0\ERPTraining.Core.AssemblyInfoInputs.cache
 D:\BabajiShivram_training\backend\ERPTraining.Core\obj\Debug\net8.0\ERPTraining.Core.AssemblyInfo.cs
 D:\BabajiShivram_training\backend\ERPTraining.Core\obj\Debug\net8.0\ERPTraining.Core.csproj.CoreCompileInputs.cache
 D:\BabajiShivram_training\backend\ERPTraining.Core\obj\Debug\net8.0\ERPTraining.Core.sourcelink.json
-D:\BabajiShivram_training\backend\ERPTraining.Core\bin\Debug\net8.0\ERPTraining.Core.deps.json
-D:\BabajiShivram_training\backend\ERPTraining.Core\bin\Debug\net8.0\ERPTraining.Core.runtimeconfig.json
-D:\BabajiShivram_training\backend\ERPTraining.Core\bin\Debug\net8.0\ERPTraining.Core.dll
-D:\BabajiShivram_training\backend\ERPTraining.Core\bin\Debug\net8.0\ERPTraining.Core.pdb
 D:\BabajiShivram_training\backend\ERPTraining.Core\obj\Debug\net8.0\ERPTraining.Core.dll
 D:\BabajiShivram_training\backend\ERPTraining.Core\obj\Debug\net8.0\refint\ERPTraining.Core.dll
 D:\BabajiShivram_training\backend\ERPTraining.Core\obj\Debug\net8.0\ERPTraining.Core.pdb

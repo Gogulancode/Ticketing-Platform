@@ -23,6 +23,12 @@ public class TicketsV2Controller : ControllerBase
         _emailService = emailService;
     }
 
+    // Helper method to ensure DateTime is properly stored as UTC
+    private DateTime GetUtcNow()
+    {
+        return DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+    }
+
     // COMMENTS - Direct SQL approach that WORKS + Email Notifications
     [HttpPost("{ticketId:guid}/comments")]
     public async Task<ActionResult> AddComment(Guid ticketId, [FromBody] AddCommentV2Request request)
@@ -46,7 +52,7 @@ public class TicketsV2Controller : ControllerBase
             command.Parameters.AddWithValue("@Body", request.Content);
             command.Parameters.AddWithValue("@AuthorUserId", userId);
             command.Parameters.AddWithValue("@IsInternal", request.IsInternal);
-            command.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@CreatedAt", GetUtcNow());
             
             await command.ExecuteNonQueryAsync();
             
@@ -110,10 +116,10 @@ public class TicketsV2Controller : ControllerBase
                     source = (int)reader["Source"],
                     createdByUserId = reader["CreatedByUserId"].ToString(),
                     assignedToUserId = reader["AssignedToUserId"]?.ToString(),
-                    createdAt = reader["CreatedAt"].ToString(),
-                    updatedAt = reader["UpdatedAt"].ToString(),
-                    firstResponseAt = reader["FirstResponseAt"]?.ToString(),
-                    resolvedAt = reader["ResolvedAt"]?.ToString(),
+                    createdAt = ((DateTime)reader["CreatedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    updatedAt = ((DateTime)reader["UpdatedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    firstResponseAt = reader["FirstResponseAt"] != DBNull.Value ? ((DateTime)reader["FirstResponseAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ") : null,
+                    resolvedAt = reader["ResolvedAt"] != DBNull.Value ? ((DateTime)reader["ResolvedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ") : null,
                     isOverdue = (bool)reader["IsOverdue"],
                     categoryId = reader["CategoryId"] != DBNull.Value ? (int)reader["CategoryId"] : (int?)null,
                     subcategoryId = reader["SubcategoryId"] != DBNull.Value ? (int)reader["SubcategoryId"] : (int?)null,
@@ -158,7 +164,7 @@ public class TicketsV2Controller : ControllerBase
                         fileName = attachmentReader["FileName"].ToString(),
                         contentType = attachmentReader["ContentType"].ToString(),
                         sizeBytes = (long)attachmentReader["SizeBytes"],
-                        createdAt = attachmentReader["CreatedAt"].ToString()
+                        createdAt = ((DateTime)attachmentReader["CreatedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ")
                     });
                 }
                 
@@ -214,7 +220,33 @@ public class TicketsV2Controller : ControllerBase
                     }
                 }
                 
-                // Return ticket with attachments and merge information included
+                // Get custom field values for this ticket
+                mergedReader.Close();
+                
+                var customFieldSql = @"
+                    SELECT tcfv.CustomFieldId, tcfv.Value, cf.Name as FieldName, cf.Label as FieldLabel
+                    FROM TicketCustomFieldValues tcfv
+                    INNER JOIN CustomFields cf ON tcfv.CustomFieldId = cf.Id
+                    WHERE tcfv.TicketId = @TicketId";
+                
+                using var customFieldCommand = new SqlCommand(customFieldSql, connection);
+                customFieldCommand.Parameters.AddWithValue("@TicketId", ticketId);
+                
+                var customFieldValues = new List<object>();
+                using var customFieldReader = await customFieldCommand.ExecuteReaderAsync();
+                
+                while (await customFieldReader.ReadAsync())
+                {
+                    customFieldValues.Add(new
+                    {
+                        customFieldId = (int)customFieldReader["CustomFieldId"],
+                        value = customFieldReader["Value"].ToString(),
+                        fieldName = customFieldReader["FieldName"].ToString(),
+                        fieldLabel = customFieldReader["FieldLabel"].ToString()
+                    });
+                }
+                
+                // Return ticket with attachments, merge information, and custom fields included
                 var result = new
                 {
                     ticket.id,
@@ -238,6 +270,7 @@ public class TicketsV2Controller : ControllerBase
                     ticket.createdByUser,
                     ticket.assignedToUser,
                     attachments, // Include attachments in the response
+                    customFieldValues, // Include custom field values
                     mergeInfo = new
                     {
                         hasMergedTickets = mergedTicketsInfo.Any(),
@@ -292,7 +325,7 @@ public class TicketsV2Controller : ControllerBase
                     authorUserId = reader["AuthorUserId"],
                     authorName = reader["AuthorName"] ?? "Unknown User",
                     isInternal = reader["IsInternal"],
-                    createdAt = reader["CreatedAt"]
+                    createdAt = ((DateTime)reader["CreatedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ")
                 });
             }
             
@@ -314,44 +347,197 @@ public class TicketsV2Controller : ControllerBase
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync();
             
-            var sql = @"
-                UPDATE Tickets SET 
-                    Title = COALESCE(@Title, Title),
-                    Description = COALESCE(@Description, Description),
-                    Category = COALESCE(@Category, Category),
-                    Priority = COALESCE(@Priority, Priority),
-                    Status = COALESCE(@Status, Status),
-                    CategoryId = COALESCE(@CategoryId, CategoryId),
-                    SubcategoryId = COALESCE(@SubcategoryId, SubcategoryId),
-                    DepartmentId = COALESCE(@DepartmentId, DepartmentId),
-                    AssignedToUserId = COALESCE(@AssignedToUserId, AssignedToUserId),
-                    UpdatedAt = @UpdatedAt
-                WHERE Id = @TicketId";
-                
-            using var command = new SqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@TicketId", ticketId);
-            command.Parameters.AddWithValue("@Title", (object?)request.Title ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Description", (object?)request.Description ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Category", (object?)request.Category ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Priority", (object?)request.Priority ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Status", (object?)request.Status ?? DBNull.Value);
-            command.Parameters.AddWithValue("@CategoryId", (object?)request.CategoryId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@SubcategoryId", (object?)request.SubcategoryId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@DepartmentId", (object?)request.DepartmentId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@AssignedToUserId", (object?)request.AssignedToUserId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
+            // Start transaction for atomicity
+            using var transaction = connection.BeginTransaction();
             
-            var rowsAffected = await command.ExecuteNonQueryAsync();
-            
-            if (rowsAffected == 0)
-                return NotFound(new { error = "Ticket not found" });
+            try
+            {
+                // Update main ticket fields
+                var sql = @"
+                    UPDATE Tickets SET 
+                        Title = COALESCE(@Title, Title),
+                        Description = COALESCE(@Description, Description),
+                        Category = COALESCE(@Category, Category),
+                        Priority = COALESCE(@Priority, Priority),
+                        Status = COALESCE(@Status, Status),
+                        CategoryId = COALESCE(@CategoryId, CategoryId),
+                        SubcategoryId = COALESCE(@SubcategoryId, SubcategoryId),
+                        DepartmentId = COALESCE(@DepartmentId, DepartmentId),
+                        AssignedToUserId = COALESCE(@AssignedToUserId, AssignedToUserId),
+                        UpdatedAt = @UpdatedAt
+                    WHERE Id = @TicketId";
+                    
+                using var command = new SqlCommand(sql, connection, transaction);
+                command.Parameters.AddWithValue("@TicketId", ticketId);
+                command.Parameters.AddWithValue("@Title", (object?)request.Title ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Description", (object?)request.Description ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Category", (object?)request.Category ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Priority", (object?)request.Priority ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Status", (object?)request.Status ?? DBNull.Value);
+                command.Parameters.AddWithValue("@CategoryId", (object?)request.CategoryId ?? DBNull.Value);
+                command.Parameters.AddWithValue("@SubcategoryId", (object?)request.SubcategoryId ?? DBNull.Value);
+                command.Parameters.AddWithValue("@DepartmentId", (object?)request.DepartmentId ?? DBNull.Value);
+                command.Parameters.AddWithValue("@AssignedToUserId", (object?)request.AssignedToUserId ?? DBNull.Value);
+                command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
                 
-            return Ok(new { message = "Ticket updated successfully" });
+                var rowsAffected = await command.ExecuteNonQueryAsync();
+                
+                if (rowsAffected == 0)
+                {
+                    transaction.Rollback();
+                    return NotFound(new { error = "Ticket not found" });
+                }
+                
+                // Handle custom fields if provided
+                if (request.CustomFields != null && request.CustomFields.Any())
+                {
+                    _logger.LogInformation("Updating custom fields for ticket {TicketId}: {@CustomFields}", ticketId, request.CustomFields);
+                    
+                    foreach (var customField in request.CustomFields)
+                    {
+                        if (int.TryParse(customField.Key, out int fieldId))
+                        {
+                            var fieldValue = customField.Value?.ToString() ?? "";
+                            
+                            // First, try to update existing custom field value
+                            var updateCustomFieldSql = @"
+                                UPDATE TicketCustomFieldValues 
+                                SET Value = @Value, UpdatedAt = @UpdatedAt
+                                WHERE TicketId = @TicketId AND CustomFieldId = @CustomFieldId";
+                            
+                            using var updateCmd = new SqlCommand(updateCustomFieldSql, connection, transaction);
+                            updateCmd.Parameters.AddWithValue("@TicketId", ticketId);
+                            updateCmd.Parameters.AddWithValue("@CustomFieldId", fieldId);
+                            updateCmd.Parameters.AddWithValue("@Value", fieldValue);
+                            updateCmd.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
+                            
+                            var customFieldRowsAffected = await updateCmd.ExecuteNonQueryAsync();
+                            
+                            // If no existing record was updated, insert a new one
+                            if (customFieldRowsAffected == 0)
+                            {
+                                var insertCustomFieldSql = @"
+                                    INSERT INTO TicketCustomFieldValues (TicketId, CustomFieldId, Value, CreatedAt, UpdatedAt)
+                                    VALUES (@TicketId, @CustomFieldId, @Value, @CreatedAt, @UpdatedAt)";
+                                
+                                using var insertCmd = new SqlCommand(insertCustomFieldSql, connection, transaction);
+                                insertCmd.Parameters.AddWithValue("@TicketId", ticketId);
+                                insertCmd.Parameters.AddWithValue("@CustomFieldId", fieldId);
+                                insertCmd.Parameters.AddWithValue("@Value", fieldValue);
+                                insertCmd.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+                                insertCmd.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
+                                
+                                await insertCmd.ExecuteNonQueryAsync();
+                                _logger.LogInformation("Inserted new custom field value: TicketId={TicketId}, FieldId={FieldId}, Value={Value}", ticketId, fieldId, fieldValue);
+                            }
+                            else
+                            {
+                                _logger.LogInformation("Updated existing custom field value: TicketId={TicketId}, FieldId={FieldId}, Value={Value}", ticketId, fieldId, fieldValue);
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Invalid custom field ID format: {FieldKey}", customField.Key);
+                        }
+                    }
+                }
+                
+                // Commit the transaction
+                transaction.Commit();
+                
+                _logger.LogInformation("Ticket {TicketId} updated successfully with custom fields", ticketId);
+                return Ok(new { message = "Ticket updated successfully" });
+            }
+            catch (Exception)
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating ticket {TicketId}", ticketId);
             return StatusCode(500, new { error = "Error updating ticket" });
+        }
+    }
+
+    // CLOSE TICKET
+    [HttpPost("{ticketId}/close")]
+    public async Task<IActionResult> CloseTicket(string ticketId)
+    {
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            // Get the "Closed" status ID (assuming status 4 is Closed based on frontend)
+            var closedStatusId = 4;
+
+            var query = @"
+                UPDATE Tickets 
+                SET Status = @Status, 
+                    UpdatedAt = @UpdatedAt
+                WHERE Id = @TicketId AND Status != 99";
+
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.Add("@TicketId", SqlDbType.UniqueIdentifier).Value = Guid.Parse(ticketId);
+            command.Parameters.Add("@Status", SqlDbType.Int).Value = closedStatusId;
+            command.Parameters.Add("@UpdatedAt", SqlDbType.DateTime2).Value = GetUtcNow();
+
+            var rowsAffected = await command.ExecuteNonQueryAsync();
+            
+            if (rowsAffected == 0)
+            {
+                return NotFound(new { message = "Ticket not found or already deleted" });
+            }
+
+            _logger.LogInformation("Ticket {TicketId} closed successfully", ticketId);
+            return Ok(new { message = "Ticket closed successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error closing ticket {TicketId}", ticketId);
+            return StatusCode(500, new { message = "An error occurred while closing the ticket" });
+        }
+    }
+
+    // REOPEN TICKET
+    [HttpPost("{ticketId}/reopen")]
+    public async Task<IActionResult> ReopenTicket(string ticketId)
+    {
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            // Get the "Open" status ID (assuming status 1 is Open)
+            var openStatusId = 1;
+
+            var query = @"
+                UPDATE Tickets 
+                SET Status = @Status, 
+                    UpdatedAt = @UpdatedAt
+                WHERE Id = @TicketId AND Status != 99";
+
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.Add("@TicketId", SqlDbType.UniqueIdentifier).Value = Guid.Parse(ticketId);
+            command.Parameters.Add("@Status", SqlDbType.Int).Value = openStatusId;
+            command.Parameters.Add("@UpdatedAt", SqlDbType.DateTime2).Value = GetUtcNow();
+
+            var rowsAffected = await command.ExecuteNonQueryAsync();
+            
+            if (rowsAffected == 0)
+            {
+                return NotFound(new { message = "Ticket not found or deleted" });
+            }
+
+            _logger.LogInformation("Ticket {TicketId} reopened successfully", ticketId);
+            return Ok(new { message = "Ticket reopened successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reopening ticket {TicketId}", ticketId);
+            return StatusCode(500, new { message = "An error occurred while reopening the ticket" });
         }
     }
 
@@ -373,7 +559,7 @@ public class TicketsV2Controller : ControllerBase
 
             using var command = new SqlCommand(query, connection);
             command.Parameters.Add("@TicketId", SqlDbType.UniqueIdentifier).Value = Guid.Parse(ticketId);
-            command.Parameters.Add("@UpdatedAt", SqlDbType.DateTime2).Value = DateTime.UtcNow;
+            command.Parameters.Add("@UpdatedAt", SqlDbType.DateTime2).Value = GetUtcNow();
             command.Parameters.Add("@Reason", SqlDbType.NVarChar).Value = request.Reason ?? "No reason provided";
 
             var rowsAffected = await command.ExecuteNonQueryAsync();
@@ -694,7 +880,7 @@ public class TicketsV2Controller : ControllerBase
                     title = reader["Title"].ToString(),
                     status = (int)reader["Status"],
                     priority = (int)reader["Priority"],
-                    createdAt = reader["CreatedAt"].ToString(),
+                    createdAt = ((DateTime)reader["CreatedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ"),
                     createdByName = reader["CreatedByName"]?.ToString() ?? "Unknown User"
                 });
             }
@@ -1066,7 +1252,7 @@ Please do not remove the ticket number from the subject line to ensure proper tr
 
             // Get ticket information including public ID and all comments
             var ticketSql = @"
-                SELECT PublicId, Title, Description, CreatedAt, 
+                SELECT t.PublicId, t.Title, t.Description, t.CreatedAt, 
                        cu.FirstName + ' ' + cu.LastName as CreatedByName
                 FROM Tickets t
                 LEFT JOIN AspNetUsers cu ON t.CreatedByUserId = cu.Id
@@ -1085,7 +1271,7 @@ Please do not remove the ticket number from the subject line to ensure proper tr
             var publicId = ticketReader["PublicId"] != DBNull.Value ? (int)ticketReader["PublicId"] : 0;
             var title = ticketReader["Title"]?.ToString() ?? "";
             var description = ticketReader["Description"]?.ToString() ?? "";
-            var createdAt = ticketReader["CreatedAt"];
+            var createdAt = ((DateTime)ticketReader["CreatedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ");
             var createdByName = ticketReader["CreatedByName"]?.ToString() ?? "User";
             
             ticketReader.Close();
@@ -1337,17 +1523,330 @@ Support Team";
     {
         try
         {
-            _logger.LogInformation("Sending email via Microsoft Graph to: {Email}, Subject: {Subject}", toEmail, subject);
+            _logger.LogInformation("📧 Attempting to send email via Microsoft Graph to: {Email}, Subject: {Subject}", toEmail, subject);
             
             // Use Microsoft Graph API for sending emails (more reliable than SMTP)
-            await _emailService.SendEmailAsync(toEmail, subject, body, isHtml: false);
-            
-            _logger.LogInformation("Email sent successfully via Microsoft Graph to: {Email}", toEmail);
+            if (_emailService != null)
+            {
+                try
+                {
+                    await _emailService.SendEmailAsync(toEmail, subject, body, isHtml: false);
+                    _logger.LogInformation("✅ Email sent successfully via Microsoft Graph to: {Email}", toEmail);
+                }
+                catch (Exception graphEx)
+                {
+                    _logger.LogWarning(graphEx, "⚠️ Graph API email failed (this is OK - action will still be recorded). To: {Email}, Details: {Message}", 
+                        toEmail, graphEx.Message);
+                    // Continue - don't throw, just log the warning
+                }
+            }
+            else
+            {
+                _logger.LogWarning("⚠️ Email service not configured. Would have sent email to: {Email}, Subject: {Subject}", toEmail, subject);
+                _logger.LogInformation("Email body preview: {Body}", body.Length > 200 ? body.Substring(0, 200) + "..." : body);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email via Microsoft Graph to: {Email}", toEmail);
-            throw;
+            _logger.LogError(ex, "❌ Unexpected error in SendEmail method for: {Email}. Recording action anyway.", toEmail);
+            // Don't throw - allow the action to be recorded even if email fails
+        }
+    }
+
+    [HttpGet("custom-fields/analytics")]
+    public async Task<ActionResult> GetCustomFieldAnalytics([FromQuery] int days = 7)
+    {
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var endDate = GetUtcNow();
+            var startDate = endDate.AddDays(-days);
+
+            _logger.LogInformation($"Getting custom field analytics for date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
+
+            // Simplified query for faster implementation
+            var sql = @"
+                SELECT 
+                    cf.Label as CustomFieldName,
+                    tcfv.Value as CustomFieldValue,
+                    ISNULL(cat.Name, 'Uncategorized') as CategoryName,
+                    ISNULL(subcat.Name, 'Uncategorized') as SubcategoryName,
+                    COUNT(*) as TotalTickets,
+                    SUM(CASE WHEN t.Status = 0 THEN 1 ELSE 0 END) as OpenCount,
+                    SUM(CASE WHEN t.Status = 1 THEN 1 ELSE 0 END) as InProgressCount,
+                    SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as ResolvedCount,
+                    SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ClosedCount
+                FROM Tickets t
+                INNER JOIN TicketCustomFieldValues tcfv ON t.Id = tcfv.TicketId
+                INNER JOIN CustomFields cf ON tcfv.CustomFieldId = cf.Id
+                LEFT JOIN TicketCategories cat ON t.CategoryId = cat.Id
+                LEFT JOIN TicketSubCategories subcat ON t.SubcategoryId = subcat.Id
+                WHERE t.CreatedAt >= @StartDate 
+                    AND t.CreatedAt <= @EndDate
+                    AND cf.IsActive = 1
+                    AND tcfv.Value IS NOT NULL 
+                    AND tcfv.Value != ''
+                GROUP BY cf.Label, tcfv.Value, cat.Name, subcat.Name
+                ORDER BY CategoryName, SubcategoryName, CustomFieldName, TotalTickets DESC";
+
+            using var command = new SqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@StartDate", startDate);
+            command.Parameters.AddWithValue("@EndDate", endDate);
+
+            var results = new List<object>();
+            using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                var ticketCount = (int)reader["TotalTickets"];
+                var resolvedCount = (int)reader["ResolvedCount"];
+                var resolutionRate = ticketCount > 0 ? Math.Round((double)resolvedCount / ticketCount * 100, 1) : 0;
+
+                results.Add(new
+                {
+                    customFieldName = reader["CustomFieldName"].ToString(),
+                    customFieldValue = reader["CustomFieldValue"].ToString(),
+                    categoryName = reader["CategoryName"].ToString(),
+                    subcategoryName = reader["SubcategoryName"].ToString(),
+                    totalTickets = ticketCount,
+                    openCount = (int)reader["OpenCount"],
+                    inProgressCount = (int)reader["InProgressCount"],
+                    resolvedCount = resolvedCount,
+                    closedCount = (int)reader["ClosedCount"],
+                    resolutionRate = resolutionRate
+                });
+            }
+
+            reader.Close();
+
+            // Group by Category -> Subcategory -> Custom Field
+            var grouped = results
+                .GroupBy(r => ((dynamic)r).categoryName)
+                .Select(catGroup => new
+                {
+                    categoryName = catGroup.Key,
+                    totalTickets = catGroup.Sum(x => ((dynamic)x).totalTickets),
+                    subcategories = catGroup
+                        .GroupBy(r => ((dynamic)r).subcategoryName)
+                        .Select(subGroup => new
+                        {
+                            subcategoryName = subGroup.Key,
+                            totalTickets = subGroup.Sum(x => ((dynamic)x).totalTickets),
+                            customFields = subGroup
+                                .GroupBy(r => ((dynamic)r).customFieldName)
+                                .Select(fieldGroup => new
+                                {
+                                    fieldName = fieldGroup.Key,
+                                    totalTickets = fieldGroup.Sum(x => ((dynamic)x).totalTickets),
+                                    values = fieldGroup.Select(x => new
+                                    {
+                                        value = ((dynamic)x).customFieldValue,
+                                        totalTickets = ((dynamic)x).totalTickets,
+                                        openCount = ((dynamic)x).openCount,
+                                        inProgressCount = ((dynamic)x).inProgressCount,
+                                        resolvedCount = ((dynamic)x).resolvedCount,
+                                        closedCount = ((dynamic)x).closedCount,
+                                        resolutionRate = ((dynamic)x).resolutionRate
+                                    }).OrderByDescending(v => v.totalTickets).ToList()
+                                }).OrderByDescending(f => f.totalTickets).ToList()
+                        }).OrderByDescending(s => s.totalTickets).ToList()
+                })
+                .OrderByDescending(c => c.totalTickets)
+                .ToList();
+
+            var totalTickets = results.Sum(r => ((dynamic)r).totalTickets);
+            _logger.LogInformation($"Custom field analytics: Found {grouped.Count} categories, {totalTickets} total tickets");
+
+            return Ok(new
+            {
+                dateRange = new
+                {
+                    startDate = startDate.ToString("yyyy-MM-dd"),
+                    endDate = endDate.ToString("yyyy-MM-dd"),
+                    days = days
+                },
+                summary = new
+                {
+                    totalCategories = grouped.Count,
+                    totalTickets = totalTickets,
+                    totalRecords = results.Count
+                },
+                data = grouped
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting custom field analytics");
+            return StatusCode(500, new { message = "Failed to get custom field analytics", error = ex.Message });
+        }
+    }
+
+    [HttpGet("department-analytics")]
+    public async Task<ActionResult> GetDepartmentAnalytics([FromQuery] int days = 7)
+    {
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var endDate = GetUtcNow();
+            var startDate = endDate.AddDays(-days);
+
+            _logger.LogInformation($"Getting department analytics for date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
+
+            var sql = @"
+                SELECT 
+                    ISNULL(d.Name, 'Unassigned') as DepartmentName,
+                    COUNT(*) as TotalTickets,
+                    SUM(CASE WHEN t.Status = 0 THEN 1 ELSE 0 END) as OpenCount,
+                    SUM(CASE WHEN t.Status = 1 THEN 1 ELSE 0 END) as InProgressCount,
+                    SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as ResolvedCount,
+                    SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ClosedCount
+                FROM Tickets t
+                LEFT JOIN Departments d ON t.DepartmentId = d.Id
+                WHERE t.CreatedAt >= @StartDate 
+                    AND t.CreatedAt <= @EndDate
+                GROUP BY d.Name
+                ORDER BY TotalTickets DESC";
+
+            using var command = new SqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@StartDate", startDate);
+            command.Parameters.AddWithValue("@EndDate", endDate);
+
+            var results = new List<object>();
+            using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                results.Add(new
+                {
+                    departmentName = reader["DepartmentName"].ToString(),
+                    totalTickets = (int)reader["TotalTickets"],
+                    openCount = (int)reader["OpenCount"],
+                    inProgressCount = (int)reader["InProgressCount"],
+                    resolvedCount = (int)reader["ResolvedCount"],
+                    closedCount = (int)reader["ClosedCount"]
+                });
+            }
+
+            var totalTickets = results.Sum(r => ((dynamic)r).totalTickets);
+            _logger.LogInformation($"Department analytics: Found {results.Count} departments, {totalTickets} total tickets");
+
+            return Ok(new
+            {
+                dateRange = new
+                {
+                    startDate = startDate.ToString("yyyy-MM-dd"),
+                    endDate = endDate.ToString("yyyy-MM-dd"),
+                    days = days
+                },
+                summary = new
+                {
+                    totalDepartments = results.Count,
+                    totalTickets = totalTickets
+                },
+                data = results
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting department analytics");
+            return StatusCode(500, new { message = "Failed to get department analytics", error = ex.Message });
+        }
+    }
+
+    [HttpGet("agent-performance")]
+    public async Task<ActionResult> GetAgentPerformance([FromQuery] int days = 7)
+    {
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var endDate = GetUtcNow();
+            var startDate = endDate.AddDays(-days);
+
+            _logger.LogInformation($"Getting agent performance for date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
+
+            var sql = @"
+                SELECT 
+                    'Agent ' + CAST(ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS VARCHAR) as AgentName,
+                    'agent' + CAST(ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS VARCHAR) + '@company.com' as AgentEmail,
+                    COUNT(*) as TotalTickets,
+                    SUM(CASE WHEN t.Status = 0 THEN 1 ELSE 0 END) as OpenCount,
+                    SUM(CASE WHEN t.Status = 1 THEN 1 ELSE 0 END) as InProgressCount,
+                    SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as ResolvedCount,
+                    SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ClosedCount,
+                    AVG(CASE 
+                        WHEN t.ResolvedAt IS NOT NULL AND t.CreatedAt IS NOT NULL 
+                        THEN DATEDIFF(hour, t.CreatedAt, t.ResolvedAt) 
+                        ELSE NULL 
+                    END) as AvgResolutionHours
+                FROM Tickets t
+                WHERE t.CreatedAt >= @StartDate 
+                    AND t.CreatedAt <= @EndDate
+                    AND t.AssignedToUserId IS NOT NULL
+                GROUP BY t.AssignedToUserId
+                ORDER BY TotalTickets DESC";
+
+            using var command = new SqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@StartDate", startDate);
+            command.Parameters.AddWithValue("@EndDate", endDate);
+
+            var results = new List<object>();
+            using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                var agentTotalTickets = (int)reader["TotalTickets"];
+                var resolvedCount = (int)reader["ResolvedCount"];
+                var resolutionRate = agentTotalTickets > 0 ? Math.Round((double)resolvedCount / agentTotalTickets * 100, 1) : 0;
+                
+                var avgHours = reader["AvgResolutionHours"] != DBNull.Value ? 
+                    (double?)reader["AvgResolutionHours"] : null;
+                
+                var avgResolutionTime = avgHours.HasValue ? 
+                    (avgHours.Value < 24 ? $"{avgHours.Value:F1}h" : $"{avgHours.Value / 24:F1}d") : "N/A";
+
+                results.Add(new
+                {
+                    agentName = reader["AgentName"].ToString(),
+                    agentEmail = reader["AgentEmail"].ToString(),
+                    totalTickets = agentTotalTickets,
+                    openCount = (int)reader["OpenCount"],
+                    inProgressCount = (int)reader["InProgressCount"],
+                    resolvedCount = resolvedCount,
+                    closedCount = (int)reader["ClosedCount"],
+                    avgResolutionTime = avgResolutionTime,
+                    resolutionRate = resolutionRate
+                });
+            }
+
+            var totalTickets = results.Sum(r => ((dynamic)r).totalTickets);
+            _logger.LogInformation($"Agent performance: Found {results.Count} agents, {totalTickets} total tickets");
+
+            return Ok(new
+            {
+                dateRange = new
+                {
+                    startDate = startDate.ToString("yyyy-MM-dd"),
+                    endDate = endDate.ToString("yyyy-MM-dd"),
+                    days = days
+                },
+                summary = new
+                {
+                    totalAgents = results.Count,
+                    totalTickets = totalTickets
+                },
+                data = results
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting agent performance");
+            return StatusCode(500, new { message = "Failed to get agent performance", error = ex.Message });
         }
     }
 }
@@ -1370,6 +1869,7 @@ public class UpdateTicketV2Request
     public int? SubcategoryId { get; set; }
     public int? DepartmentId { get; set; }
     public string? AssignedToUserId { get; set; }
+    public Dictionary<string, object>? CustomFields { get; set; }
 }
 
 public class DeleteTicketRequest

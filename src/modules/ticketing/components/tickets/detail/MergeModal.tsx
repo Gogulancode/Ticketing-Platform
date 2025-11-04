@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { X, Search, GitMerge, Check, Calendar, User, AlertCircle } from 'lucide-react';
+import { apiFetch } from '../../../../../utils/apiFetch';
 
 interface Ticket {
   id: string;
@@ -36,36 +37,61 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Fetch all tickets initially (for browsing)
+  const { data: allTickets = [], isLoading: isLoadingAll } = useQuery({
+    queryKey: ['all-tickets-for-merge', ticket?.id],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await apiFetch(`/api/tickets-v2`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch tickets');
+      const results = await response.json();
+      
+      // Exclude current ticket and deleted tickets
+      return results.filter((t: Ticket) => 
+        t.id !== ticket?.id && t.status !== 99
+      );
+    },
+    enabled: isOpen,
+  });
+
   // Search tickets API call
   const { data: searchResults = [], isLoading: isSearching } = useQuery({
     queryKey: ['ticket-search', debouncedSearch, ticket?.id],
     queryFn: async () => {
-      if (!debouncedSearch.trim() || debouncedSearch.length < 2) return [];
+      if (!debouncedSearch.trim()) return allTickets; // Return all if no search
       
-      const response = await fetch(
-        `/api/tickets-v2/search?query=${encodeURIComponent(debouncedSearch)}&excludeTicketId=${ticket?.id}`
+      const token = localStorage.getItem('token');
+      const response = await apiFetch(
+        `/api/tickets-v2/search?query=${encodeURIComponent(debouncedSearch)}&excludeTicketId=${ticket?.id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
       );
       if (!response.ok) throw new Error('Failed to search tickets');
       const results = await response.json();
       
-      // Filter by same category if available
-      if (ticket?.categoryId) {
-        return results.filter((t: Ticket) => 
-          t.categoryId === ticket.categoryId && t.status !== 99 // Exclude deleted tickets
-        );
-      }
-      
-      return results.filter((t: Ticket) => t.status !== 99); // Exclude deleted tickets
+      // Exclude deleted tickets
+      return results.filter((t: Ticket) => t.status !== 99);
     },
-    enabled: !!debouncedSearch && debouncedSearch.length >= 2 && isOpen,
+    enabled: isOpen,
   });
 
   // Merge tickets mutation
   const mergeMutation = useMutation({
     mutationFn: async (data: { ticketIds: string[]; reason: string }) => {
-      const response = await fetch(`/api/tickets-v2/${ticket.id}/merge`, {
+      const token = localStorage.getItem('token');
+      const response = await apiFetch(`/api/tickets-v2/${ticket.id}/merge`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           TicketIds: data.ticketIds,
           Reason: data.reason
@@ -172,7 +198,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search tickets by title, ID, or description..."
+              placeholder="Search by ticket number (e.g., #123456) or title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -185,24 +211,31 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
             {isSearching && (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-sm text-gray-500 mt-2">Searching tickets...</p>
-              </div>
-            )}
-
-            {!isSearching && searchQuery.length > 0 && searchResults.length === 0 && debouncedSearch.length >= 2 && (
-              <div className="text-center py-8">
-                <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No tickets found matching your search.</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Showing tickets from the same category only.
+                <p className="text-sm text-gray-500 mt-2">
+                  {searchQuery ? 'Searching tickets...' : 'Loading tickets...'}
                 </p>
               </div>
             )}
 
-            {searchResults.length > 0 && (
+            {!isSearching && searchResults.length === 0 && (
+              <div className="text-center py-8">
+                <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">
+                  {searchQuery ? 'No tickets found matching your search.' : 'No tickets available to merge.'}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {searchQuery ? 'Try a different search term.' : 'All tickets are excluded or deleted.'}
+                </p>
+              </div>
+            )}
+
+            {!isSearching && searchResults.length > 0 && (
               <div>
                 <p className="text-sm text-gray-600 mb-3">
-                  Found {searchResults.length} ticket(s). Select tickets to merge:
+                  {searchQuery 
+                    ? `Found ${searchResults.length} ticket(s) matching "${searchQuery}".` 
+                    : `Showing ${searchResults.length} available ticket(s).`
+                  } Select tickets to merge:
                 </p>
                 <div className="max-h-60 overflow-y-auto space-y-2">
                   {searchResults.map((searchTicket: Ticket) => (
@@ -232,7 +265,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
                           <div className="flex items-center gap-4 text-xs text-gray-500">
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {new Date(searchTicket.createdAt).toLocaleDateString()}
+                              {new Date(searchTicket.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                             </div>
                             <div className="flex items-center gap-1">
                               <User className="h-3 w-3" />

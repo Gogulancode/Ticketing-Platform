@@ -139,20 +139,20 @@ const AdvancedSettingsTabs: React.FC<AdvancedSettingsTabsProps> = ({
   const ActiveComponent = activeTabConfig?.component;
 
   return (
-    <div className="bg-white shadow rounded-lg">
+    <div className="bg-white shadow rounded-lg overflow-hidden max-w-full">
       {/* Header */}
-      <div className="border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Cog6ToothIcon className="h-8 w-8 text-blue-600" />
-              Ticketing System Settings
+      <div className="border-b border-gray-200 px-4 lg:px-6 py-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Cog6ToothIcon className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600 flex-shrink-0" />
+              <span className="truncate">Ticketing System Settings</span>
             </h1>
             <p className="mt-1 text-sm text-gray-500">
               Configure and manage your ticketing system components
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
               Production Ready
             </span>
@@ -164,14 +164,14 @@ const AdvancedSettingsTabs: React.FC<AdvancedSettingsTabsProps> = ({
       </div>
 
       {/* Tabs Navigation */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+      <div className="border-b border-gray-200 overflow-x-auto">
+        <nav className="-mb-px flex gap-x-4 lg:gap-x-6 px-4 lg:px-6 min-w-max lg:min-w-0 lg:flex-wrap lg:gap-y-2" aria-label="Tabs">
           {tabConfigs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`
-                group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200
+                group inline-flex items-center py-4 px-2 lg:px-1 border-b-2 font-medium text-sm transition-colors duration-200 flex-shrink-0
                 ${activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -205,7 +205,7 @@ const AdvancedSettingsTabs: React.FC<AdvancedSettingsTabsProps> = ({
       </div>
 
       {/* Tab Content */}
-      <div className="p-6">
+      <div className="p-4 lg:p-6">
         {activeTabConfig && (
           <div className="space-y-4">
             {/* Tab Description */}
@@ -214,7 +214,7 @@ const AdvancedSettingsTabs: React.FC<AdvancedSettingsTabsProps> = ({
                 <div className="flex-shrink-0">
                   <activeTabConfig.icon className="h-5 w-5 text-blue-400" aria-hidden="true" />
                 </div>
-                <div className="ml-3">
+                <div className="ml-3 min-w-0 flex-1">
                   <h3 className="text-sm font-medium text-blue-800">
                     {activeTabConfig.name}
                   </h3>
@@ -231,7 +231,7 @@ const AdvancedSettingsTabs: React.FC<AdvancedSettingsTabsProps> = ({
             </div>
 
             {/* Tab Component */}
-            <div className="min-h-[400px]">
+            <div className="min-h-[400px] overflow-x-auto">
               {ActiveComponent ? (
                 <ActiveComponent />
               ) : (
@@ -249,20 +249,20 @@ const AdvancedSettingsTabs: React.FC<AdvancedSettingsTabsProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
-        <div className="flex items-center justify-between text-sm text-gray-500">
-          <div className="flex items-center gap-4">
+      <div className="border-t border-gray-200 px-4 lg:px-6 py-4 bg-gray-50">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 text-sm text-gray-500">
+          <div className="flex flex-wrap items-center gap-4">
             <span>API Status: <span className="text-green-600 font-medium">Connected</span></span>
-            <span>Server: <span className="font-medium">http://localhost:5015</span></span>
+            <span className="hidden sm:inline">Server: <span className="font-medium">localhost:5015</span></span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <a 
-              href="http://localhost:5015/swagger" 
+              href={`${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5015'}/swagger`} 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-500 font-medium"
             >
-              API Documentation
+              API Docs
             </a>
             <span>•</span>
             <span className="font-medium">v2.0.0</span>

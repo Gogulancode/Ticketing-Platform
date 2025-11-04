@@ -19,7 +19,7 @@ export interface AddCommentResponse {
 }
 
 class CommentsApi {
-  private baseUrl = '/api/tickets-v2';
+  private baseUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets-v2`;
 
   /**
    * Get all comments for a ticket

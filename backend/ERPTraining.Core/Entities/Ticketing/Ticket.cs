@@ -17,7 +17,7 @@ public class Ticket
     public string Description { get; set; } = string.Empty;
     public TicketCategory Category { get; set; }
     public TicketPriority Priority { get; set; }
-    public TicketStatus Status { get; set; } = TicketStatus.New;
+    public int Status { get; set; } = 1; // Store database TicketStatus ID directly (1=New, 2=In Progress, etc.)
     public TicketSource Source { get; set; } = TicketSource.TrainingPortal;
     public string CreatedByUserId { get; set; } = string.Empty;
     public string? AssignedToUserId { get; set; }
@@ -27,7 +27,7 @@ public class Ticket
     public DateTime? ResolvedAt { get; set; }
     
     // SLA tracking
-    public int? SlaPolicyId { get; set; }
+    public Guid? SlaPolicyId { get; set; }
     public SlaPolicy? SlaPolicy { get; set; }
     public DateTime? SlaResponseDueAt { get; set; }
     public DateTime? SlaResolutionDueAt { get; set; }
@@ -47,6 +47,7 @@ public class Ticket
     public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();
     public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
     public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>(); // Added for Infrastructure compatibility
+    public ICollection<TicketCollaborator> Collaborators { get; set; } = new List<TicketCollaborator>();
     [NotMapped]
     public bool IsOverdue { get; set; }
     
@@ -121,4 +122,19 @@ public class AuditLog
     // Navigation properties for Infrastructure compatibility
     public virtual Ticket? Ticket { get; set; }
     public virtual User? ChangedByUser { get; set; }
+}
+
+public class TicketCollaborator
+{
+    public int Id { get; set; }
+    public Guid TicketId { get; set; }
+    public string UserId { get; set; } = string.Empty;
+    public string Role { get; set; } = "Collaborator"; // Primary, Secondary, Observer, Collaborator
+    public string AddedByUserId { get; set; } = string.Empty;
+    public DateTime AddedAt { get; set; } = DateTime.UtcNow;
+    
+    // Navigation properties
+    public virtual Ticket? Ticket { get; set; }
+    public virtual User? User { get; set; }
+    public virtual User? AddedByUser { get; set; }
 }

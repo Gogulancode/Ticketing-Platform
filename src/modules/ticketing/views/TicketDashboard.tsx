@@ -9,9 +9,15 @@ import {
   Timer,
   Target,
   Activity,
-  Plus
+  Plus,
+  Shield
 } from 'lucide-react';
 import { analyticsApi, DashboardAnalytics } from '../../../shared/services/api/analyticsApi';
+import { getCurrentUser } from '../../../shared/services/api/auth';
+import QuickCustomFieldAnalytics from '../components/QuickCustomFieldAnalytics';
+import WeeklyDepartmentWidget from '../components/WeeklyDepartmentWidget';
+import AgentPerformanceWidget from '../components/AgentPerformanceWidget';
+import QuickActionsWidget from '../components/QuickActionsWidget';
 
 interface AnalyticsCardProps {
   title: string;
@@ -65,12 +71,34 @@ const TicketDashboard: React.FC = () => {
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [apiStatus, setApiStatus] = useState<'live' | 'mock'>('mock');
+  const [userDepartment, setUserDepartment] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const loadTicketingAnalytics = async () => {
+    const loadUserAndAnalytics = async () => {
       try {
         setLoading(true);
-        console.log('🎫 Loading ticketing analytics...');
+        console.log('🎫 Loading user info and ticketing analytics...');
+        
+        // Get current user to check department and role
+        try {
+          const currentUser = await getCurrentUser();
+          const department = currentUser.department || null;
+          setUserDepartment(department);
+          
+          // Check if user is admin (you can adjust this logic based on your role structure)
+          const adminRoles = ['Admin', 'SuperAdmin', 'Administrator'];
+          const userRole = currentUser.role || '';
+          const userIsAdmin = adminRoles.some(role => 
+            userRole.toLowerCase().includes(role.toLowerCase())
+          );
+          setIsAdmin(userIsAdmin);
+          
+          console.log(`👤 User department: ${department}, Is Admin: ${userIsAdmin}`);
+        } catch (userError) {
+          console.warn('⚠️ Could not fetch user info, defaulting to admin view');
+          setIsAdmin(true); // Default to admin view if user fetch fails
+        }
         
         // Try to get live analytics data from API
         const analyticsData = await analyticsApi.getDashboardAnalytics();
@@ -86,7 +114,7 @@ const TicketDashboard: React.FC = () => {
       }
     };
 
-    loadTicketingAnalytics();
+    loadUserAndAnalytics();
   }, []);
 
   const formatTime = (hours: number) => {
@@ -133,6 +161,21 @@ const TicketDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Department/Admin View Banner */}
+      {!isAdmin && userDepartment && (
+        <div className="bg-blue-50 text-blue-700 border border-blue-200 rounded-lg p-3 text-sm font-medium flex items-center gap-2">
+          <Building2 className="w-4 h-4" />
+          <span>Viewing {userDepartment} Department Dashboard</span>
+        </div>
+      )}
+      
+      {isAdmin && (
+        <div className="bg-purple-50 text-purple-700 border border-purple-200 rounded-lg p-3 text-sm font-medium flex items-center gap-2">
+          <Shield className="w-4 h-4" />
+          <span>Admin View - All Departments</span>
+        </div>
+      )}
+      
       {/* API Status Banner */}
       <div className={`rounded-lg p-3 text-sm font-medium ${
         apiStatus === 'live' 
@@ -150,10 +193,13 @@ const TicketDashboard: React.FC = () => {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Ticketing Analytics Dashboard
+              {isAdmin ? 'Ticketing Analytics Dashboard - All Departments' : `${userDepartment || 'Department'} Dashboard`}
             </h1>
             <p className="text-gray-600 mt-2">
-              Complete business intelligence overview for your ticketing system
+              {isAdmin 
+                ? 'Complete business intelligence overview for all departments' 
+                : `Analytics and insights for ${userDepartment || 'your department'}`
+              }
             </p>
           </div>
           <Link
@@ -190,123 +236,26 @@ const TicketDashboard: React.FC = () => {
       {/* Analytics Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Weekly Issue Type Count */}
-        <AnalyticsCard
-          title="Weekly Issue Type Count"
-          icon={<BarChart3 className="h-5 w-5 text-blue-600" />}
-        >
-          <div className="space-y-3">
-            {(analytics?.weeklyIssueTypes || []).map((item, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-gray-900">{item.issueType}</div>
-                  <div className="text-sm text-gray-500">{item.department}</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold text-blue-600">{item.count}</div>
-                  <div className="text-xs text-gray-500">tickets</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </AnalyticsCard>
-
-        {/* Weekly Department wise Ticket Count */}
-        <AnalyticsCard
-          title="Weekly Department Ticket Count"
-          icon={<Building2 className="h-5 w-5 text-green-600" />}
-        >
-          <div className="space-y-3">
-            {(analytics?.weeklyDepartments || []).map((dept, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="font-medium text-gray-900">{dept.department}</div>
-                <div className="text-right">
-                  <div className="font-semibold text-green-600">{dept.count}</div>
-                  <div className="text-xs text-gray-500">{dept.percentage.toFixed(1)}%</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </AnalyticsCard>
-
-        {/* Agent wise Ticket Received and Resolution time */}
-        <AnalyticsCard
-          title="Agent Performance"
-          icon={<Users className="h-5 w-5 text-purple-600" />}
-        >
-          <div className="space-y-4">
-            {(analytics?.agentStats || []).map((agent, index) => (
-              <div key={index} className="border-b border-gray-100 pb-3 last:border-b-0">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <div className="font-medium text-gray-900">{agent.agentName}</div>
-                    <div className="text-xs text-gray-500">{agent.department}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold text-purple-600">{agent.ticketsReceived}</div>
-                    <div className="text-xs text-gray-500">tickets</div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Timer className="h-4 w-4 mr-1" />
-                    Avg Resolution: {formatTime(agent.averageResolutionTime)}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </AnalyticsCard>
-
-        {/* Subcategory wise tickets count */}
-        <AnalyticsCard
-          title="Subcategory Ticket Distribution"
-          icon={<Target className="h-5 w-5 text-orange-600" />}
-        >
-          <div className="space-y-3">
-            {(analytics?.subcategoryCounts || []).map((subcat, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-gray-900">{subcat.subcategoryName}</div>
-                  <div className="text-sm text-gray-500">{subcat.categoryName}</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold text-orange-600">{subcat.count}</div>
-                  <div className="text-xs text-gray-500">{subcat.percentage.toFixed(1)}%</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </AnalyticsCard>
-
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link
-            to="/tickets/new"
-            className="flex items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-          >
-            <Ticket className="h-5 w-5 text-blue-600 mr-2" />
-            <span className="font-medium text-blue-600">Create Ticket</span>
-          </Link>
-          <Link
-            to="/tickets/my"
-            className="flex items-center justify-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
-          >
-            <User className="h-5 w-5 text-purple-600 mr-2" />
-            <span className="font-medium text-purple-600">My Tickets</span>
-          </Link>
-          <Link
-            to="/tickets/settings"
-            className="flex items-center justify-center p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors"
-          >
-            <Activity className="h-5 w-5 text-orange-600 mr-2" />
-            <span className="font-medium text-orange-600">Settings</span>
-          </Link>
+        {/* Custom Field Analytics Widget */}
+        <div className="lg:col-span-2">
+          <QuickCustomFieldAnalytics days={7} />
         </div>
+
+        {/* Quick Actions Widget */}
+        <div className="lg:col-span-2">
+          <QuickActionsWidget />
+        </div>
+        
+        {/* Weekly Department Widget */}
+        <div className="lg:col-span-1">
+          <WeeklyDepartmentWidget department={isAdmin ? undefined : userDepartment} />
+        </div>
+
+        {/* Agent Performance Widget */}
+        <div className="lg:col-span-1">
+          <AgentPerformanceWidget department={isAdmin ? undefined : userDepartment} />
+        </div>
+
       </div>
     </div>
   );

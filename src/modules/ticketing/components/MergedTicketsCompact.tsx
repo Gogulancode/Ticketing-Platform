@@ -141,7 +141,7 @@ const MergedTicketsCompact: React.FC<MergedTicketsCompactProps> = ({
                           <div className="flex items-center mt-1">
                             <Calendar className="h-3 w-3 mr-1 text-gray-400" />
                             <span className="text-xs text-gray-600">
-                              {new Date(merge.mergedAt).toLocaleDateString()}
+                              {new Date(merge.mergedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                             </span>
                           </div>
                         </div>
@@ -191,7 +191,7 @@ const MergedTicketsCompact: React.FC<MergedTicketsCompactProps> = ({
                     <div className="flex items-center mt-1">
                       <Calendar className="h-3 w-3 mr-1 text-gray-400" />
                       <span className="text-xs text-gray-600">
-                        {new Date(mergedInfo.wasMergedInto.mergedAt).toLocaleDateString()}
+                        {new Date(mergedInfo.wasMergedInto.mergedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                       </span>
                     </div>
                   </div>

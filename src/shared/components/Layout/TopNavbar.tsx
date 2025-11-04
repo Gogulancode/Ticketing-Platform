@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Bell, Settings, ChevronDown, User, LogOut, Menu } from 'lucide-react';
 import { currentUser } from '../../data/mockData';
 
@@ -10,15 +9,17 @@ interface TopNavbarProps {
 const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const navigate = useNavigate();
 
   const handleLogout = () => {
     // Remove auth token from localStorage (adjust key if needed)
     localStorage.removeItem('token');
-    // Optionally clear other user data
-    // localStorage.removeItem('user');
-    // Redirect to login page
-    navigate('/login');
+    // Clear user data
+    localStorage.removeItem('user');
+    localStorage.removeItem('currentUser');
+    // Close dropdown
+    setShowProfileDropdown(false);
+    // Force redirect to login page with page reload
+    window.location.href = '/login';
   };
 
   const notifications = [

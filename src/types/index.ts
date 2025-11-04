@@ -8,7 +8,8 @@ export interface User {
 }
 
 export interface Module {
-  id: string;
+  id: number; // Changed from string to number to match API
+  originalModuleId?: number;
   title: string;
   description: string;
   icon: string;
@@ -24,15 +25,15 @@ export interface Module {
   progress: number;
   isLocked: boolean;
   sections?: Section[];
-  completionRate: number;
-  isCompleted: boolean;
+  completionRate?: number; // Made optional
+  isCompleted?: boolean; // Made optional
 }
 
 export interface Section {
-  id: string;
+  id: number; // Changed from string to number
   title: string;
   description: string;
-  moduleId: string;
+  moduleId: number; // Changed from string to number
   order: number;
   isActive: boolean;
   erpSectionId?: string;

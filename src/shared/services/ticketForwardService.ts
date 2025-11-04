@@ -2,6 +2,7 @@
 // Handles forwarding tickets to other agents, departments, or external parties
 
 import { ticketEmailUtility } from './ticketEmailUtility';
+import { formatTicketDateTime } from '../utils/dateUtils';
 
 export interface ForwardRequest {
   ticketId: string;
@@ -154,7 +155,7 @@ A ticket has been forwarded to you for attention.
 - Title: ${ticketTitle}
 - Priority: ${ticketDetails.priority?.name || 'Not set'}
 - Status: ${ticketDetails.status?.name || 'Open'}
-- Created: ${new Date(ticketDetails.createdAt).toLocaleString()}
+- Created: ${formatTicketDateTime(ticketDetails.createdAt)}
 - Customer: ${ticketDetails.customerName} (${ticketDetails.customerEmail})
 
 **Description:**
@@ -170,7 +171,7 @@ ${ticketDetails.description}
       if (comments && comments.length > 0) {
         body += `\n**Ticket History:**\n`;
         comments.forEach((comment: any) => {
-          body += `\n${new Date(comment.createdAt).toLocaleString()} - ${comment.authorName}:\n${comment.body}\n---\n`;
+          body += `\n${formatTicketDateTime(comment.createdAt)} - ${comment.authorName}:\n${comment.body}\n---\n`;
         });
       }
     }
@@ -192,7 +193,7 @@ ${ticketDetails.description}
    */
   private async sendForwardEmail(emailContent: any): Promise<{ success: boolean; messageId?: string }> {
     try {
-      const response = await fetch('/api/emails/send-forward', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/emails/send-forward`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -231,7 +232,7 @@ ${ticketDetails.description}
     };
 
     try {
-      await fetch('/api/forwards', {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/forwards`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

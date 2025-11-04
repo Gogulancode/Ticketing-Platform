@@ -28,7 +28,7 @@ namespace ERPTraining.API.Controllers;
 /// <para>All endpoints use JWT Bearer token authentication except for registration and login.</para>
 /// </remarks>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auth")]
 [Tags("Auth")]
 [Produces("application/json")]
 public class AuthController : ControllerBase
@@ -218,6 +218,13 @@ public class AuthController : ControllerBase
     /// <response code="200">User profile retrieved successfully</response>
     /// <response code="401">Unauthorized - Invalid or missing token</response>
     /// <response code="404">User not found</response>
+    // SIMPLE TEST ENDPOINT TO VERIFY ROUTING
+    [HttpGet("test-route")]
+    public ActionResult<string> TestRoute()
+    {
+        return Ok("✅ Route is working! This proves api/auth routes are registered correctly.");
+    }
+
     [HttpGet("me")]
     [Authorize]
     [ProducesResponseType(typeof(UserDto), 200)]
@@ -225,17 +232,25 @@ public class AuthController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<ActionResult<UserDto>> GetCurrentUser()
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? 
-                     User.FindFirst("sub")?.Value ?? 
-                     User.FindFirst("userid")?.Value;
+        Console.WriteLine("🔍 GetCurrentUser endpoint hit!");
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        Console.WriteLine($"🔍 UserId from token: {userId}");
         
+        // Since [Authorize] is present, User should have claims, but check anyway
         if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
+        {
+            Console.WriteLine("❌ ERROR: No userId in token claims despite [Authorize]!");
+            return Unauthorized(new { error = "No user ID in token" });
+        }
 
         var user = await _authService.GetCurrentUserAsync(userId);
         if (user == null)
-            return NotFound(new { message = "User not found" });
-
+        {
+            Console.WriteLine($"❌ ERROR: User not found for userId: {userId}");
+            return NotFound(new { error = "User not found" });
+        }
+        
+        Console.WriteLine($"✅ SUCCESS: Returning user {user.Email}");
         return Ok(user);
     }
 

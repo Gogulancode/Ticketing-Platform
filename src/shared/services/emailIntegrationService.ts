@@ -184,7 +184,7 @@ class EmailIntegrationService {
         replyTo: this.generateReplyToEmail(ticketId)
       };
 
-      await fetch('/api/emails/send-acknowledgment', {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/emails/send-acknowledgment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

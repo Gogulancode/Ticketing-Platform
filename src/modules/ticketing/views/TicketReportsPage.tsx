@@ -10,12 +10,25 @@ import {
   reportsApi,
   reportUtils
 } from '../services/reportsApi';
+import { formatDateIST, formatTicketDateTime } from '../../../shared/utils/dateUtils';
 
 type ReportTab = 'resolution' | 'performance' | 'unresolved' | 'allTickets';
 
+// Helper function to get default date range (last 7 days)
+const getDefaultDateRange = () => {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 7);
+  
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0]
+  };
+};
+
 const TicketReportsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ReportTab>('resolution');
-  const [filters, setFilters] = useState<ReportFilters>({});
+  const [filters, setFilters] = useState<ReportFilters>(getDefaultDateRange());
   const [loading, setLoading] = useState(false);
   
   // Report data state
@@ -184,7 +197,7 @@ const TicketReportsPage: React.FC = () => {
                   <Calendar className="h-4 w-4" />
                   {filters.startDate && filters.endDate ? (
                     <span>
-                      {new Date(filters.startDate).toLocaleDateString()} - {new Date(filters.endDate).toLocaleDateString()}
+                      {formatDateIST(filters.startDate)} - {formatDateIST(filters.endDate)}
                     </span>
                   ) : (
                     <span>Select date range to view data</span>
@@ -541,7 +554,7 @@ const UnresolvedTicketsTable: React.FC<{ data: UnresolvedTicket[] }> = ({ data }
             </span>
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {new Date(ticket.lastUpdated).toLocaleDateString()}
+            {formatTicketDateTime(ticket.lastUpdated)}
           </td>
         </tr>
       ))}
@@ -610,7 +623,7 @@ const AllTicketsTable: React.FC<{ data: TicketSummary[] }> = ({ data }) => (
             </span>
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {new Date(ticket.createdAt).toLocaleDateString()}
+            {formatTicketDateTime(ticket.createdAt)}
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
             {ticket.assignedAgent || 'Unassigned'}

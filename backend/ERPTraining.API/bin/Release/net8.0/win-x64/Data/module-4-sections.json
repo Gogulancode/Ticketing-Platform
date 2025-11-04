@@ -1,0 +1,262 @@
+[
+  {
+    "lModuleId": "4",
+    "SectionId": "3000",
+    "SectionName": "Services"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3001",
+    "SectionName": "Service Request"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3002",
+    "SectionName": "Request Received"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3020",
+    "SectionName": "Performance Appraisal"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3021",
+    "SectionName": "KPI"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3022",
+    "SectionName": "Review KPI"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3040",
+    "SectionName": "Circular"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3041",
+    "SectionName": "Circular"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3030",
+    "SectionName": "Inventory"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3031",
+    "SectionName": "Inventory Category"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3032",
+    "SectionName": "Inventory Item"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3033",
+    "SectionName": "Inventory Dispatch"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3034",
+    "SectionName": "Inward History"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3060",
+    "SectionName": "Task Reminder"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3061",
+    "SectionName": "Reminder"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3045",
+    "SectionName": "Vehicle Log"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3046",
+    "SectionName": "HO Vehicle Log"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3003",
+    "SectionName": "Whats App Message"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3004",
+    "SectionName": "Whats App History"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "7000",
+    "SectionName": "Talent Acquisition"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "7001",
+    "SectionName": "Manpower Requisition"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "7002",
+    "SectionName": "Requisition Status"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3023",
+    "SectionName": "Open KPI"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3024",
+    "SectionName": "List KPI"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3047",
+    "SectionName": "Vehicle Maintenance"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3070",
+    "SectionName": "Task Request"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3071",
+    "SectionName": "Customer Task Request"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3072",
+    "SectionName": "Pending Task"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3073",
+    "SectionName": "Completed Task List"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3005",
+    "SectionName": "GST JSON To Excel"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3085",
+    "SectionName": "Admin Expense"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3086",
+    "SectionName": "Maintenance Expense"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3087",
+    "SectionName": "Labour Expense"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3088",
+    "SectionName": "Additional Expense Post"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3089",
+    "SectionName": "Track Posting"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3084",
+    "SectionName": "Track Posting Additional"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3090",
+    "SectionName": "Track Posting Labour"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3074",
+    "SectionName": "Mumbai Expense Post"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3300",
+    "SectionName": "Misc Job"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3301",
+    "SectionName": "Job Creation"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3302",
+    "SectionName": "Job Tracking"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3330",
+    "SectionName": "Job Tracking"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3091",
+    "SectionName": "Labour Expense Post"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3303",
+    "SectionName": "Document Master"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "309392",
+    "SectionName": "DgNote Container Insurance"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "309393",
+    "SectionName": "Insurance Request"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "309394",
+    "SectionName": "Request Received"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "309395",
+    "SectionName": "Insurance Tracking"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "309396",
+    "SectionName": "Rejected Insurance"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3027",
+    "SectionName": "KPI Template"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3331",
+    "SectionName": "Cancelled Job"
+  },
+  {
+    "lModuleId": "4",
+    "SectionId": "3083",
+    "SectionName": "Daily Labour Expense"
+  }
+]

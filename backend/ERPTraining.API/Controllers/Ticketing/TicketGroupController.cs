@@ -9,12 +9,12 @@ namespace ERPTraining.API.Controllers.Ticketing;
 [Route("api/tickets/settings/groups")]
 [Route("api/tickets/settings/agent-groups")] // Alias for frontend compatibility
 // Temporarily disabled for testing: [Authorize]
-public class TicketGroupController : ControllerBase
+public class TicketGroupController_Disabled : ControllerBase
 {
     private readonly ITicketGroupService _groupService;
-    private readonly ILogger<TicketGroupController> _logger;
+    private readonly ILogger<TicketGroupController_Disabled> _logger;
 
-    public TicketGroupController(ITicketGroupService groupService, ILogger<TicketGroupController> logger)
+    public TicketGroupController_Disabled(ITicketGroupService groupService, ILogger<TicketGroupController_Disabled> logger)
     {
         _groupService = groupService;
         _logger = logger;

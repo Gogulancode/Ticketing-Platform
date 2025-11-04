@@ -1,6 +1,8 @@
 // Ticket Email Utility Service
 // Handles email subject formatting and ticket ID tracking
 
+import { formatTicketDateTime, getCurrentIST } from '../utils/dateUtils';
+
 export interface TicketEmailConfig {
   replyToTemplate: string; // Template for reply-to email address
   subjectTemplate: string; // Template for email subject lines
@@ -118,7 +120,7 @@ Your support ticket has been created and assigned ticket number #${ticketNumber}
 - Title: ${details.title}
 - Priority: ${details.priority || 'Normal'}
 - Status: ${details.status || 'Open'}
-- Created: ${new Date(details.createdAt).toLocaleString()}
+- Created: ${formatTicketDateTime(details.createdAt)}
 
 **Description:**
 ${details.description}
@@ -190,7 +192,7 @@ To: ${details.newStatus || details.status}
 **Ticket Details:**
 - Ticket Number: #${ticketNumber}
 - Title: ${details.title}
-- Updated: ${new Date().toLocaleString()}
+- Updated: ${formatTicketDateTime(getCurrentIST())}
 
 ${details.statusComment ? `**Additional Notes:**\n${details.statusComment}` : ''}
 

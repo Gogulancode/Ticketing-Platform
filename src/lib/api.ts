@@ -1,7 +1,7 @@
 // Update profile
 export const updateProfile = (data) => apiFetch('/auth/me', { method: 'PUT', body: JSON.stringify(data) });
 
-const API_BASE = 'http://localhost:5000/api'; // Backend running on port 5000
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'; // Backend running on port 5015
 
 function getToken(): string | null {
   return localStorage.getItem('token');

@@ -5,26 +5,21 @@ namespace ERPTraining.Core.Entities.Ticketing;
 
 public class SlaPolicy
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     
-    [Required]
-    [MaxLength(200)]
-    public string Name { get; set; } = string.Empty;
-    
-    public int PriorityId { get; set; }
-    public Tickets.TicketPriority? Priority { get; set; }
-    
-    [Required]
-    public int ResponseTimeMinutes { get; set; }
-    
-    [Required]
-    public int ResolutionTimeMinutes { get; set; }
-    
-    public int? EscalationLevel1Minutes { get; set; }
-    public int? EscalationLevel2Minutes { get; set; }
-    public int? EscalationLevel3Minutes { get; set; }
-    
+    public string? Name { get; set; }
+    public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
+    
+    public int Category { get; set; }
+    public int Priority { get; set; }
+    
+    [Required]
+    public int FirstResponseMins { get; set; }
+    
+    [Required]
+    public int ResolutionMins { get; set; }
+    
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     

@@ -175,7 +175,7 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
             CategoryId = category?.Id,
             SubcategoryId = subcategory?.Id,
             Priority = (ERPTraining.Core.Entities.Ticketing.TicketPriority)priority,
-            Status = ERPTraining.Core.Entities.Ticketing.TicketStatus.New, // Use enum directly
+            Status = 1, // New status ID
             Source = TicketSource.Email,
             CreatedAt = email.ReceivedDate,
             UpdatedAt = DateTime.UtcNow
@@ -224,9 +224,9 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
         ticket.UpdatedAt = DateTime.UtcNow;
         
         // If ticket was resolved/closed, reopen it
-        if (ticket.Status == ERPTraining.Core.Entities.Ticketing.TicketStatus.Resolved || ticket.Status == ERPTraining.Core.Entities.Ticketing.TicketStatus.Closed)
+        if (ticket.Status == 4 || ticket.Status == 5) // Resolved or Closed
         {
-            ticket.Status = ERPTraining.Core.Entities.Ticketing.TicketStatus.New;
+            ticket.Status = 1; // New status ID
             _logger.LogInformation("Reopened ticket #{TicketNumber} due to new email", ticket.PublicId?.ToString() ?? ticket.Id.ToString().Substring(0, 8));
         }
 

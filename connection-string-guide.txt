@@ -1,0 +1,18 @@
+# Quick guide to update production connection string
+
+# File location: D:\supportapp\api\appsettings.Production.json
+
+# Current connection string (staging):
+Server=sql8020.site4now.net;
+Database=db_aae2b0_solutionsnext;
+User Id=db_aae2b0_solutionsnext_admin;
+Password=Welcome!23;
+TrustServerCertificate=true;
+Encrypt=true
+
+# If production uses SAME database as staging:
+# ✓ No changes needed - database already has UserNotifications table
+
+# If production uses DIFFERENT database:
+# 1. Update connection string in appsettings.Production.json
+# 2. Run production-db-migration.sql on the production database

@@ -1,6 +1,7 @@
 // Ticketing API service
-const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5015';
-const API_ENDPOINT = `${API_BASE}/api`;
+import { API_CONFIG } from '../../../config/api';
+
+const API_ENDPOINT = API_CONFIG.BASE_URL;
 
 export interface Ticket {
   id: string;
@@ -81,6 +82,7 @@ export interface CreateTicketRequest {
   subcategoryId?: number;
   departmentId?: number;
   statusId?: number;
+  customFieldValues?: Record<string, any>;
   attachments?: File[];
 }
 
@@ -167,6 +169,7 @@ export const ticketsApi = {
       subcategoryId: ticket.subcategoryId,
       departmentId: ticket.departmentId,
       statusId: ticket.statusId,
+      customFieldValues: ticket.customFieldValues,
       attachments: attachments.length > 0 ? attachments : undefined
     };
 
@@ -226,5 +229,37 @@ export const ticketsApi = {
     return apiFetch(`/tickets/${ticketId}`, {
       method: 'DELETE',
     });
+  },
+
+  // Get ticket collaborators
+  async getCollaborators(ticketId: string): Promise<TicketCollaborator[]> {
+    return apiFetch(`/tickets/${ticketId}/collaborators`);
+  },
+
+  // Add collaborator to ticket
+  async addCollaborator(ticketId: string, userId: string, role: string = 'Collaborator'): Promise<TicketCollaborator> {
+    return apiFetch(`/tickets/${ticketId}/collaborators`, {
+      method: 'POST',
+      body: JSON.stringify({ userId, role }),
+    });
+  },
+
+  // Remove collaborator from ticket
+  async removeCollaborator(ticketId: string, userId: string): Promise<void> {
+    return apiFetch(`/tickets/${ticketId}/collaborators/${userId}`, {
+      method: 'DELETE',
+    });
   }
 };
+
+export interface TicketCollaborator {
+  id: number;
+  ticketId: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  role: string;
+  addedByUserId: string;
+  addedByUserName: string;
+  addedAt: string;
+}

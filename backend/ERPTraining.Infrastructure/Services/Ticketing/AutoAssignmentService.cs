@@ -650,7 +650,7 @@ public class AutoAssignmentService : IAutoAssignmentService
         {
             var activeTickets = await _context.Tickets
                 .CountAsync(t => t.AssignedToUserId == agent.UserId && 
-                               (t.Status == TicketStatus.New || t.Status == TicketStatus.InReview));
+                               (t.Status == 1 || t.Status == 2)); // New or In Progress
 
             var totalTickets = await _context.Tickets
                 .CountAsync(t => t.AssignedToUserId == agent.UserId);
@@ -705,7 +705,7 @@ public class AutoAssignmentService : IAutoAssignmentService
             {
                 var ticketsToReassign = await _context.Tickets
                     .Where(t => t.AssignedToUserId == overloadedAgent.Name && 
-                               t.Status == TicketStatus.New &&
+                               t.Status == 1 && // New status
                                t.CreatedAt > DateTime.UtcNow.AddHours(-24)) // Only recent tickets
                     .OrderBy(t => t.CreatedAt)
                     .Take(2) // Limit reassignments

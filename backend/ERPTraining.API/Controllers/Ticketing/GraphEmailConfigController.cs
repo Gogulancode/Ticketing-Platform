@@ -8,12 +8,12 @@ namespace ERPTraining.API.Controllers.Ticketing;
 [ApiController]
 [Route("api/tickets/settings/email-config")]
 [Authorize]
-public class GraphEmailConfigController : ControllerBase
+public class GraphEmailConfigController_Disabled : ControllerBase
 {
     private readonly IGraphEmailConfigService _emailConfigService;
-    private readonly ILogger<GraphEmailConfigController> _logger;
+    private readonly ILogger<GraphEmailConfigController_Disabled> _logger;
 
-    public GraphEmailConfigController(IGraphEmailConfigService emailConfigService, ILogger<GraphEmailConfigController> logger)
+    public GraphEmailConfigController_Disabled(IGraphEmailConfigService emailConfigService, ILogger<GraphEmailConfigController_Disabled> logger)
     {
         _emailConfigService = emailConfigService;
         _logger = logger;

@@ -1,0 +1,447 @@
+[
+  {
+    "lModuleId": "3",
+    "SectionId": "2001",
+    "SectionName": "Maintenance"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2020",
+    "SectionName": "Report"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2021",
+    "SectionName": "Expense"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2003",
+    "SectionName": "Vehicle Status"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2023",
+    "SectionName": "Vehicle Closing"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2024",
+    "SectionName": "Vehicle Summary"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2030",
+    "SectionName": "Transport"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2032",
+    "SectionName": "Request Received"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2031",
+    "SectionName": "New Transport"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2035",
+    "SectionName": "Movement"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2036",
+    "SectionName": "Bill Detail"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2038",
+    "SectionName": "Bill Received"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2051",
+    "SectionName": "Customer MIS"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2052",
+    "SectionName": "Transporter MIS"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2025",
+    "SectionName": "Driver Detail"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2053",
+    "SectionName": "Vehicle Type MIS"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2040",
+    "SectionName": "Pending Rate"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2000",
+    "SectionName": "Maintenance"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2002",
+    "SectionName": "Approval"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2022",
+    "SectionName": "Maintenance"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2026",
+    "SectionName": "Mechanic Work Hour"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2054",
+    "SectionName": "Vehicle Trip MIS"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2004",
+    "SectionName": "Vehicle Expense"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2055",
+    "SectionName": "Vehicle Fuel MIS"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2012",
+    "SectionName": "Pending Task"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2027",
+    "SectionName": "Equipment"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2005",
+    "SectionName": "HO Vehicle Log"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2075",
+    "SectionName": "EWay Bill"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2076",
+    "SectionName": "Generate Eway Bill"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2077",
+    "SectionName": "Upload JSON File"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2078",
+    "SectionName": "Eway Bill Request"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2079",
+    "SectionName": "Show Eway Bill"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2080",
+    "SectionName": "Update Part B"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2081",
+    "SectionName": "Cancel EWay Bill"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2082",
+    "SectionName": "Reject EWay Bill"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2083",
+    "SectionName": "Extend Validity"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2090",
+    "SectionName": "Eway Tracking"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2084",
+    "SectionName": "Search GSTN"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2085",
+    "SectionName": "Search HSN"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2086",
+    "SectionName": "Other Bill Generation"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2091",
+    "SectionName": "Gen By Other Party"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2092",
+    "SectionName": "Gen By Transport Dept"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2087",
+    "SectionName": "Multiple Vehicle"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "6000",
+    "SectionName": "LR Info"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2043",
+    "SectionName": "Bill Tracking"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2042",
+    "SectionName": "Bill Rejected"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2044",
+    "SectionName": "Trip Detail"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2041",
+    "SectionName": "Bill Approval"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2057",
+    "SectionName": "Vardi Daily Expense"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2058",
+    "SectionName": "Weekly Trip"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2059",
+    "SectionName": "Vehicle Unloading Pending"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2060",
+    "SectionName": "Invoice Pending"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2046",
+    "SectionName": "Bill Status"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2047",
+    "SectionName": "Job Tracking"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2048",
+    "SectionName": "Vehicle Delivery"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2010",
+    "SectionName": "Task Request"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2011",
+    "SectionName": "Customer Task Request"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2013",
+    "SectionName": "Completed Task List"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "6001",
+    "SectionName": "LR Copy"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "6002",
+    "SectionName": "LR Details"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2063",
+    "SectionName": "Vehicle Trip Daily"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2094",
+    "SectionName": "Gen By Date"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2095",
+    "SectionName": "Gen By State"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2093",
+    "SectionName": "Assigned For Transport"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2061",
+    "SectionName": "TP Wise Vehicle Placed"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2062",
+    "SectionName": "Client Wise Summary"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2070",
+    "SectionName": "Maintenance Expense"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2049",
+    "SectionName": "Bill Detail Consolidate"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2006",
+    "SectionName": "Vessel Maintenance"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "4704",
+    "SectionName": "Pending Bill"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "4709",
+    "SectionName": "HOD Approval"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "4708",
+    "SectionName": "Bill Received"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "4710",
+    "SectionName": "Bill Rejected"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "4715",
+    "SectionName": "Payment Report"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "4700",
+    "SectionName": "Transport Bill"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "4716",
+    "SectionName": "Tracking"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "4800",
+    "SectionName": "Customer Bill"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "4802",
+    "SectionName": "Bill Advice"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "4804",
+    "SectionName": "Bill Post History"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2050",
+    "SectionName": "Vehicle Placed"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "4717",
+    "SectionName": "HOD Rejected"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2071",
+    "SectionName": "Advance Request"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2069",
+    "SectionName": "Transporter Master"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2068",
+    "SectionName": "Dispatch Detail"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2064",
+    "SectionName": "Dispatch Warehouse"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2072",
+    "SectionName": "Job Creation -TS"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2073",
+    "SectionName": "Dispatch - TS/FF"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2074",
+    "SectionName": "IN - Transit"
+  },
+  {
+    "lModuleId": "3",
+    "SectionId": "2065",
+    "SectionName": "DSR"
+  }
+]

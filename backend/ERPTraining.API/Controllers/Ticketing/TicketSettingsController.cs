@@ -148,8 +148,20 @@ public class TicketSettingsController : ControllerBase
             IsActive = true
         };
 
-        var created = await _service.CreateSubCategoryAsync(entity, ct);
-        return CreatedAtAction(nameof(GetSubCategory), new { id = created.Id }, created);
+        try
+        {
+            var created = await _service.CreateSubCategoryAsync(entity, ct);
+            return CreatedAtAction(nameof(GetSubCategory), new { id = created.Id }, created);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx && sqlEx.Number == 2627)
+        {
+            // Handle unique constraint violation
+            if (sqlEx.Message.Contains("UK_TicketSubCategories_CategoryName"))
+            {
+                return BadRequest($"A subcategory with the name '{request.Name}' already exists in this category.");
+            }
+            return BadRequest("A subcategory with this name already exists.");
+        }
     }
 
     // PUT: api/tickets/settings/subcategories/{id}

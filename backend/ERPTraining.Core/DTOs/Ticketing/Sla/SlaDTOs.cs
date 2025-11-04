@@ -1,16 +1,11 @@
 namespace ERPTraining.Core.DTOs.Ticketing.Sla;
 
 public record SlaPolicyDto(
-    int Id,
-    string Name,
-    int PriorityId,
-    string PriorityName,
-    int ResponseTimeMinutes,
-    int ResolutionTimeMinutes,
-    int? EscalationLevel1Minutes,
-    int? EscalationLevel2Minutes,
-    int? EscalationLevel3Minutes,
-    bool IsActive,
+    Guid Id,
+    int Category,
+    int Priority,
+    int FirstResponseMins,
+    int ResolutionMins,
     DateTime CreatedAt,
     DateTime UpdatedAt,
     int EscalationContactsCount
@@ -18,29 +13,26 @@ public record SlaPolicyDto(
 
 public record CreateSlaPolicyRequest(
     string Name,
-    int PriorityId,
-    int ResponseTimeMinutes,
-    int ResolutionTimeMinutes,
-    int? EscalationLevel1Minutes,
-    int? EscalationLevel2Minutes,
-    int? EscalationLevel3Minutes,
-    bool? IsActive
+    string? Description,
+    int Category,
+    int Priority,
+    int FirstResponseMins,
+    int ResolutionMins
 );
 
 public record UpdateSlaPolicyRequest(
-    string? Name,
-    int? PriorityId,
-    int? ResponseTimeMinutes,
-    int? ResolutionTimeMinutes,
-    int? EscalationLevel1Minutes,
-    int? EscalationLevel2Minutes,
-    int? EscalationLevel3Minutes,
-    bool? IsActive
+    string Name,
+    string? Description,
+    bool IsActive,
+    int Category,
+    int Priority,
+    int FirstResponseMins,
+    int ResolutionMins
 );
 
 public record SlaEscalationContactDto(
     int Id,
-    int SlaPolicyId,
+    Guid SlaPolicyId,
     int Level,
     string Name,
     string Email,
@@ -69,7 +61,7 @@ public record UpdateSlaEscalationContactRequest(
 );
 
 public record SlaStatusDto(
-    int SlaPolicyId,
+    Guid SlaPolicyId,
     string SlaPolicyName,
     bool ResponseMet,
     bool ResolutionMet,

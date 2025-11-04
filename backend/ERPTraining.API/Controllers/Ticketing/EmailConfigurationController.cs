@@ -23,16 +23,16 @@ public class CreateEmailAccountDto
 [ApiController]
 [Route("api/email-config")]
 // [Authorize] // Temporarily disabled for testing
-public class EmailConfigurationController : ControllerBase
+public class EmailConfigurationController_Disabled : ControllerBase
 {
     private readonly IEmailConfigurationService _emailConfigService;
     private readonly IGraphEmailConfigService _graphEmailConfigService;
-    private readonly ILogger<EmailConfigurationController> _logger;
+    private readonly ILogger<EmailConfigurationController_Disabled> _logger;
 
-    public EmailConfigurationController(
+    public EmailConfigurationController_Disabled(
         IEmailConfigurationService emailConfigService,
         IGraphEmailConfigService graphEmailConfigService,
-        ILogger<EmailConfigurationController> logger)
+        ILogger<EmailConfigurationController_Disabled> logger)
     {
         _emailConfigService = emailConfigService;
         _graphEmailConfigService = graphEmailConfigService;

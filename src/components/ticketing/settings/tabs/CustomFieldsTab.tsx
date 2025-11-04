@@ -39,7 +39,6 @@ const CustomFieldsTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | null>(null);
-  const [categories, setCategories] = useState<TicketCategoryConfig[]>([]);
   const [formData, setFormData] = useState<CustomFieldFormData>({
     name: '',
     label: '',
@@ -74,9 +73,7 @@ const CustomFieldsTab: React.FC = () => {
     enabled: !!formData.categoryId
   });
 
-  React.useEffect(() => {
-    setCategories(categoriesData);
-  }, [categoriesData]);
+
 
   // Helper functions for options management
   const addOption = () => {
@@ -503,7 +500,7 @@ const CustomFieldsTab: React.FC = () => {
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Select Category</option>
-                    {categories.map((category: TicketCategoryConfig) => (
+                    {categoriesData.map((category: TicketCategoryConfig) => (
                       <option key={category.id} value={category.id}>
                         {category.name}
                       </option>

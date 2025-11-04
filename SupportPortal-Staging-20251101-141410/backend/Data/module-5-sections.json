@@ -1,0 +1,157 @@
+[
+  {
+    "lModuleId": "5",
+    "SectionId": "4000",
+    "SectionName": "Operation"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4001",
+    "SectionName": "Job Creation"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4002",
+    "SectionName": "SB Preparation"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4003",
+    "SectionName": "SB Filing"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4004",
+    "SectionName": "Custom Process"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4005",
+    "SectionName": "Form 13"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4008",
+    "SectionName": "Shipment Get In"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4009",
+    "SectionName": "Warehouse"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4010",
+    "SectionName": "Job Expense"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4011",
+    "SectionName": "Shipment Tracking"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4012",
+    "SectionName": "Admin Shipment Tracking"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4014",
+    "SectionName": "Customer Transport"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4015",
+    "SectionName": "Job PreAlert"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4016",
+    "SectionName": "Vehicle Request"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4017",
+    "SectionName": "Current Job"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4050",
+    "SectionName": "Post Clearance"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4051",
+    "SectionName": "PCA Document"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4052",
+    "SectionName": "Billing Advice"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4070",
+    "SectionName": "Task Request"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4071",
+    "SectionName": "Customer Task Request"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4072",
+    "SectionName": "Pending Task"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4073",
+    "SectionName": "Completed Task List"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4080",
+    "SectionName": "Reports"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4081",
+    "SectionName": "User Reports"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4082",
+    "SectionName": "View User Reports"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4083",
+    "SectionName": "MIS Port"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4084",
+    "SectionName": "MIS Branch"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4090",
+    "SectionName": "Payment"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "4091",
+    "SectionName": "Payment Request"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "101618",
+    "SectionName": "Expense Approval"
+  },
+  {
+    "lModuleId": "5",
+    "SectionId": "101619",
+    "SectionName": "Expense Approval HOD"
+  }
+]

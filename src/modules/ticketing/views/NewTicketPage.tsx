@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, AlertCircle, Paperclip, X, Zap, Bug, HelpCircle, Sparkles, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, Paperclip, X, Zap, Bug, HelpCircle, Sparkles, CheckCircle, Users, DollarSign, Megaphone, FileText } from 'lucide-react';
 import { ticketsApi, TicketPriority, TicketCategory } from '../services/ticketsApi';
-import { settingsApi, Department, TicketCategoryConfig, SubCategory, PriorityLevel, TicketStatusConfig } from '../../../shared/services/api/settingsApi';
+import { settingsApi, Department, TicketCategoryConfig, SubCategory, PriorityLevel, TicketStatusConfig, CustomField } from '../../../shared/services/api/settingsApi';
+import { useQuery } from '@tanstack/react-query';
+import AuthService from '../../../shared/services/api/auth';
 
 // Helper function to map our new category system to the old enum
 const mapCategoryToEnum = (categoryId: string): TicketCategory => {
@@ -26,6 +28,7 @@ const NewTicketPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAgent, setIsAgent] = useState(false);
   
   // Settings data
   const [categories, setCategories] = useState<TicketCategoryConfig[]>([]);
@@ -43,15 +46,27 @@ const NewTicketPage: React.FC = () => {
     departmentId: '',
     priority: TicketPriority.Medium,
     statusId: '',
+    customFieldValues: {} as Record<string, any>
   });
 
   const [attachments, setAttachments] = useState<File[]>([]);
 
+  // Query for custom fields based on category and subcategory
+  const { data: customFields = [] } = useQuery({
+    queryKey: ['customFields', formData.categoryId, formData.subcategoryId],
+    queryFn: async () => {
+      if (!formData.categoryId || !formData.subcategoryId) return [];
+      return await settingsApi.getCustomFields(parseInt(formData.categoryId), parseInt(formData.subcategoryId));
+    },
+    enabled: !!(formData.categoryId && formData.subcategoryId)
+  });
+
   // Quick action templates
   const quickActions = [
+    // IT Department
     { 
       icon: Bug, 
-      label: 'Bug Report', 
+      label: 'IT - Bug Report', 
       title: 'Bug Report: ',
       description: 'I encountered a bug with the following:\n\n• What happened:\n• Expected behavior:\n• Steps to reproduce:\n1. \n2. \n3. \n\n• Browser/System info:',
       category: 'bug-report',
@@ -59,27 +74,79 @@ const NewTicketPage: React.FC = () => {
     },
     { 
       icon: Zap, 
-      label: 'Technical Issue', 
+      label: 'IT - Technical Issue', 
       title: 'Technical Support: ',
       description: 'I need technical assistance with:\n\n• Issue description:\n• Error messages (if any):\n• When did this start:\n• What I\'ve tried:',
       category: 'technical-support',
       priority: TicketPriority.Medium
     },
+    // HR Department
     { 
-      icon: Sparkles, 
-      label: 'Feature Request', 
-      title: 'Feature Request: ',
-      description: 'I would like to request the following feature:\n\n• Feature description:\n• Business justification:\n• Expected benefit:\n• Priority level:',
+      icon: Users, 
+      label: 'HR - Leave Request', 
+      title: 'Leave Request: ',
+      description: 'I would like to request leave for:\n\n• Leave type (Annual/Sick/Personal):\n• Start date:\n• End date:\n• Number of days:\n• Reason:\n• Contact during leave:',
+      category: 'general-inquiry',
+      priority: TicketPriority.Low
+    },
+    { 
+      icon: Users, 
+      label: 'HR - Payroll Issue', 
+      title: 'Payroll Inquiry: ',
+      description: 'I have a payroll-related issue:\n\n• Issue description:\n• Pay period affected:\n• Expected amount vs received:\n• Supporting documents attached:',
+      category: 'general-inquiry',
+      priority: TicketPriority.High
+    },
+    // Accounts/Finance Department
+    { 
+      icon: DollarSign, 
+      label: 'Finance - Expense Claim', 
+      title: 'Expense Reimbursement: ',
+      description: 'I would like to claim reimbursement for:\n\n• Expense type:\n• Amount:\n• Date incurred:\n• Business purpose:\n• Receipts attached:',
+      category: 'general-inquiry',
+      priority: TicketPriority.Medium
+    },
+    { 
+      icon: DollarSign, 
+      label: 'Finance - Invoice Query', 
+      title: 'Invoice Inquiry: ',
+      description: 'I have a question about an invoice:\n\n• Invoice number:\n• Vendor/Client name:\n• Issue description:\n• Amount in question:\n• Required action:',
+      category: 'general-inquiry',
+      priority: TicketPriority.Medium
+    },
+    // Marketing Department
+    { 
+      icon: Megaphone, 
+      label: 'Marketing - Campaign Request', 
+      title: 'Marketing Campaign: ',
+      description: 'I would like to request marketing support for:\n\n• Campaign objective:\n• Target audience:\n• Timeline:\n• Budget (if applicable):\n• Required deliverables:\n• Success metrics:',
       category: 'feature-request',
       priority: TicketPriority.Low
     },
     { 
-      icon: HelpCircle, 
-      label: 'General Question', 
-      title: 'Question: ',
-      description: 'I have a question about:\n\n• Topic:\n• Specific question:\n• Context or background:\n• What I\'ve already tried:',
-      category: 'general-inquiry',
+      icon: Megaphone, 
+      label: 'Marketing - Design Request', 
+      title: 'Design/Creative Request: ',
+      description: 'I need design/creative support for:\n\n• Type (Banner/Poster/Social media/Email):\n• Purpose:\n• Deadline:\n• Dimensions/Specifications:\n• Brand guidelines:\n• Reference materials:',
+      category: 'feature-request',
       priority: TicketPriority.Medium
+    },
+    // General
+    { 
+      icon: FileText, 
+      label: 'General - Document Request', 
+      title: 'Document Request: ',
+      description: 'I need the following document(s):\n\n• Document type:\n• Purpose:\n• Required by (date):\n• Delivery format (PDF/Word/Email):\n• Additional notes:',
+      category: 'general-inquiry',
+      priority: TicketPriority.Low
+    },
+    { 
+      icon: HelpCircle, 
+      label: 'General - Question', 
+      title: 'General Inquiry: ',
+      description: 'I have a question about:\n\n• Department/Topic:\n• Specific question:\n• Context or background:\n• Urgency level:',
+      category: 'general-inquiry',
+      priority: TicketPriority.Low
     }
   ];
 
@@ -88,12 +155,13 @@ const NewTicketPage: React.FC = () => {
     const loadSettingsData = async () => {
       try {
         setSettingsLoading(true);
-        const [deptResponse, categoriesResponse, subCategoriesResponse, prioritiesResponse, statusesResponse] = await Promise.all([
+        const [deptResponse, categoriesResponse, subCategoriesResponse, prioritiesResponse, statusesResponse, currentUser] = await Promise.all([
           settingsApi.getDepartments(),
           settingsApi.getTicketCategories(),
           settingsApi.getSubCategories(),
           settingsApi.getPriorityLevels(),
-          settingsApi.getTicketStatuses()
+          settingsApi.getTicketStatuses(),
+          AuthService.getCurrentUser().catch(() => null) // Get current user to pre-select department
         ]);
         
         setDepartments(deptResponse);
@@ -107,6 +175,21 @@ const NewTicketPage: React.FC = () => {
         const defaultStatus = statusData.find((s: TicketStatusConfig) => s.name === 'New') || statusData[0];
         if (defaultStatus) {
           setFormData(prev => ({ ...prev, statusId: defaultStatus.id.toString() }));
+        }
+
+        // Pre-select user's department if available
+        if (currentUser?.department && deptResponse.length > 0) {
+          const userDepartment = deptResponse.find(
+            (dept: Department) => dept.name.toLowerCase() === currentUser.department?.toLowerCase()
+          );
+          if (userDepartment) {
+            setFormData(prev => ({ ...prev, departmentId: userDepartment.id.toString() }));
+          }
+        }
+
+        // Check if user is an Agent (has Agent role)
+        if (currentUser?.role && currentUser.role.toLowerCase() === 'agent') {
+          setIsAgent(true);
         }
       } catch (error) {
         setError('Failed to load form data');
@@ -135,7 +218,7 @@ const NewTicketPage: React.FC = () => {
       setAvailableSubcategories([]);
       setFormData(prev => ({ ...prev, subcategoryId: '' }));
     }
-  }, [formData.categoryId, allSubcategories]);
+  }, [formData.categoryId, formData.subcategoryId, allSubcategories]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,11 +228,23 @@ const NewTicketPage: React.FC = () => {
       return;
     }
 
+    // Validate required custom fields
+    const requiredCustomFields = customFields.filter(field => field.isRequired);
+    const missingRequiredFields = requiredCustomFields.filter(field => {
+      const value = formData.customFieldValues[field.id];
+      return !value || (Array.isArray(value) && value.length === 0);
+    });
+
+    if (missingRequiredFields.length > 0) {
+      setError(`Please fill in required fields: ${missingRequiredFields.map(f => f.label).join(', ')}`);
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
     try {
-      await ticketsApi.createTicket({
+      const ticketData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: mapCategoryToEnum(formData.categoryId),
@@ -158,10 +253,17 @@ const NewTicketPage: React.FC = () => {
         subcategoryId: parseInt(formData.subcategoryId),
         departmentId: parseInt(formData.departmentId),
         statusId: parseInt(formData.statusId),
+        customFieldValues: formData.customFieldValues,
         attachments: attachments.length > 0 ? attachments : undefined
-      });
+      };
       
-      navigate('/tickets');
+      console.log('📝 Creating ticket with data:', JSON.stringify(ticketData, null, 2));
+      console.log('🔍 Custom Field Values:', formData.customFieldValues);
+      console.log('🔍 Status ID:', formData.statusId, typeof formData.statusId);
+      
+      await ticketsApi.createTicket(ticketData);
+      
+      navigate('/tickets/my');
     } catch (err) {
       setError('Failed to create ticket. Please try again.');
       console.error('Error creating ticket:', err);
@@ -237,6 +339,159 @@ const NewTicketPage: React.FC = () => {
     }
   };
 
+  // Handle custom field value changes
+  const handleCustomFieldChange = (fieldId: number, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      customFieldValues: {
+        ...prev.customFieldValues,
+        [fieldId]: value
+      }
+    }));
+  };
+
+  // Render custom field input based on field type
+  const renderCustomField = (field: CustomField) => {
+    const value = formData.customFieldValues[field.id] || '';
+    
+    switch (field.type) {
+      case 'text':
+      case 'email':
+      case 'phone':
+      case 'url':
+        return (
+          <input
+            type={field.type}
+            value={value}
+            onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+            placeholder={field.placeholder}
+            required={field.isRequired}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        );
+      
+      case 'textarea':
+        return (
+          <textarea
+            value={value}
+            onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+            placeholder={field.placeholder}
+            required={field.isRequired}
+            rows={3}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        );
+      
+      case 'number':
+        return (
+          <input
+            type="number"
+            value={value}
+            onChange={(e) => handleCustomFieldChange(field.id, parseFloat(e.target.value) || '')}
+            placeholder={field.placeholder}
+            required={field.isRequired}
+            min={field.validationRules?.min}
+            max={field.validationRules?.max}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        );
+      
+      case 'date':
+        return (
+          <input
+            type="date"
+            value={value}
+            onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+            required={field.isRequired}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        );
+      
+      case 'datetime':
+        return (
+          <input
+            type="datetime-local"
+            value={value}
+            onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+            required={field.isRequired}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        );
+      
+      case 'select':
+        return (
+          <select
+            value={value}
+            onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+            required={field.isRequired}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Select an option</option>
+            {field.options?.map((option, index) => (
+              <option key={index} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        );
+      
+      case 'checkbox':
+        return (
+          <div className="space-y-2">
+            {field.options?.map((option, index) => (
+              <label key={index} className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={(value as string[])?.includes(option) || false}
+                  onChange={(e) => {
+                    const currentValues = (value as string[]) || [];
+                    const newValues = e.target.checked
+                      ? [...currentValues, option]
+                      : currentValues.filter(v => v !== option);
+                    handleCustomFieldChange(field.id, newValues);
+                  }}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span className="ml-2 text-sm text-gray-700">{option}</span>
+              </label>
+            ))}
+          </div>
+        );
+      
+      case 'radio':
+        return (
+          <div className="space-y-2">
+            {field.options?.map((option, index) => (
+              <label key={index} className="flex items-center">
+                <input
+                  type="radio"
+                  name={`field-${field.id}`}
+                  value={option}
+                  checked={value === option}
+                  onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                  required={field.isRequired}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                />
+                <span className="ml-2 text-sm text-gray-700">{option}</span>
+              </label>
+            ))}
+          </div>
+        );
+      
+      default:
+        return (
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+            placeholder={field.placeholder}
+            required={field.isRequired}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        );
+    }
+  };
+
   // Calculate form completion progress
   const formProgress = useMemo(() => {
     const requiredFields = ['title', 'description', 'categoryId', 'subcategoryId', 'departmentId', 'statusId'];
@@ -248,9 +503,9 @@ const NewTicketPage: React.FC = () => {
   }, [formData]);
 
   return (
-    <div className="text-sm leading-snug space-y-sm">
-      <div className="max-w-4xl mx-auto p-sm">
-        <div className="bg-white rounded-lg shadow-md p-sm">
+    <div className="text-sm leading-snug">
+      <div className="max-w-full">
+        <div className="bg-white shadow-md p-sm">
           {/* Header */}
           <div className="flex items-center space-x-3 mb-sm">
             <button
@@ -337,7 +592,7 @@ const NewTicketPage: React.FC = () => {
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  rows={4}
+                  rows={12}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
                   placeholder="Describe your issue in detail..."
                   disabled={loading}
@@ -445,10 +700,60 @@ const NewTicketPage: React.FC = () => {
                   </select>
                 </div>
 
+                {/* Subcategory */}
+                {formData.categoryId && (
+                  <div>
+                    <label htmlFor="subcategoryId" className="block text-sm font-medium text-gray-700 mb-xs">
+                      Subcategory <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="subcategoryId"
+                      value={formData.subcategoryId}
+                      onChange={(e) => handleInputChange('subcategoryId', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      disabled={loading}
+                      required
+                    >
+                      <option value="">Select subcategory</option>
+                      {availableSubcategories.map((subcategory) => (
+                        <option key={subcategory.id} value={subcategory.id.toString()}>
+                          {subcategory.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Custom Fields Section */}
+              {formData.categoryId && formData.subcategoryId && customFields.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-md font-medium text-gray-900">Additional Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {customFields
+                      .sort((a, b) => a.displayOrder - b.displayOrder)
+                      .map((field) => (
+                        <div key={field.id} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
+                          <label className="block text-sm font-medium text-gray-700 mb-xs">
+                            {field.label} {field.isRequired && <span className="text-red-500">*</span>}
+                          </label>
+                          {renderCustomField(field)}
+                          {field.validationRules?.pattern && (
+                            <p className="mt-1 text-xs text-gray-500">
+                              Pattern: {field.validationRules.pattern}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Department */}
                 <div>
                   <label htmlFor="departmentId" className="block text-sm font-medium text-gray-700 mb-xs">
-                    Department <span className="text-red-500">*</span>
+                    Your Department <span className="text-red-500">*</span>
                   </label>
                   <select
                     id="departmentId"
@@ -459,7 +764,7 @@ const NewTicketPage: React.FC = () => {
                     required
                   >
                     <option value="">
-                      {settingsLoading ? 'Loading...' : 'Select department'}
+                      {settingsLoading ? 'Loading...' : 'Select Your Department'}
                     </option>
                     {departments.map((department) => (
                       <option key={department.id} value={department.id.toString()}>
@@ -468,33 +773,7 @@ const NewTicketPage: React.FC = () => {
                     ))}
                   </select>
                 </div>
-              </div>
 
-              {/* Subcategory - Full width when visible */}
-              {formData.categoryId && (
-                <div>
-                  <label htmlFor="subcategoryId" className="block text-sm font-medium text-gray-700 mb-xs">
-                    Subcategory <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="subcategoryId"
-                    value={formData.subcategoryId}
-                    onChange={(e) => handleInputChange('subcategoryId', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    disabled={loading}
-                    required
-                  >
-                    <option value="">Select subcategory</option>
-                    {availableSubcategories.map((subcategory) => (
-                      <option key={subcategory.id} value={subcategory.id.toString()}>
-                        {subcategory.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Priority */}
                 <div>
                   <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-xs">
@@ -524,23 +803,32 @@ const NewTicketPage: React.FC = () => {
                   <label htmlFor="statusId" className="block text-sm font-medium text-gray-700 mb-xs">
                     Status <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    id="statusId"
-                    value={formData.statusId}
-                    onChange={(e) => handleInputChange('statusId', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    disabled={loading || settingsLoading}
-                    required
-                  >
-                    <option value="">
-                      {settingsLoading ? 'Loading...' : 'Select status'}
-                    </option>
-                    {statuses.map((status) => (
-                      <option key={status.id} value={status.id.toString()}>
-                        {status.name}
+                  {isAgent ? (
+                    <select
+                      id="statusId"
+                      value={formData.statusId}
+                      onChange={(e) => handleInputChange('statusId', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      disabled={loading || settingsLoading}
+                      required
+                    >
+                      <option value="">
+                        {settingsLoading ? 'Loading...' : 'Select status'}
                       </option>
-                    ))}
-                  </select>
+                      {statuses.map((status) => (
+                        <option key={status.id} value={status.id.toString()}>
+                          {status.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value="New"
+                      disabled
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -549,7 +837,7 @@ const NewTicketPage: React.FC = () => {
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
               <button
                 type="button"
-                onClick={() => navigate('/tickets')}
+                onClick={() => navigate('/tickets/my')}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 disabled={loading}
               >

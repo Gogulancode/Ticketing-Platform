@@ -37,12 +37,18 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:5178",  // Default Vite port
+                "http://localhost:5179",  // Alternative frontend port
                 "http://localhost:5180",  // Alternative port when 5178 is taken
+                "http://localhost:5181",  // Current frontend port
                 "http://localhost:5173",  // Vite default port
-                "http://localhost:5182",  // Current frontend port
+                "http://localhost:5182",  // Alternative frontend port
                 "http://localhost:3000",  // React dev server alternative
                 "http://localhost:8080",  // Generic dev server port
-                "https://support.solutionsnextwave.com"  // Staging/Production
+                "http://localhost",        // Production IIS frontend on port 80
+                "http://localhost:81",     // Production IIS API on port 81
+                "https://localhost",       // Production IIS on port 443
+                "https://support.solutionsnextwave.com",  // Production
+                "http://support.solutionsnextwave.com"    // Staging (HTTP and HTTPS)
               )
               .AllowAnyMethod()
               .AllowAnyHeader()
@@ -131,8 +137,9 @@ builder.Services.AddScoped<ERPTraining.Core.Services.ITimeZoneService, ERPTraini
 builder.Services.AddHttpClient<InfraServices.ERPApiService>();
 builder.Services.AddScoped<IERPApiService, InfraServices.ERPApiService>();
 
-// Use ERP SSO Authentication Service
-builder.Services.AddScoped<IAuthService, InfraServices.ERPSSOAuthService>();
+// Authentication Service - CLEAN & FAST
+// ERP for password validation only, Platform manages all roles locally
+builder.Services.AddScoped<IAuthService, ERPTraining.Infrastructure.Services.Auth.CleanERPAuthService>();
 
 // Add Ticketing services
 builder.Services.AddScoped<ITicketService, InfraServices.TicketService>();

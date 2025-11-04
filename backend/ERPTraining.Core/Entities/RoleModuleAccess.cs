@@ -1,3 +1,5 @@
+using ERPTraining.Core.Training.Entities;
+
 namespace ERPTraining.Core.Entities;
 
 public class RoleModuleAccess
