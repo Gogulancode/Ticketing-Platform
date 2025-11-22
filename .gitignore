@@ -8,9 +8,20 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
+dist/
 dist-ssr
 *.local
+
+# .NET build outputs
+**/bin/
+**/obj/
+**/publish/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Generated artifacts
+artifacts/
 
 # Editor directories and files
 .vscode/*
