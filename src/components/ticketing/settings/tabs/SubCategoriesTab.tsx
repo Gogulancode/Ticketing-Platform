@@ -10,6 +10,7 @@ import {
   EyeSlashIcon
 } from '@heroicons/react/24/outline';
 import { useForm } from 'react-hook-form';
+import { toast } from 'react-hot-toast';
 import { settingsApi, SubCategory, TicketCategoryConfig } from '@api/settingsApi';
 
 interface SubCategoryFormData {
@@ -40,7 +41,7 @@ const SubCategoryModal: React.FC<SubCategoryModalProps> = ({ isOpen, onClose, su
       description: subcategory?.description || '',
       categoryId: subcategory?.categoryId || 0,
       isActive: subcategory?.isActive ?? true,
-      displayOrder: subcategory?.order || 1,
+      displayOrder: subcategory?.displayOrder ?? subcategory?.order ?? 1,
     }
   });
 
@@ -51,7 +52,7 @@ const SubCategoryModal: React.FC<SubCategoryModalProps> = ({ isOpen, onClose, su
         description: subcategory?.description || '',
         categoryId: subcategory?.categoryId || 0,
         isActive: subcategory?.isActive ?? true,
-        displayOrder: subcategory?.order || 1,
+        displayOrder: subcategory?.displayOrder ?? subcategory?.order ?? 1,
       });
     }
   }, [isOpen, subcategory, reset]);
@@ -59,10 +60,12 @@ const SubCategoryModal: React.FC<SubCategoryModalProps> = ({ isOpen, onClose, su
   const onSubmit = async (data: SubCategoryFormData) => {
     try {
       await onSave(data, !!subcategory);
+      toast.success(subcategory ? 'Sub-category updated successfully!' : 'Sub-category created successfully!');
       onClose();
       reset();
     } catch (error) {
-      console.error('Error saving subcategory:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save sub-category';
+      toast.error(errorMessage);
     }
   };
 
@@ -197,6 +200,7 @@ const SubCategoriesTab: React.FC = () => {
   const [editingSubcategory, setEditingSubcategory] = useState<SubCategory | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<number>(0);
+  const [showInactive, setShowInactive] = useState(false); // Default to active-only view
   const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
   const [categories, setCategories] = useState<TicketCategoryConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -212,13 +216,12 @@ const SubCategoriesTab: React.FC = () => {
       setLoading(true);
       setError(null);
       const [subcategoriesData, categoriesData] = await Promise.all([
-        settingsApi.getSubCategories(),
-        settingsApi.getTicketCategories()
+        settingsApi.getSubCategories(undefined, true), // includeInactive = true
+        settingsApi.getTicketCategories(true) // includeInactive = true
       ]);
       setSubcategories(subcategoriesData);
       setCategories(categoriesData);
     } catch (error) {
-      console.error('Error loading data:', error);
       setError('Failed to load subcategories. Please try again.');
     } finally {
       setLoading(false);
@@ -234,7 +237,8 @@ const SubCategoriesTab: React.FC = () => {
           description: data.description || '',
           categoryId: data.categoryId,
           isActive: data.isActive,
-          order: data.displayOrder || editingSubcategory.order
+          order: data.displayOrder ?? editingSubcategory.displayOrder ?? editingSubcategory.order,
+          displayOrder: data.displayOrder ?? editingSubcategory.displayOrder ?? editingSubcategory.order,
         });
       } else {
         // Create new subcategory
@@ -243,14 +247,14 @@ const SubCategoriesTab: React.FC = () => {
           description: data.description || '',
           categoryId: data.categoryId,
           isActive: data.isActive,
-          order: data.displayOrder || subcategories.length + 1
+          order: data.displayOrder ?? subcategories.length + 1,
+          displayOrder: data.displayOrder ?? subcategories.length + 1,
         });
       }
       
       // Reload data to reflect changes
       await loadData();
     } catch (error) {
-      console.error('Error saving subcategory:', error);
       throw error;
     }
   };
@@ -264,10 +268,11 @@ const SubCategoriesTab: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this sub-category? This action cannot be undone.')) {
       try {
         await settingsApi.deleteSubCategory(subcategoryId);
+        toast.success('Sub-category deleted successfully!');
         await loadData(); // Reload the list
       } catch (error) {
-        console.error('Error deleting subcategory:', error);
-        alert('Failed to delete sub-category. Please try again.');
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete sub-category';
+        toast.error(errorMessage);
       }
     }
   };
@@ -277,12 +282,13 @@ const SubCategoriesTab: React.FC = () => {
     setEditingSubcategory(null);
   };
 
-  // Filter subcategories by search term and category
+  // Filter subcategories by search term, category, and active status
   const filteredSubcategories = subcategories.filter((subcategory: SubCategory) => {
     const matchesSearch = subcategory.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (subcategory.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     const matchesCategory = selectedCategoryFilter === 0 || subcategory.categoryId === selectedCategoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesActiveFilter = showInactive ? !subcategory.isActive : subcategory.isActive;
+    return matchesSearch && matchesCategory && matchesActiveFilter;
   });
 
   // Group by category for display
@@ -337,6 +343,17 @@ const SubCategoriesTab: React.FC = () => {
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Add Sub-Category
           </button>
+          
+          {/* Show/Hide Inactive Toggle */}
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <span className="ml-2 text-sm text-gray-700">Show inactive</span>
+          </label>
         </div>
 
         {/* Search and Filter */}
@@ -394,18 +411,20 @@ const SubCategoriesTab: React.FC = () => {
             </button>
           </div>
         ) : (
-          Object.entries(groupedSubcategories).map(([categoryName, categorySubcategories]) => (
+          Object.entries(groupedSubcategories).map(([categoryName, categorySubcategories]) => {
+            const subcategoryList = categorySubcategories as SubCategory[];
+            return (
             <div key={categoryName} className="bg-white shadow rounded-lg overflow-hidden">
               <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900">{categoryName}</h3>
                 <p className="text-sm text-gray-500">
-                  {categorySubcategories.length} sub-categories
+                  {subcategoryList.length} sub-categories
                 </p>
               </div>
               
               <ul className="divide-y divide-gray-200">
-                {categorySubcategories
-                  .sort((a, b) => a.order - b.order)
+                {subcategoryList
+                  .sort((a, b) => (a.displayOrder ?? a.order) - (b.displayOrder ?? b.order))
                   .map((subcategory) => (
                     <li key={subcategory.id} className="px-6 py-4">
                       <div className="flex items-center justify-between">
@@ -431,7 +450,7 @@ const SubCategoriesTab: React.FC = () => {
                             )}
                             <div className="flex items-center space-x-4 mt-2">
                               <span className="text-sm text-gray-500">
-                                <strong>Order:</strong> {subcategory.order}
+                                <strong>Order:</strong> {subcategory.displayOrder ?? subcategory.order}
                               </span>
                             </div>
                           </div>
@@ -458,7 +477,8 @@ const SubCategoriesTab: React.FC = () => {
                   ))}
               </ul>
             </div>
-          ))
+          );
+          })
         )}
       </div>
 

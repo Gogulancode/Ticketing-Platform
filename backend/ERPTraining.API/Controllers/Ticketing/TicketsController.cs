@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ERPTraining.Core.Entities.Ticketing;
 using ERPTraining.Core.Entities; // Add for User
+using ERPTraining.Core.Interfaces.Ticketing;
 using ERPTraining.Core.Services;
 using ERPTraining.Core.Ticketing.Settings.Interfaces;
 using System.Security.Claims;
@@ -21,10 +22,12 @@ public class TicketsController : ControllerBase
     private readonly ILogger<TicketsController> _logger;
     private readonly string _connectionString;
     private readonly ApplicationDbContext _context;
+    private readonly IAutoAssignmentService _autoAssignmentService;
 
     public TicketsController(
         ITicketService ticketService, 
         IA_TicketSettingsService settingsService, 
+        IAutoAssignmentService autoAssignmentService,
         ILogger<TicketsController> logger, 
         IConfiguration configuration,
         ApplicationDbContext context)
@@ -34,6 +37,7 @@ public class TicketsController : ControllerBase
         _logger = logger;
         _connectionString = configuration.GetConnectionString("DefaultConnection") ?? "";
         _context = context;
+        _autoAssignmentService = autoAssignmentService;
     }
 
     // Helper method to ensure DateTime is properly stored as UTC
@@ -205,16 +209,17 @@ public class TicketsController : ControllerBase
             
             foreach (var ticket in tickets)
             {
-                // Get basic user info for created by user
-                User? createdByUser = null;
-                if (!string.IsNullOrEmpty(ticket.CreatedByUserId))
+                // Use eager-loaded user data when available to avoid per-ticket fetches
+                var createdByUser = ticket.CreatedByUser;
+                if (createdByUser == null && !string.IsNullOrEmpty(ticket.CreatedByUserId))
                 {
                     createdByUser = await _ticketService.GetUserAsync(ticket.CreatedByUserId);
                 }
-                
+
                 response.Add(new
                 {
                     id = ticket.Id,
+                    publicId = ticket.PublicId,
                     title = ticket.Title,
                     description = ticket.Description,
                     category = (int)ticket.Category,
@@ -250,62 +255,105 @@ public class TicketsController : ControllerBase
 
     // GET: api/tickets/my
     [HttpGet("my")]
-    public async Task<ActionResult<IEnumerable<object>>> GetMyTickets()
+    public async Task<ActionResult<object>> GetMyTickets(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] int? status = null,
+        [FromQuery] int? priority = null,
+        [FromQuery] int? category = null,
+        [FromQuery] string? search = null)
     {
         try
         {
             var userId = GetCurrentUserId();
             
+            // Validate pagination parameters
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 50;
+            if (pageSize > 100) pageSize = 100; // Max 100 items per page
+            
             // Check if user is Admin - if so, return ALL tickets
             var isAdmin = User.IsInRole("Admin");
-            var tickets = isAdmin 
-                ? await _ticketService.GetAllTicketsAsync() 
-                : await _ticketService.GetUserTicketsAsync(userId);
             
-            // Create response with basic user information
-            var response = new List<object>();
+            // Base query with filters
+            var query = isAdmin 
+                ? _context.Tickets.AsNoTracking()
+                : _context.Tickets.AsNoTracking()
+                    .Where(t => t.CreatedByUserId == userId || t.AssignedToUserId == userId);
             
-            foreach (var ticket in tickets)
+            // Apply filters
+            if (status.HasValue)
+                query = query.Where(t => t.Status == status.Value);
+            
+            if (priority.HasValue)
+                query = query.Where(t => (int)t.Priority == priority.Value);
+            
+            if (category.HasValue)
+                query = query.Where(t => (int)t.Category == category.Value);
+            
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                // Get basic user info for created by user
-                User? createdByUser = null;
-                if (!string.IsNullOrEmpty(ticket.CreatedByUserId))
+                var searchLower = search.ToLower();
+                query = query.Where(t => 
+                    t.Title.ToLower().Contains(searchLower) || 
+                    t.Description.ToLower().Contains(searchLower));
+            }
+            
+            // Get total count for pagination
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            
+            // Project directly to response DTO with pagination
+            var tickets = await query
+                .OrderByDescending(t => t.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(t => new
                 {
-                    createdByUser = await _ticketService.GetUserAsync(ticket.CreatedByUserId);
-                }
-                
-                response.Add(new
-                {
-                    id = ticket.Id,
-                    title = ticket.Title,
-                    description = ticket.Description,
-                    category = (int)ticket.Category,
-                    priority = (int)ticket.Priority,
-                    status = (int)ticket.Status,
-                    source = (int)ticket.Source,
-                    createdByUserId = ticket.CreatedByUserId,
-                    assignedToUserId = ticket.AssignedToUserId,
-                    createdAt = EnsureUtc(ticket.CreatedAt),
-                    updatedAt = EnsureUtc(ticket.UpdatedAt),
-                    firstResponseAt = EnsureUtc(ticket.FirstResponseAt),
-                    resolvedAt = EnsureUtc(ticket.ResolvedAt),
-                    isOverdue = false, // Calculate if needed
-                    // Include basic creator info for display
-                    createdByUser = createdByUser != null ? new {
-                        id = createdByUser.Id,
-                        firstName = createdByUser.FirstName ?? "",
-                        lastName = createdByUser.LastName ?? "",
-                        email = createdByUser.Email ?? ""
+                    id = t.Id,
+                    publicId = t.PublicId,
+                    title = t.Title,
+                    description = t.Description,
+                    category = (int)t.Category,
+                    priority = (int)t.Priority,
+                    status = t.Status,
+                    source = (int)t.Source,
+                    createdByUserId = t.CreatedByUserId,
+                    assignedToUserId = t.AssignedToUserId,
+                    createdAt = t.CreatedAt,
+                    updatedAt = t.UpdatedAt,
+                    firstResponseAt = t.FirstResponseAt,
+                    resolvedAt = t.ResolvedAt,
+                    isOverdue = false,
+                    // Project user data directly from navigation property
+                    createdByUser = t.CreatedByUser != null ? new {
+                        id = t.CreatedByUser.Id,
+                        firstName = t.CreatedByUser.FirstName ?? "",
+                        lastName = t.CreatedByUser.LastName ?? "",
+                        email = t.CreatedByUser.Email ?? ""
                     } : null,
                     commentCount = 0, // Placeholder
                     attachmentCount = 0 // Placeholder
-                });
-            }
+                })
+                .ToListAsync();
             
-            return Ok(response);
+            return Ok(new
+            {
+                data = tickets,
+                pagination = new
+                {
+                    page,
+                    pageSize,
+                    totalCount,
+                    totalPages,
+                    hasNextPage = page < totalPages,
+                    hasPreviousPage = page > 1
+                }
+            });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error retrieving user tickets for userId: {UserId}", GetCurrentUserId());
             return StatusCode(500, $"Error retrieving user tickets: {ex.Message}");
         }
     }
@@ -342,6 +390,7 @@ public class TicketsController : ControllerBase
             var response = new
             {
                 id = ticket.Id,
+                publicId = ticket.PublicId,
                 title = ticket.Title,
                 description = ticket.Description,
                 category = (int)ticket.Category,
@@ -427,7 +476,7 @@ public class TicketsController : ControllerBase
             var ticket = new Ticket
             {
                 Title = request.Title,
-                Description = request.Description,
+                Description = request.Description ?? string.Empty,
                 Category = request.Category,
                 Priority = request.Priority,
                 CreatedByUserId = currentUserId,
@@ -561,6 +610,24 @@ public class TicketsController : ControllerBase
                 }
             }
 
+            AssignmentResult? autoAssignment = null;
+            try
+            {
+                autoAssignment = await _autoAssignmentService.AutoAssignTicketAsync(createdTicket.Id);
+                if (autoAssignment.Success && !string.IsNullOrEmpty(autoAssignment.AssignedToUserId))
+                {
+                    createdTicket.AssignedToUserId = autoAssignment.AssignedToUserId;
+                }
+                else if (!autoAssignment.Success)
+                {
+                    _logger.LogWarning("Auto-assignment skipped for ticket {TicketId}: {Message}", createdTicket.Id, autoAssignment.ErrorMessage ?? "No suitable assignment");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Auto-assignment failed for ticket {TicketId}", createdTicket.Id);
+            }
+
             // Return a clean response without circular references
             var response = new
             {
@@ -574,7 +641,16 @@ public class TicketsController : ControllerBase
                 createdByUserId = createdTicket.CreatedByUserId,
                 createdAt = EnsureUtc(createdTicket.CreatedAt),
                 updatedAt = EnsureUtc(createdTicket.UpdatedAt),
-                attachmentCount = request.Attachments?.Count ?? 0
+                attachmentCount = request.Attachments?.Count ?? 0,
+                assignedToUserId = createdTicket.AssignedToUserId,
+                autoAssignment = autoAssignment != null ? new
+                {
+                    succeeded = autoAssignment.Success,
+                    reason = autoAssignment.Reason.ToString(),
+                    message = autoAssignment.Message,
+                    assignedAgentId = autoAssignment.AssignedToAgentId,
+                    assignedGroupId = autoAssignment.AssignedToGroupId
+                } : null
             };
 
             return CreatedAtAction(nameof(GetTicket), new { id = createdTicket.Id }, response);

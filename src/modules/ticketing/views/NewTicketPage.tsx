@@ -1,10 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, AlertCircle, Paperclip, X, Zap, Bug, HelpCircle, Sparkles, CheckCircle, Users, DollarSign, Megaphone, FileText } from 'lucide-react';
-import { ticketsApi, TicketPriority, TicketCategory } from '../services/ticketsApi';
+import { ArrowLeft, Save, AlertCircle, Paperclip, X, Zap, Bug, HelpCircle, CheckCircle, Users, DollarSign, Megaphone, FileText } from 'lucide-react';
+import { ticketsApi, TicketPriority, TicketCategory, TicketCustomFieldValues, CustomFieldPrimitive } from '../services/ticketsApi';
 import { settingsApi, Department, TicketCategoryConfig, SubCategory, PriorityLevel, TicketStatusConfig, CustomField } from '../../../shared/services/api/settingsApi';
 import { useQuery } from '@tanstack/react-query';
 import AuthService from '../../../shared/services/api/auth';
+
+type TicketFormData = {
+  title: string;
+  description: string;
+  categoryId: string;
+  subcategoryId: string;
+  departmentId: string;
+  priority: TicketPriority;
+  statusId: string;
+  customFieldValues: TicketCustomFieldValues;
+};
 
 // Helper function to map our new category system to the old enum
 const mapCategoryToEnum = (categoryId: string): TicketCategory => {
@@ -23,6 +34,25 @@ const mapCategoryToEnum = (categoryId: string): TicketCategory => {
   }
 };
 
+const sortByOrder = <T extends { order?: number; name?: string }>(items: T[]): T[] => {
+  return [...items].sort((a, b) => {
+    const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+    const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+    const levelA = (a as { level?: number }).level;
+    const levelB = (b as { level?: number }).level;
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    if (typeof levelA === 'number' && typeof levelB === 'number' && levelA !== levelB) {
+      return levelA - levelB;
+    }
+    if (a.name && b.name) {
+      return a.name.localeCompare(b.name);
+    }
+    return 0;
+  });
+};
+
 const NewTicketPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -38,7 +68,7 @@ const NewTicketPage: React.FC = () => {
   const [allSubcategories, setAllSubcategories] = useState<SubCategory[]>([]);
   const [availableSubcategories, setAvailableSubcategories] = useState<SubCategory[]>([]);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<TicketFormData>({
     title: '',
     description: '',
     categoryId: '',
@@ -46,7 +76,7 @@ const NewTicketPage: React.FC = () => {
     departmentId: '',
     priority: TicketPriority.Medium,
     statusId: '',
-    customFieldValues: {} as Record<string, any>
+    customFieldValues: {}
   });
 
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -60,6 +90,14 @@ const NewTicketPage: React.FC = () => {
     },
     enabled: !!(formData.categoryId && formData.subcategoryId)
   });
+
+  const orderedCustomFields = useMemo(
+    () => customFields
+      .filter((field) => field.isActive !== false)
+      .slice()
+      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0)),
+    [customFields]
+  );
 
   // Quick action templates
   const quickActions = [
@@ -164,15 +202,18 @@ const NewTicketPage: React.FC = () => {
           AuthService.getCurrentUser().catch(() => null) // Get current user to pre-select department
         ]);
         
-        setDepartments(deptResponse);
-        setCategories(categoriesResponse);
-        setAllSubcategories(subCategoriesResponse);
-        setPriorities(prioritiesResponse);
+        setDepartments(sortByOrder(deptResponse.filter((dept) => dept.isActive !== false)));
+        setCategories(sortByOrder(categoriesResponse.filter((category) => category.isActive !== false)));
+        setAllSubcategories(sortByOrder(subCategoriesResponse.filter((sub) => sub.isActive !== false)));
+        setPriorities(sortByOrder(prioritiesResponse.filter((priority) => priority.isActive !== false)));
         
-        // Set statuses and default to "New" status
-        const statusData = statusesResponse.sort((a: TicketStatusConfig, b: TicketStatusConfig) => a.workflowOrder - b.workflowOrder);
-        setStatuses(statusData);
-        const defaultStatus = statusData.find((s: TicketStatusConfig) => s.name === 'New') || statusData[0];
+        // Set statuses and default to the status marked as default
+        const sortedStatuses = statusesResponse
+          .filter((status: TicketStatusConfig) => status.isActive)
+          .sort((a: TicketStatusConfig, b: TicketStatusConfig) => a.workflowOrder - b.workflowOrder);
+        setStatuses(sortedStatuses);
+        // Use the status marked as default, or fall back to the first status
+        const defaultStatus = sortedStatuses.find((s: TicketStatusConfig) => s.isDefault) || sortedStatuses[0];
         if (defaultStatus) {
           setFormData(prev => ({ ...prev, statusId: defaultStatus.id.toString() }));
         }
@@ -207,11 +248,12 @@ const NewTicketPage: React.FC = () => {
     if (formData.categoryId) {
       const categoryIdNum = parseInt(formData.categoryId);
       // Filter subcategories by categoryId from all available subcategories
-      const filteredSubcategories = allSubcategories.filter(s => s.categoryId === categoryIdNum);
-      setAvailableSubcategories(filteredSubcategories);
+      const filteredSubcategories = allSubcategories.filter((s) => s.categoryId === categoryIdNum);
+      const sortedFilteredSubcategories = sortByOrder(filteredSubcategories);
+      setAvailableSubcategories(sortedFilteredSubcategories);
       
       // Reset subcategory when category changes and current subcategory is not valid
-      if (formData.subcategoryId && !filteredSubcategories.find(s => s.id === parseInt(formData.subcategoryId))) {
+      if (formData.subcategoryId && !sortedFilteredSubcategories.some((s) => s.id === parseInt(formData.subcategoryId))) {
         setFormData(prev => ({ ...prev, subcategoryId: '' }));
       }
     } else {
@@ -229,10 +271,10 @@ const NewTicketPage: React.FC = () => {
     }
 
     // Validate required custom fields
-    const requiredCustomFields = customFields.filter(field => field.isRequired);
+    const requiredCustomFields = orderedCustomFields.filter(field => field.isRequired);
     const missingRequiredFields = requiredCustomFields.filter(field => {
-      const value = formData.customFieldValues[field.id];
-      return !value || (Array.isArray(value) && value.length === 0);
+      const value = formData.customFieldValues[field.id.toString()];
+      return value === undefined || value === null || (Array.isArray(value) && value.length === 0);
     });
 
     if (missingRequiredFields.length > 0) {
@@ -272,7 +314,7 @@ const NewTicketPage: React.FC = () => {
     }
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = <K extends keyof TicketFormData>(field: K, value: TicketFormData[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (error) setError(null);
   };
@@ -340,20 +382,22 @@ const NewTicketPage: React.FC = () => {
   };
 
   // Handle custom field value changes
-  const handleCustomFieldChange = (fieldId: number, value: any) => {
+  const handleCustomFieldChange = (fieldId: number, value: CustomFieldPrimitive | CustomFieldPrimitive[]) => {
+    const key = fieldId.toString();
     setFormData(prev => ({
       ...prev,
       customFieldValues: {
         ...prev.customFieldValues,
-        [fieldId]: value
+        [key]: value
       }
     }));
   };
 
   // Render custom field input based on field type
   const renderCustomField = (field: CustomField) => {
-    const value = formData.customFieldValues[field.id] || '';
-    
+    const key = field.id.toString();
+    const rawValue = formData.customFieldValues[key];
+
     switch (field.type) {
       case 'text':
       case 'email':
@@ -362,7 +406,7 @@ const NewTicketPage: React.FC = () => {
         return (
           <input
             type={field.type}
-            value={value}
+            value={typeof rawValue === 'string' ? rawValue : rawValue == null ? '' : String(rawValue)}
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
             placeholder={field.placeholder}
             required={field.isRequired}
@@ -373,7 +417,7 @@ const NewTicketPage: React.FC = () => {
       case 'textarea':
         return (
           <textarea
-            value={value}
+            value={typeof rawValue === 'string' ? rawValue : rawValue == null ? '' : String(rawValue)}
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
             placeholder={field.placeholder}
             required={field.isRequired}
@@ -386,7 +430,7 @@ const NewTicketPage: React.FC = () => {
         return (
           <input
             type="number"
-            value={value}
+            value={typeof rawValue === 'number' ? rawValue : ''}
             onChange={(e) => handleCustomFieldChange(field.id, parseFloat(e.target.value) || '')}
             placeholder={field.placeholder}
             required={field.isRequired}
@@ -400,7 +444,7 @@ const NewTicketPage: React.FC = () => {
         return (
           <input
             type="date"
-            value={value}
+            value={typeof rawValue === 'string' ? rawValue : ''}
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
             required={field.isRequired}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -411,7 +455,7 @@ const NewTicketPage: React.FC = () => {
         return (
           <input
             type="datetime-local"
-            value={value}
+            value={typeof rawValue === 'string' ? rawValue : ''}
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
             required={field.isRequired}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -421,7 +465,7 @@ const NewTicketPage: React.FC = () => {
       case 'select':
         return (
           <select
-            value={value}
+            value={typeof rawValue === 'string' ? rawValue : ''}
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
             required={field.isRequired}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -435,16 +479,17 @@ const NewTicketPage: React.FC = () => {
           </select>
         );
       
-      case 'checkbox':
+      case 'checkbox': {
+        const checkboxValues = Array.isArray(rawValue) ? rawValue.map(String) : [];
         return (
           <div className="space-y-2">
             {field.options?.map((option, index) => (
               <label key={index} className="flex items-center">
                 <input
                   type="checkbox"
-                  checked={(value as string[])?.includes(option) || false}
+                  checked={checkboxValues.includes(option)}
                   onChange={(e) => {
-                    const currentValues = (value as string[]) || [];
+                    const currentValues = checkboxValues;
                     const newValues = e.target.checked
                       ? [...currentValues, option]
                       : currentValues.filter(v => v !== option);
@@ -457,6 +502,7 @@ const NewTicketPage: React.FC = () => {
             ))}
           </div>
         );
+      }
       
       case 'radio':
         return (
@@ -467,7 +513,7 @@ const NewTicketPage: React.FC = () => {
                   type="radio"
                   name={`field-${field.id}`}
                   value={option}
-                  checked={value === option}
+                  checked={rawValue === option}
                   onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
                   required={field.isRequired}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
@@ -482,7 +528,7 @@ const NewTicketPage: React.FC = () => {
         return (
           <input
             type="text"
-            value={value}
+            value={typeof rawValue === 'string' ? rawValue : rawValue == null ? '' : String(rawValue)}
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
             placeholder={field.placeholder}
             required={field.isRequired}
@@ -726,13 +772,11 @@ const NewTicketPage: React.FC = () => {
               </div>
 
               {/* Custom Fields Section */}
-              {formData.categoryId && formData.subcategoryId && customFields.length > 0 && (
+              {formData.categoryId && formData.subcategoryId && orderedCustomFields.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-md font-medium text-gray-900">Additional Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {customFields
-                      .sort((a, b) => a.displayOrder - b.displayOrder)
-                      .map((field) => (
+                    {orderedCustomFields.map((field) => (
                         <div key={field.id} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
                           <label className="block text-sm font-medium text-gray-700 mb-xs">
                             {field.label} {field.isRequired && <span className="text-red-500">*</span>}

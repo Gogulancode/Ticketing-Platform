@@ -21,6 +21,9 @@ public class TicketGroup
     public int? SubCategoryId { get; set; } // If null, group covers ALL subcategories in the category
 
     public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; } = false;
+    public bool AutoAssignmentEnabled { get; set; } = false;
+    public int MaxTicketsPerAgent { get; set; } = 10;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

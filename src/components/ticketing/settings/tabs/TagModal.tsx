@@ -2,6 +2,7 @@ import React from "react";
 import { TagIcon } from "@heroicons/react/24/outline";
 import { useForm } from "react-hook-form";
 import { settingsApi } from "@api/settingsApi";
+import { toast } from 'react-hot-toast';
 
 interface TicketTag {
   id: number;
@@ -59,41 +60,24 @@ const TagModal: React.FC<TagModalProps> = ({ isOpen, onClose, tag, subcategories
   }, [isOpen, tag, reset]);
 
   const onSubmit = async (data: TagFormData) => {
-    console.log("🔍 Form data being submitted:", data);
     try {
       if (tag) {
         // Update existing tag
-        try {
-          await settingsApi.updateTicketTag(tag.id, data);
-          console.log("✅ Tag updated:", { id: tag.id, ...data });
-        } catch (error) {
-          console.log("⚠️ Tag update API returned error but may have succeeded:", { id: tag.id, ...data });
-        }
+        await settingsApi.updateTicketTag(tag.id, data);
+        toast.success('Tag updated successfully!');
       } else {
         // Create new tag
-        try {
-          const result = await settingsApi.createTicketTag(data);
-          console.log("✅ Tag created successfully:", result);
-        } catch (error) {
-          console.log("❌ Error creating tag:", error);
-          console.log("🔍 Data that failed:", data);
-        }
+        await settingsApi.createTicketTag(data);
+        toast.success('Tag created successfully!');
       }
 
-      // Always refresh the list regardless of API response
-      // This will fetch the latest data from DB including newly created tags
       onSave(); 
       onClose();
       reset();
       
-      // Show success message regardless of API response since DB creation might work
-      console.log("🔄 Refreshing tags list to reflect any DB changes...");
-      
     } catch (error) {
-      console.error("❌ Error saving tag:", error);
-      // Still try to refresh in case the tag was created despite the error
-      onSave();
-      alert("Tag operation completed. Refreshing list to check for changes...");
+      const errorMessage = error instanceof Error ? error.message : "Error saving tag";
+      toast.error(errorMessage);
     }
   };
 

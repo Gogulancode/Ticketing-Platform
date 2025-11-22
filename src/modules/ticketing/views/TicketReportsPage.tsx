@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart3, Clock, Users, AlertTriangle, FileText, TrendingUp, Calendar } from 'lucide-react';
 import ReportFiltersComponent from '../components/ReportFilters';
+import LoadingSpinner from '../../../components/LoadingSpinner';
 import { 
   ReportFilters, 
   ResolutionResponseReport, 
@@ -24,6 +25,24 @@ const getDefaultDateRange = () => {
     startDate: startDate.toISOString().split('T')[0],
     endDate: endDate.toISOString().split('T')[0]
   };
+};
+
+const getTicketDisplayId = (ticketId?: string, publicId?: number | null): string => {
+  if (publicId != null && publicId !== 0) {
+    return publicId.toString();
+  }
+
+  const baseId = ticketId ?? '';
+  if (!baseId) {
+    return '000000';
+  }
+
+  const hash = baseId.split('').reduce((acc, char) => {
+    const next = ((acc << 5) - acc) + char.charCodeAt(0);
+    return next & next;
+  }, 0);
+
+  return Math.abs(hash).toString().padStart(6, '0').slice(-6);
 };
 
 const TicketReportsPage: React.FC = () => {
@@ -64,40 +83,44 @@ const TicketReportsPage: React.FC = () => {
     }
   ];
 
-  // Load data based on active tab and filters
-  useEffect(() => {
-    loadReportData();
-  }, [activeTab, filters]);
-
-  const loadReportData = async () => {
+  const loadReportData = useCallback(async () => {
     if (!filters.startDate || !filters.endDate) return;
     
     setLoading(true);
     try {
       switch (activeTab) {
-        case 'resolution':
+        case 'resolution': {
           const resData = await reportsApi.getResolutionResponseReport(filters);
           setResolutionData(resData);
           break;
-        case 'performance':
+        }
+        case 'performance': {
           const perfData = await reportsApi.getAgentPerformanceReport(filters);
           setPerformanceData(perfData);
           break;
-        case 'unresolved':
+        }
+        case 'unresolved': {
           const unresData = await reportsApi.getUnresolvedTicketsReport(filters);
           setUnresolvedData(unresData);
           break;
-        case 'allTickets':
+        }
+        case 'allTickets': {
           const allData = await reportsApi.getAllTicketsReport(filters);
           setAllTicketsData(allData);
           break;
+        }
       }
     } catch (error) {
       console.error('Error loading report data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, filters]);
+
+  // Load data based on active tab and filters
+  useEffect(() => {
+    loadReportData();
+  }, [loadReportData]);
 
   const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
     const reportType = activeTab === 'allTickets' ? 'all-tickets' : 
@@ -182,8 +205,7 @@ const TicketReportsPage: React.FC = () => {
       <div className="bg-white rounded-lg border border-gray-200">
         {loading ? (
           <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-3 text-gray-600">Loading report data...</span>
+            <LoadingSpinner size="lg" message="Loading report data..." />
           </div>
         ) : (
           <>
@@ -362,7 +384,7 @@ const ResolutionResponseTable: React.FC<{ data: ResolutionResponseReport[] }> = 
       {data.map((item) => (
         <tr key={item.ticketId} className="hover:bg-gray-50">
           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-            #{item.publicId}
+            #{getTicketDisplayId(item.ticketId, item.publicId)}
           </td>
           <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
             {item.title}
@@ -387,12 +409,7 @@ const ResolutionResponseTable: React.FC<{ data: ResolutionResponseReport[] }> = 
             {item.resolutionTime ? reportUtils.formatTime(item.resolutionTime) : '-'}
           </td>
           <td className="px-6 py-4 whitespace-nowrap">
-            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-              item.status === 'Open' ? 'bg-blue-100 text-blue-800' :
-              item.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-              item.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${reportUtils.getStatusColor(item.status)}`}>
               {item.status}
             </span>
           </td>
@@ -521,7 +538,7 @@ const UnresolvedTicketsTable: React.FC<{ data: UnresolvedTicket[] }> = ({ data }
       {data.map((ticket) => (
         <tr key={ticket.ticketId} className="hover:bg-gray-50">
           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-            #{ticket.publicId}
+            #{getTicketDisplayId(ticket.ticketId, ticket.publicId)}
           </td>
           <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
             {ticket.title}
@@ -537,11 +554,7 @@ const UnresolvedTicketsTable: React.FC<{ data: UnresolvedTicket[] }> = ({ data }
             </span>
           </td>
           <td className="px-6 py-4 whitespace-nowrap">
-            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-              ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
-              ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${reportUtils.getStatusColor(ticket.status)}`}>
               {ticket.status}
             </span>
           </td>
@@ -594,7 +607,7 @@ const AllTicketsTable: React.FC<{ data: TicketSummary[] }> = ({ data }) => (
       {data.map((ticket) => (
         <tr key={ticket.ticketId} className="hover:bg-gray-50">
           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-            #{ticket.publicId}
+            #{getTicketDisplayId(ticket.ticketId, ticket.publicId)}
           </td>
           <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
             {ticket.title}
@@ -613,12 +626,7 @@ const AllTicketsTable: React.FC<{ data: TicketSummary[] }> = ({ data }) => (
             </span>
           </td>
           <td className="px-6 py-4 whitespace-nowrap">
-            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-              ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
-              ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-              ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${reportUtils.getStatusColor(ticket.status)}`}>
               {ticket.status}
             </span>
           </td>

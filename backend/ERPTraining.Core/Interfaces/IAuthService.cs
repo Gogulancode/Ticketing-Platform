@@ -10,4 +10,5 @@ public interface IAuthService
     Task<UserDto?> UpdateProfileAsync(string userId, UserDto updateDto);
     Task<bool> AssignRoleAsync(string userId, string role);
     Task<List<string>> GetUserRolesAsync(string userId);
+    Task<AuthResponseDto?> RefreshTokenAsync(string userId);
 }

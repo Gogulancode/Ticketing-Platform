@@ -7,13 +7,9 @@ import {
   Search, 
   TrendingUp,
   FileQuestion,
-  Settings,
   Users,
   Bell,
-  User,
-  Ticket,
-  Plus,
-  BarChart3
+  User
 } from 'lucide-react';
 import { PermissionGuard, RoleGuard } from '../PermissionGuard';
 
@@ -33,55 +29,15 @@ const sidebarItems: SidebarItem[] = [
     id: 'dashboard',
     label: 'Dashboard',
     icon: LayoutDashboard,
-    path: '/',
+    path: '/training/dashboard',
     feature: 'Dashboard',
     action: 'View'
-  },
-  {
-    id: 'ticket-dashboard',
-    label: 'Ticket Dashboard',
-    icon: BarChart3,
-    path: '/tickets',
-    feature: 'Ticketing',
-    action: 'View'
-  },
-  {
-    id: 'my-tickets',
-    label: 'My Tickets',
-    icon: Ticket,
-    path: '/tickets/my',
-    feature: 'Ticketing',
-    action: 'View'
-  },
-  {
-    id: 'new-ticket',
-    label: 'New Ticket',
-    icon: Plus,
-    path: '/tickets/new',
-    feature: 'Ticketing',
-    action: 'Create'
-  },
-  {
-    id: 'ticket-reports',
-    label: 'Reports',
-    icon: BarChart3,
-    path: '/tickets/reports',
-    feature: 'Ticketing',
-    action: 'View'
-  },
-  {
-    id: 'ticket-settings',
-    label: 'Ticket Settings',
-    icon: Settings,
-    path: '/tickets/settings',
-    feature: 'Ticketing',
-    action: 'Manage'
   },
   {
     id: 'modules',
     label: 'Modules',
     icon: BookOpen,
-    path: '/modules',
+    path: '/training/modules',
     feature: 'Modules',
     action: 'View'
   },
@@ -89,7 +45,7 @@ const sidebarItems: SidebarItem[] = [
     id: 'content-management',
     label: 'Content Management',
     icon: FileEdit,
-    path: '/upload-content',
+    path: '/training/upload',
     feature: 'ContentManagement',
     action: 'View'
   },
@@ -97,7 +53,7 @@ const sidebarItems: SidebarItem[] = [
     id: 'search',
     label: 'Search',
     icon: Search,
-    path: '/search',
+    path: '/training/search',
     feature: 'Search',
     action: 'View'
   },
@@ -105,7 +61,7 @@ const sidebarItems: SidebarItem[] = [
     id: 'progress',
     label: 'My Progress',
     icon: TrendingUp,
-    path: '/progress',
+    path: '/training/progress',
     feature: 'MyProgress',
     action: 'View'
   },
@@ -113,7 +69,7 @@ const sidebarItems: SidebarItem[] = [
     id: 'assessments',
     label: 'Assessments',
     icon: FileQuestion,
-    path: '/assessments',
+    path: '/training/assessments',
     feature: 'Assessments',
     action: 'View'
   },
@@ -137,7 +93,7 @@ const sidebarItems: SidebarItem[] = [
     id: 'users',
     label: 'User Management',
     icon: Users,
-    path: '/users',
+    path: '/training/users',
     feature: 'UserManagement',
     action: 'View'
   }
@@ -172,15 +128,17 @@ const Sidebar: React.FC<SidebarProps> = ({
         to={item.path}
         onClick={handleLinkClick}
         className={`
-          flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors
+          w-full flex items-center text-left rounded-lg transition-all duration-200 group
+          ${isOpen ? 'px-3 py-2' : 'px-2 py-3 justify-center'}
           ${isActive 
-            ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-700' 
-            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+            ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' 
+            : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
           }
         `}
+        title={!isOpen ? item.label : undefined}
       >
-        <Icon className={`h-4 w-4 mr-2 ${isActive ? 'text-blue-700' : 'text-gray-500'}`} />
-        <span>{item.label}</span>
+        <Icon className={`${isOpen ? 'w-4 h-4 mr-2' : 'w-5 h-5'} ${isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'} transition-colors`} />
+        {isOpen && <span className="text-sm font-medium">{item.label}</span>}
       </Link>
     );
 
@@ -210,68 +168,41 @@ const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Sliding Sidebar */}
       <div className={`
-        fixed top-16 left-0 h-full w-64 bg-white border-r border-gray-200 z-50
-        transform transition-transform duration-300 ease-in-out shadow-lg
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        ${isMobile ? 'lg:hidden' : 'lg:relative lg:top-0 lg:translate-x-0 lg:shadow-none'}
+        fixed top-16 left-0 bottom-0 bg-white border-r border-gray-200 z-50 transform transition-all duration-300 ease-in-out lg:relative lg:top-0 lg:h-full lg:translate-x-0
+        ${isMobile 
+          ? (isOpen ? 'w-64 translate-x-0 shadow-lg' : 'w-64 -translate-x-full')
+          : (isOpen ? 'w-64' : 'w-16')
+        }
       `}>
-        <div className="p-4 h-full overflow-y-auto">
-          {/* Ticketing Section */}
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">
-              Ticketing System
-            </h3>
-            <div className="space-y-1">
-              {sidebarItems.slice(1, 6).map((item) => (
-                <SidebarLink key={item.id} item={item} />
-              ))}
-            </div>
-          </div>
+        <div className={`h-full overflow-y-auto ${isOpen ? 'p-2' : 'p-2'}`}>
+          
+          {/* Training Navigation */}
+          <nav className="space-y-1">
+            {sidebarItems.map((item) => (
+              <SidebarLink key={item.id} item={item} />
+            ))}
+          </nav>
 
-          {/* Training Section */}
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">
-              Training System
-            </h3>
-            <div className="space-y-1">
-              {[sidebarItems[0], ...sidebarItems.slice(6, 11)].map((item) => (
-                <SidebarLink key={item.id} item={item} />
-              ))}
-            </div>
-          </div>
-
-          {/* Administration Section */}
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">
-              Administration
-            </h3>
-            <div className="space-y-1">
-              {sidebarItems.slice(11).map((item) => (
-                <SidebarLink key={item.id} item={item} />
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Stats at Bottom */}
-          <div className="mt-8 pt-4 border-t border-gray-200">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">
-              Quick Stats
-            </h3>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center px-3 py-1 text-sm">
-                <span className="text-gray-600">Open Tickets</span>
-                <span className="text-orange-600 font-medium">3</span>
-              </div>
-              <div className="flex justify-between items-center px-3 py-1 text-sm">
-                <span className="text-gray-600">In Progress</span>
-                <span className="text-blue-600 font-medium">1</span>
-              </div>
-              <div className="flex justify-between items-center px-3 py-1 text-sm">
-                <span className="text-gray-600">Resolved</span>
-                <span className="text-green-600 font-medium">12</span>
+          {/* Quick Stats for Training - only show when expanded */}
+          {isOpen && (
+            <div className="mt-6 pt-3 border-t border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-900 mb-2 px-1">Learning Stats</h3>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs px-1">
+                  <span className="text-gray-600">Modules</span>
+                  <span className="font-medium text-blue-600">12</span>
+                </div>
+                <div className="flex justify-between text-xs px-1">
+                  <span className="text-gray-600">Completed</span>
+                  <span className="font-medium text-green-600">8</span>
+                </div>
+                <div className="flex justify-between text-xs px-1">
+                  <span className="text-gray-600">In Progress</span>
+                  <span className="font-medium text-orange-600">2</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>

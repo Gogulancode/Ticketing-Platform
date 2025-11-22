@@ -26,10 +26,14 @@ import AddNote from '../components/tickets/detail/AddNote';
 import AssignmentModal from '../components/tickets/detail/AssignmentModal';
 import MergeModal from '../components/tickets/detail/MergeModal';
 import ForwardHistory from '../components/tickets/detail/ForwardHistory';
-import CustomFieldsForTicket from '../components/CustomFieldsForTicket';
+import { getDisplayTicketNumber, type TicketWithPublicId } from '../utils/ticketNumber';
 
 // Import APIs and types
-import { ticketsApi } from '../services/ticketsApi';
+import {
+  ticketsApi,
+  type TicketCollaborator,
+  type TicketAttachment
+} from '../services/ticketsApi';
 import { ticketsV2Api } from '../services/ticketsV2Api';
 import { settingsApi } from "../../../shared/services/api/settingsApi";
 import { settingsApi as apiSettingsApi } from "../../../api/settingsApi";
@@ -39,6 +43,16 @@ import { formatTicketDateTime } from '../../../shared/utils/dateUtils';
 
 // Use IST Date formatting utility
 const formatDate = formatTicketDateTime;
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return 'Unexpected error';
+};
 
 
 const TicketDetailPage: React.FC = () => {
@@ -70,8 +84,8 @@ const TicketDetailPage: React.FC = () => {
       setShowNoteModal(false);
       setNoteContent('');
       refetchTicket();
-    } catch (err: any) {
-      toast.error('Failed to add note: ' + err.message);
+    } catch (err: unknown) {
+      toast.error(`Failed to add note: ${getErrorMessage(err)}`);
     } finally {
       toast.dismiss();
     }
@@ -97,9 +111,9 @@ const TicketDetailPage: React.FC = () => {
       }
       toast.success('Ticket reopened');
       refetchTicket();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('🔄 Reopen error:', err);
-      toast.error('Failed to reopen ticket: ' + err.message);
+      toast.error(`Failed to reopen ticket: ${getErrorMessage(err)}`);
     } finally {
       toast.dismiss();
     }
@@ -125,9 +139,9 @@ const TicketDetailPage: React.FC = () => {
       }
       toast.success('Ticket closed');
       refetchTicket();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Close error:', err);
-      toast.error('Failed to close ticket: ' + err.message);
+      toast.error(`Failed to close ticket: ${getErrorMessage(err)}`);
     } finally {
       toast.dismiss();
     }
@@ -173,9 +187,9 @@ const TicketDetailPage: React.FC = () => {
       toast.success('Ticket deleted');
       console.log('🗑️ Ticket deleted successfully, redirecting...');
       navigate('/tickets');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('🗑️ Delete error:', err);
-      toast.error('Failed to delete ticket: ' + err.message);
+      toast.error(`Failed to delete ticket: ${getErrorMessage(err)}`);
     } finally {
       toast.dismiss();
     }
@@ -204,9 +218,9 @@ const TicketDetailPage: React.FC = () => {
       setSelectedCollaborators([]);
       setShowCollaboratorsModal(false);
       refetchCollaborators();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error adding collaborators:', err);
-      toast.error('Failed to add collaborators: ' + err.message);
+      toast.error(`Failed to add collaborators: ${getErrorMessage(err)}`);
     } finally {
       toast.dismiss();
     }
@@ -220,9 +234,9 @@ const TicketDetailPage: React.FC = () => {
       await ticketsApi.removeCollaborator(id!, userId);
       toast.success('Collaborator removed');
       refetchCollaborators();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error removing collaborator:', err);
-      toast.error('Failed to remove collaborator: ' + err.message);
+      toast.error(`Failed to remove collaborator: ${getErrorMessage(err)}`);
     } finally {
       toast.dismiss();
     }
@@ -360,8 +374,8 @@ const TicketDetailPage: React.FC = () => {
       setEmailTo('');
       setEmailAttachments([]);
       refetchTicket();
-    } catch (err: any) {
-      toast.error('Failed to send email: ' + err.message);
+    } catch (err: unknown) {
+      toast.error(`Failed to send email: ${getErrorMessage(err)}`);
     } finally {
       toast.dismiss();
     }
@@ -379,15 +393,6 @@ const TicketDetailPage: React.FC = () => {
   const [emailTo, setEmailTo] = useState('');
   const [emailType, setEmailType] = useState<'reply' | 'forward'>('reply');
   const [emailAttachments, setEmailAttachments] = useState<File[]>([]);
-  // Generate public ticket ID
-  const getPublicTicketId = (ticket: any) => {
-    if (!ticket) return '000000';
-    const hash = ticket.id.toString().split('').reduce((a: number, b: string) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    return Math.abs(hash).toString().slice(-6).padStart(6, '0');
-  };
 
   // Fetch ticket data with fallback
   const { data: ticket, isLoading: ticketLoading, error: ticketError, refetch: refetchTicket } = useQuery({
@@ -424,67 +429,6 @@ const TicketDetailPage: React.FC = () => {
     enabled: !!id,
     retry: 1,
     retryDelay: 1000
-  });
-
-  // Fetch all settings data with fallback to mock API
-  const { data: categories } = useQuery({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      try {
-        return await settingsApi.getTicketCategories();
-      } catch {
-        console.warn('API unavailable, using mock data for categories');
-        return await mockSettingsApi.getTicketCategories();
-      }
-    }
-  });
-
-  const { data: subcategories } = useQuery({
-    queryKey: ['subcategories'],
-    queryFn: async () => {
-      try {
-        return await settingsApi.getSubCategories();
-      } catch {
-        console.warn('API unavailable, using mock data for subcategories');
-        return await mockSettingsApi.getSubCategories();
-      }
-    }
-  });
-
-  const { data: priorityLevels } = useQuery({
-    queryKey: ['priority-levels'],
-    queryFn: async () => {
-      try {
-        return await settingsApi.getPriorityLevels();
-      } catch {
-        console.warn('API unavailable, using mock data for priority levels');
-        return await mockSettingsApi.getPriorityLevels();
-      }
-    }
-  });
-
-  const { data: statusConfigs } = useQuery({
-    queryKey: ['status-configs'],
-    queryFn: async () => {
-      try {
-        return await settingsApi.getTicketStatuses();
-      } catch {
-        console.warn('API unavailable, using mock data for status configs');
-        return await mockSettingsApi.getTicketStatuses();
-      }
-    }
-  });
-
-  const { data: issueTypes } = useQuery({
-    queryKey: ['issue-types'],
-    queryFn: async () => {
-      try {
-        return await settingsApi.getIssueTypes();
-      } catch {
-        console.warn('API unavailable, using mock data for issue types');
-        return await mockSettingsApi.getIssueTypes();
-      }
-    }
   });
 
   const { data: agentsData } = useQuery({
@@ -525,7 +469,7 @@ const TicketDetailPage: React.FC = () => {
   });
 
   // Fetch ticket collaborators
-  const { data: collaborators = [], refetch: refetchCollaborators } = useQuery({
+  const { data: collaborators = [], refetch: refetchCollaborators } = useQuery<TicketCollaborator[]>({
     queryKey: ['collaborators', id],
     queryFn: async () => {
       if (!id) return [];
@@ -678,7 +622,15 @@ const TicketDetailPage: React.FC = () => {
   }
 
   // Use mock data as fallback if API fails
-  const finalTicket = ticket || null;
+  const finalTicket = (ticket as any) || null;
+  const ticketForNumbers = finalTicket as TicketWithPublicId | null;
+  const ticketDisplayNumber = getDisplayTicketNumber(ticketForNumbers);
+  const ticketNumberForEmails = ticketForNumbers?.publicId && ticketForNumbers.publicId > 0
+    ? ticketForNumbers.publicId.toString()
+    : ticketDisplayNumber;
+  const attachments: TicketAttachment[] = Array.isArray(finalTicket?.attachments)
+    ? (finalTicket.attachments as TicketAttachment[])
+    : [];
 
   // Error state - only show if no ticket and no fallback
   if (!finalTicket) {
@@ -695,7 +647,7 @@ const TicketDetailPage: React.FC = () => {
         <h1 className="text-xl font-semibold text-gray-900 mb-2">Ticket Not Found</h1>
         <p className="text-gray-600 mb-4">
           {ticketError 
-            ? `Error: ${(ticketError as any)?.message || 'Unknown error'}` 
+            ? `Error: ${getErrorMessage(ticketError)}`
             : "The ticket you're looking for doesn't exist."
           }
         </p>
@@ -711,7 +663,7 @@ const TicketDetailPage: React.FC = () => {
                 alert(`Direct API test: ${result.ok ? 'Success' : 'Failed'} - Check console for details`);
               } catch (error) {
                 console.error('🧪 Direct API error:', error);
-                alert(`Direct API error: ${(error as any)?.message || 'Unknown error'}`);
+                alert(`Direct API error: ${getErrorMessage(error)}`);
               }
             }}
             className="px-3 py-1 bg-blue-500 text-white rounded text-xs mr-2"
@@ -727,7 +679,7 @@ const TicketDetailPage: React.FC = () => {
                 alert('TicketsApi test: Success - Check console for details');
               } catch (error) {
                 console.error('🧪 TicketsApi error:', error);
-                alert(`TicketsApi error: ${(error as any)?.message || 'Unknown error'}`);
+                alert(`TicketsApi error: ${getErrorMessage(error)}`);
               }
             }}
             className="px-3 py-1 bg-green-500 text-white rounded text-xs"
@@ -757,7 +709,7 @@ const TicketDetailPage: React.FC = () => {
             </Link>
             <div className="flex items-center space-x-3">
               <span className="text-sm text-gray-500 font-medium">Ticket</span>
-              <span className="text-lg font-semibold text-gray-900">#{getPublicTicketId(finalTicket)}</span>
+              <span className="text-lg font-semibold text-gray-900">#{ticketDisplayNumber || '------'}</span>
               {finalTicket?.isOverdue && (
                 <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
                   Overdue
@@ -802,9 +754,9 @@ const TicketDetailPage: React.FC = () => {
           </div>
         </div>
         {/* Attachments Section */}
-        {finalTicket?.attachments && finalTicket.attachments.length > 0 && (
+        {attachments.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
-            {finalTicket.attachments.map((att: any, idx: number) => (
+            {attachments.map((att, idx) => (
               <a 
                 key={idx} 
                 href={`${API_CONFIG.BASE_URL}/tickets-v2/attachments/${att.id}/download`} 
@@ -902,6 +854,7 @@ const TicketDetailPage: React.FC = () => {
               <TicketComments 
                 ticketId={finalTicket.id} 
                 ticketTitle={finalTicket.title}
+                ticketNumber={ticketNumberForEmails || ticketDisplayNumber}
                 isAgent={true} // TODO: Replace with actual user role check
               />
             </div>
@@ -977,7 +930,7 @@ const TicketDetailPage: React.FC = () => {
                 <p className="text-xs text-gray-500 italic">No collaborators yet</p>
               ) : (
                 <div className="space-y-2">
-                  {collaborators.map((collab: any) => (
+                  {collaborators.map((collab) => (
                     <div key={collab.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-gray-900 truncate">{collab.userName}</p>
@@ -1082,8 +1035,8 @@ const TicketDetailPage: React.FC = () => {
                 <input
                   type="text"
                   value={emailType === 'reply' 
-                    ? `Re: [Ticket #${finalTicket.publicId || getPublicTicketId(finalTicket)}] ${finalTicket.title}`
-                    : `Fwd: [Ticket #${finalTicket.publicId || getPublicTicketId(finalTicket)}] ${finalTicket.title}`
+                    ? `Re: [Ticket #${ticketNumberForEmails}] ${finalTicket.title}`
+                    : `Fwd: [Ticket #${ticketNumberForEmails}] ${finalTicket.title}`
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600"
                   disabled
@@ -1227,7 +1180,7 @@ const TicketDetailPage: React.FC = () => {
               <div className="space-y-2 max-h-[400px] overflow-y-auto border border-gray-300 rounded-md p-2">
                 {filteredAgents
                   .filter(agent => 
-                    !collaborators.some((c: any) => c.userId === agent.userId) &&
+                    !collaborators.some((c) => c.userId === agent.userId) &&
                     agent.userId !== finalTicket?.assignedToUserId
                   )
                   .map(agent => (
@@ -1254,7 +1207,7 @@ const TicketDetailPage: React.FC = () => {
                     </label>
                   ))}
                 {filteredAgents.filter(agent => 
-                  !collaborators.some((c: any) => c.userId === agent.userId) &&
+                  !collaborators.some((c) => c.userId === agent.userId) &&
                   agent.userId !== finalTicket?.assignedToUserId
                 ).length === 0 && (
                   <p className="text-sm text-gray-500 text-center py-4">

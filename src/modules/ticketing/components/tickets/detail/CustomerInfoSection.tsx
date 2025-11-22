@@ -15,6 +15,16 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
   onToggle,
   formatDate
 }) => {
+  const getUserPhone = (user?: Ticket['createdByUser']): string | null => {
+    if (!user) {
+      return null;
+    }
+    const phoneValue = (user as Record<string, unknown>).phone;
+    return typeof phoneValue === 'string' ? phoneValue : null;
+  };
+
+  const requesterPhone = getUserPhone(ticket.createdByUser);
+
   return (
     <div className="bg-white rounded-lg shadow-sm border">
       <div
@@ -65,16 +75,16 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
           )}
 
           {/* Phone - if available in extended user data */}
-          {ticket.createdByUser && 'phone' in ticket.createdByUser && (
+          {requesterPhone && (
             <div className="flex items-center space-x-3">
               <Phone className="h-4 w-4 text-gray-400" />
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Phone</p>
                 <a 
-                  href={`tel:${(ticket.createdByUser as any).phone}`}
+                  href={`tel:${requesterPhone}`}
                   className="text-sm text-indigo-600 hover:text-indigo-800"
                 >
-                  {(ticket.createdByUser as any).phone}
+                  {requesterPhone}
                 </a>
               </div>
             </div>
@@ -131,9 +141,9 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
                 </button>
               )}
               
-              {ticket.createdByUser && 'phone' in ticket.createdByUser && (
+              {requesterPhone && (
                 <button
-                  onClick={() => window.open(`tel:${(ticket.createdByUser as any).phone}`)}
+                  onClick={() => window.open(`tel:${requesterPhone}`)}
                   className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs rounded-md hover:bg-green-700"
                 >
                   <Phone className="h-3 w-3 mr-1" />

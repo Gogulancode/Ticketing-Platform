@@ -45,12 +45,15 @@ public class SlaController : ControllerBase
     /// <summary>
     /// Get SLA policy by ID
     /// </summary>
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<SlaPolicyDto>> GetSlaPolicy(int id, CancellationToken cancellationToken = default)
+    [HttpGet("{id}")]
+    public async Task<ActionResult<SlaPolicyDto>> GetSlaPolicy(string id, CancellationToken cancellationToken = default)
     {
         try
         {
-            var policy = await _slaService.GetPolicyByIdAsync(id, cancellationToken);
+            if (!Guid.TryParse(id, out var guidId))
+                return BadRequest("Invalid policy ID format");
+
+            var policy = await _slaService.GetPolicyByIdAsync(guidId, cancellationToken);
             if (policy == null)
                 return NotFound($"SLA policy with ID {id} not found");
 
@@ -118,9 +121,9 @@ public class SlaController : ControllerBase
     /// <summary>
     /// Update an existing SLA policy
     /// </summary>
-    [HttpPut("{id:int}")]
+    [HttpPut("{id}")]
     public async Task<ActionResult<SlaPolicyDto>> UpdateSlaPolicy(
-        int id,
+        string id,
         [FromBody] UpdateSlaPolicyRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -129,7 +132,10 @@ public class SlaController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var policy = await _slaService.UpdatePolicyAsync(id, request, cancellationToken);
+            if (!Guid.TryParse(id, out var guidId))
+                return BadRequest("Invalid policy ID format");
+
+            var policy = await _slaService.UpdatePolicyAsync(guidId, request, cancellationToken);
             if (policy == null)
                 return NotFound($"SLA policy with ID {id} not found");
 
@@ -153,12 +159,15 @@ public class SlaController : ControllerBase
     /// <summary>
     /// Delete (deactivate) an SLA policy
     /// </summary>
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DeleteSlaPolicy(int id, CancellationToken cancellationToken = default)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteSlaPolicy(string id, CancellationToken cancellationToken = default)
     {
         try
         {
-            var success = await _slaService.DeletePolicyAsync(id, cancellationToken);
+            if (!Guid.TryParse(id, out var guidId))
+                return BadRequest("Invalid policy ID format");
+
+            var success = await _slaService.DeletePolicyAsync(guidId, cancellationToken);
             if (!success)
                 return NotFound($"SLA policy with ID {id} not found");
 
@@ -178,27 +187,13 @@ public class SlaController : ControllerBase
     /// </summary>
     [HttpGet("contacts")]
     public async Task<ActionResult<IEnumerable<SlaEscalationContactDto>>> GetAllEscalationContacts(
-        [FromQuery] int? policyId = null,
+        [FromQuery] Guid? policyId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            // Cast to SimpleSlaService to access the method with optional parameter
-            if (_slaService is SimpleSlaService simpleSlaService)
-            {
-                var contacts = await simpleSlaService.GetEscalationContactsAsync(policyId, cancellationToken);
-                return Ok(contacts);
-            }
-            else if (policyId.HasValue)
-            {
-                var contacts = await _slaService.GetEscalationContactsAsync(policyId.Value, cancellationToken);
-                return Ok(contacts);
-            }
-            else
-            {
-                // Return empty list if no policyId and not SimpleSlaService
-                return Ok(new List<SlaEscalationContactDto>());
-            }
+            var contacts = await _slaService.GetEscalationContactsAsync(policyId, cancellationToken);
+            return Ok(contacts);
         }
         catch (Exception ex)
         {
@@ -210,9 +205,9 @@ public class SlaController : ControllerBase
     /// <summary>
     /// Get escalation contacts for an SLA policy
     /// </summary>
-    [HttpGet("{slaPolicyId:int}/contacts")]
+    [HttpGet("{slaPolicyId:guid}/contacts")]
     public async Task<ActionResult<IEnumerable<SlaEscalationContactDto>>> GetEscalationContacts(
-        int slaPolicyId,
+        Guid slaPolicyId,
         CancellationToken cancellationToken = default)
     {
         try
@@ -253,9 +248,9 @@ public class SlaController : ControllerBase
     /// <summary>
     /// Add escalation contact to SLA policy
     /// </summary>
-    [HttpPost("{slaPolicyId:int}/contacts")]
+    [HttpPost("{slaPolicyId:guid}/contacts")]
     public async Task<ActionResult<SlaEscalationContactDto>> CreateEscalationContact(
-        int slaPolicyId,
+        Guid slaPolicyId,
         [FromBody] CreateSlaEscalationContactRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -440,9 +435,9 @@ public class SlaController : ControllerBase
     /// <summary>
     /// Get statistics for a specific SLA policy
     /// </summary>
-    [HttpGet("{slaPolicyId:int}/stats")]
+    [HttpGet("{slaPolicyId:guid}/stats")]
     public async Task<ActionResult<object>> GetSlaPolicyStats(
-        int slaPolicyId,
+        Guid slaPolicyId,
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
         CancellationToken cancellationToken = default)

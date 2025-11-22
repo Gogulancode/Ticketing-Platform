@@ -10,6 +10,8 @@ public class User : IdentityUser
     public string LastName { get; set; } = string.Empty;
     public string FullName => $"{FirstName} {LastName}";
     public string Department { get; set; } = string.Empty;
+    public string? Position { get; set; }
+    public bool IsAgent { get; set; } = false;
     public DateTime JoinDate { get; set; }
     public string? Avatar { get; set; }
     public bool IsActive { get; set; } = true;

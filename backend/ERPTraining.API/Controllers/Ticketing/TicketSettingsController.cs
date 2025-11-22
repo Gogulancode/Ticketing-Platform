@@ -1,11 +1,14 @@
+using System.Collections.Generic;
 using ERPTraining.Core.Entities.Tickets;
 using ERPTraining.Core.DTOs.Ticketing;
 using ERPTraining.Core.Ticketing.Settings.DTOs;
 using ERPTraining.Core.Ticketing.Settings.Interfaces;
 using ERPTraining.Infrastructure.Data;
 using ERPTraining.Infrastructure.Services.Ticketing;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using TicketDeptDto = ERPTraining.Core.Ticketing.Settings.DTOs.TicketDepartmentDto;
 using CreateDeptReq = ERPTraining.Core.Ticketing.Settings.DTOs.CreateTicketDepartmentRequest;
 using UpdateDeptReq = ERPTraining.Core.Ticketing.Settings.DTOs.UpdateTicketDepartmentRequest;
@@ -68,6 +71,16 @@ public class TicketSettingsController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest("Name is required");
 
+        // Check if an active category with the same name already exists
+        var existingActiveCategory = (await _service.GetCategoriesAsync(includeInactive: false))
+            .FirstOrDefault(c => c.Name.Equals(request.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+        
+        if (existingActiveCategory != null)
+        {
+            _logger.LogWarning("Attempt to create duplicate active category: {Name}", request.Name);
+            return Conflict($"An active category with the name '{request.Name}' already exists. If you want to recreate this category, please delete the existing one first.");
+        }
+
         var entity = new TicketCategory
         {
             Name = request.Name.Trim(),
@@ -78,8 +91,27 @@ public class TicketSettingsController : ControllerBase
             IsActive = true
         };
 
-        var created = await _service.CreateCategoryAsync(entity, ct);
-        return CreatedAtAction(nameof(GetCategory), new { id = created.Id }, Map(created));
+        try
+        {
+            var created = await _service.CreateCategoryAsync(entity, ct);
+            return CreatedAtAction(nameof(GetCategory), new { id = created.Id }, Map(created));
+        }
+        catch (DbUpdateException dbEx) when (dbEx.InnerException is SqlException sqlEx && (sqlEx.Number == 2627 || sqlEx.Number == 2601))
+        {
+            // Unique constraint violation (duplicate category name)
+            _logger.LogWarning(dbEx, "Duplicate ticket category name detected: {Name}", request.Name);
+            return Conflict($"A category with the name '{request.Name}' already exists.");
+        }
+        catch (DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "Database error while creating ticket category");
+            return Problem("Failed to create the category due to a database error.", statusCode: StatusCodes.Status500InternalServerError);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while creating ticket category");
+            return Problem("Unexpected error while creating the category.", statusCode: StatusCodes.Status500InternalServerError);
+        }
     }
 
     // PUT: api/tickets/settings/categories/{id}
@@ -100,20 +132,31 @@ public class TicketSettingsController : ControllerBase
         return Ok(Map(updated));
     }
 
-    // DELETE (soft): api/tickets/settings/categories/{id}
+    // DELETE: api/tickets/settings/categories/{id}
     [HttpDelete("categories/{id:int}")]
     public async Task<IActionResult> DeleteCategory(int id, CancellationToken ct)
     {
-        var result = await _service.SoftDeleteCategoryAsync(id, ct);
-        if (!result) return NotFound();
-        return NoContent();
+        try
+        {
+            var deleted = await _service.SoftDeleteCategoryAsync(id, ct);
+            if (!deleted)
+            {
+                _logger.LogWarning("Attempted to delete missing category {CategoryId}", id);
+                return NotFound(new { message = "Category not found" });
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting ticket category {CategoryId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to delete category" });
+        }
     }
 
-    private static TicketCategoryDto Map(TicketCategory c) => new(c.Id, c.Name, c.Description, c.IsActive, c.DisplayOrder, c.Color, c.IconName);
+    private static TicketCategoryDto Map(TicketCategory category) =>
+        new(category.Id, category.Name, category.Description, category.IsActive, category.DisplayOrder, category.Color, category.IconName);
 
-    // ================= SubCategories =================
-
-    // GET: api/tickets/settings/subcategories
     [HttpGet("subcategories")]
     public async Task<ActionResult<IEnumerable<TicketSubCategory>>> GetSubCategories([FromQuery] int? categoryId, [FromQuery] bool includeInactive = false)
     {
@@ -139,6 +182,16 @@ public class TicketSettingsController : ControllerBase
         if (request.CategoryId <= 0)
             return BadRequest("CategoryId is required");
 
+        // Check if an active subcategory with the same name in the same category already exists
+        var existingActiveSubCategory = (await _service.GetSubCategoriesAsync(request.CategoryId, includeInactive: false))
+            .FirstOrDefault(sc => sc.Name.Equals(request.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+        
+        if (existingActiveSubCategory != null)
+        {
+            _logger.LogWarning("Attempt to create duplicate active subcategory: {Name} in category {CategoryId}", request.Name, request.CategoryId);
+            return Conflict($"An active sub-category with the name '{request.Name}' already exists in this category. If you want to recreate this sub-category, please delete the existing one first.");
+        }
+
         var entity = new TicketSubCategory
         {
             CategoryId = request.CategoryId,
@@ -158,9 +211,9 @@ public class TicketSettingsController : ControllerBase
             // Handle unique constraint violation
             if (sqlEx.Message.Contains("UK_TicketSubCategories_CategoryName"))
             {
-                return BadRequest($"A subcategory with the name '{request.Name}' already exists in this category.");
+                return Conflict($"A sub-category with the name '{request.Name}' already exists in this category.");
             }
-            return BadRequest("A subcategory with this name already exists.");
+            return Conflict("A sub-category with this name already exists.");
         }
     }
 
@@ -256,7 +309,7 @@ public class TicketSettingsController : ControllerBase
 
     // ================= Priorities =================
 
-    private static TicketPriorityDto Map(TicketPriority p) => new(p.Id, p.Name, p.Description, p.Level, p.Color, p.IsActive, p.SortOrder);
+    private static TicketPriorityDto Map(TicketPriority p) => new(p.Id, p.Name, p.Description, p.Level, p.Color, p.IsActive, p.IsDeleted, p.SortOrder);
 
     // GET: api/tickets/settings/priorities
     [HttpGet("priorities")]
@@ -283,6 +336,16 @@ public class TicketSettingsController : ControllerBase
             return BadRequest("Name is required");
         if (request.Level <= 0)
             return BadRequest("Level must be greater than zero");
+
+        // Check if an active priority with the same name already exists
+        var existingActivePriority = (await _service.GetPrioritiesAsync(includeInactive: false))
+            .FirstOrDefault(p => p.Name.Equals(request.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        if (existingActivePriority != null)
+        {
+            _logger.LogWarning("Attempt to create duplicate active priority: {PriorityName}", request.Name);
+            return Conflict($"An active priority with the name '{request.Name}' already exists. If you want to recreate this priority, please delete the existing one first.");
+        }
 
         var entity = new TicketPriority
         {
@@ -366,6 +429,16 @@ public class TicketSettingsController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest("Name is required");
 
+        // Check if an active status with the same name already exists
+        var existingActiveStatus = (await _service.GetStatusesAsync(includeInactive: false))
+            .FirstOrDefault(s => s.Name.Equals(request.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        if (existingActiveStatus != null)
+        {
+            _logger.LogWarning("Attempt to create duplicate active status: {StatusName}", request.Name);
+            return Conflict($"An active status with the name '{request.Name}' already exists. If you want to recreate this status, please delete the existing one first.");
+        }
+
         var entity = new TicketStatus
         {
             Name = request.Name.Trim(),
@@ -439,26 +512,26 @@ public class TicketSettingsController : ControllerBase
     
     // GET: api/tickets/settings/custom-fields
     [HttpGet("custom-fields")]
-    public async Task<ActionResult<IEnumerable<object>>> GetCustomFields([FromQuery] int? categoryId = null, [FromQuery] int? subCategoryId = null)
+    public async Task<ActionResult<IEnumerable<object>>> GetCustomFields([FromQuery] int? categoryId = null, [FromQuery] int? subCategoryId = null, [FromQuery] bool includeInactive = false)
     {
         IEnumerable<ERPTraining.Core.Entities.Ticketing.CustomField> fields;
         
         if (categoryId.HasValue && subCategoryId.HasValue)
         {
             // Filter by both category and subcategory for precise matching
-            fields = await _customFieldsService.GetByCategoryAndSubCategoryAsync(categoryId.Value, subCategoryId.Value);
+            fields = await _customFieldsService.GetByCategoryAndSubCategoryAsync(categoryId.Value, subCategoryId.Value, includeInactive);
         }
         else if (categoryId.HasValue)
         {
-            fields = await _customFieldsService.GetByCategoryAsync(categoryId.Value);
+            fields = await _customFieldsService.GetByCategoryAsync(categoryId.Value, includeInactive);
         }
         else if (subCategoryId.HasValue)
         {
-            fields = await _customFieldsService.GetBySubCategoryAsync(subCategoryId.Value);
+            fields = await _customFieldsService.GetBySubCategoryAsync(subCategoryId.Value, includeInactive);
         }
         else
         {
-            fields = await _customFieldsService.GetAllAsync();
+            fields = await _customFieldsService.GetAllAsync(includeInactive);
         }
 
         var result = fields.Select(cf => new
@@ -487,23 +560,7 @@ public class TicketSettingsController : ControllerBase
         var field = await _customFieldsService.GetByIdAsync(id);
         if (field == null) return NotFound();
 
-        var result = new
-        {
-            id = field.Id,
-            name = field.Name,
-            label = field.Label,
-            type = field.Type,
-            categoryId = field.CategoryId,
-            subCategoryId = field.SubCategoryId,
-            options = field.Options != null ? System.Text.Json.JsonSerializer.Deserialize<string[]>(field.Options) : null,
-            placeholder = field.Placeholder,
-            isRequired = field.IsRequired,
-            isActive = field.IsActive,
-            displayOrder = field.DisplayOrder,
-            validationRules = field.ValidationRules != null ? System.Text.Json.JsonSerializer.Deserialize<object>(field.ValidationRules) : null
-        };
-
-        return Ok(result);
+        return Ok(ProjectCustomField(field));
     }
 
     // POST: api/tickets/settings/custom-fields
@@ -512,43 +569,21 @@ public class TicketSettingsController : ControllerBase
     {
         try
         {
-            var json = System.Text.Json.JsonSerializer.Serialize(request);
-            var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-
-            var customField = new ERPTraining.Core.Entities.Ticketing.CustomField
-            {
-                Name = data["name"].ToString()!,
-                Label = data["label"].ToString()!,
-                Type = data["type"].ToString()!,
-                CategoryId = data.ContainsKey("categoryId") && data["categoryId"] != null ? int.Parse(data["categoryId"].ToString()!) : null,
-                SubCategoryId = data.ContainsKey("subCategoryId") && data["subCategoryId"] != null ? int.Parse(data["subCategoryId"].ToString()!) : null,
-                Options = data.ContainsKey("options") && data["options"] != null ? System.Text.Json.JsonSerializer.Serialize(data["options"]) : null,
-                Placeholder = data.ContainsKey("placeholder") ? data["placeholder"]?.ToString() : null,
-                IsRequired = data.ContainsKey("isRequired") && bool.Parse(data["isRequired"].ToString()!),
-                IsActive = !data.ContainsKey("isActive") || bool.Parse(data["isActive"].ToString()!),
-                DisplayOrder = data.ContainsKey("displayOrder") ? int.Parse(data["displayOrder"].ToString()!) : 0,
-                ValidationRules = data.ContainsKey("validationRules") && data["validationRules"] != null ? System.Text.Json.JsonSerializer.Serialize(data["validationRules"]) : null
-            };
+            var data = DeserializePayload(request);
+            var customField = BuildCustomField(data);
 
             var created = await _customFieldsService.CreateAsync(customField);
-            
-            var result = new
-            {
-                id = created.Id,
-                name = created.Name,
-                label = created.Label,
-                type = created.Type,
-                categoryId = created.CategoryId,
-                subCategoryId = created.SubCategoryId,
-                options = created.Options != null ? System.Text.Json.JsonSerializer.Deserialize<string[]>(created.Options) : null,
-                placeholder = created.Placeholder,
-                isRequired = created.IsRequired,
-                isActive = created.IsActive,
-                displayOrder = created.DisplayOrder,
-                validationRules = created.ValidationRules != null ? System.Text.Json.JsonSerializer.Deserialize<object>(created.ValidationRules) : null
-            };
-
-            return CreatedAtAction(nameof(GetCustomField), new { id = created.Id }, result);
+            return CreatedAtAction(nameof(GetCustomField), new { id = created.Id }, ProjectCustomField(created));
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid custom field payload: {Message}", ex.Message);
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Duplicate custom field: {Message}", ex.Message);
+            return Conflict(ex.Message);
         }
         catch (Exception ex)
         {
@@ -563,51 +598,136 @@ public class TicketSettingsController : ControllerBase
     {
         try
         {
-            var json = System.Text.Json.JsonSerializer.Serialize(request);
-            var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-
-            var customField = new ERPTraining.Core.Entities.Ticketing.CustomField
-            {
-                Id = id,
-                Name = data["name"].ToString()!,
-                Label = data["label"].ToString()!,
-                Type = data["type"].ToString()!,
-                CategoryId = data.ContainsKey("categoryId") && data["categoryId"] != null ? int.Parse(data["categoryId"].ToString()!) : null,
-                SubCategoryId = data.ContainsKey("subCategoryId") && data["subCategoryId"] != null ? int.Parse(data["subCategoryId"].ToString()!) : null,
-                Options = data.ContainsKey("options") && data["options"] != null ? System.Text.Json.JsonSerializer.Serialize(data["options"]) : null,
-                Placeholder = data.ContainsKey("placeholder") ? data["placeholder"]?.ToString() : null,
-                IsRequired = data.ContainsKey("isRequired") && bool.Parse(data["isRequired"].ToString()!),
-                IsActive = !data.ContainsKey("isActive") || bool.Parse(data["isActive"].ToString()!),
-                DisplayOrder = data.ContainsKey("displayOrder") ? int.Parse(data["displayOrder"].ToString()!) : 0,
-                ValidationRules = data.ContainsKey("validationRules") && data["validationRules"] != null ? System.Text.Json.JsonSerializer.Serialize(data["validationRules"]) : null
-            };
+            var data = DeserializePayload(request);
+            var customField = BuildCustomField(data, id);
 
             var updated = await _customFieldsService.UpdateAsync(id, customField);
             if (updated == null) return NotFound();
 
-            var result = new
-            {
-                id = updated.Id,
-                name = updated.Name,
-                label = updated.Label,
-                type = updated.Type,
-                categoryId = updated.CategoryId,
-                subCategoryId = updated.SubCategoryId,
-                options = updated.Options != null ? System.Text.Json.JsonSerializer.Deserialize<string[]>(updated.Options) : null,
-                placeholder = updated.Placeholder,
-                isRequired = updated.IsRequired,
-                isActive = updated.IsActive,
-                displayOrder = updated.DisplayOrder,
-                validationRules = updated.ValidationRules != null ? System.Text.Json.JsonSerializer.Deserialize<object>(updated.ValidationRules) : null
-            };
-
-            return Ok(result);
+            return Ok(ProjectCustomField(updated));
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid custom field payload: {Message}", ex.Message);
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Duplicate custom field: {Message}", ex.Message);
+            return Conflict(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating custom field {Id}", id);
             return BadRequest("Failed to update custom field");
         }
+    }
+
+    private static Dictionary<string, object?> DeserializePayload(object? request)
+    {
+        if (request is null)
+        {
+            return new();
+        }
+
+        var json = System.Text.Json.JsonSerializer.Serialize(request);
+        return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(json) ?? new();
+    }
+
+    private static CustomField BuildCustomField(IDictionary<string, object?> data, int? id = null)
+    {
+        var field = new CustomField
+        {
+            Name = GetRequiredString(data, "name"),
+            Label = GetRequiredString(data, "label"),
+            Type = GetRequiredString(data, "type"),
+            CategoryId = GetOptionalInt(data, "categoryId"),
+            SubCategoryId = GetOptionalInt(data, "subCategoryId"),
+            Options = SerializeIfPresent(data, "options"),
+            Placeholder = GetOptionalString(data, "placeholder"),
+            IsRequired = GetOptionalBool(data, "isRequired", defaultValue: false),
+            IsActive = GetOptionalBool(data, "isActive", defaultValue: true),
+            DisplayOrder = GetOptionalInt(data, "displayOrder") ?? 0,
+            ValidationRules = SerializeIfPresent(data, "validationRules")
+        };
+
+        if (id.HasValue)
+        {
+            field.Id = id.Value;
+        }
+
+        return field;
+    }
+
+    private static object ProjectCustomField(CustomField field)
+    {
+        return new
+        {
+            id = field.Id,
+            name = field.Name,
+            label = field.Label,
+            type = field.Type,
+            categoryId = field.CategoryId,
+            subCategoryId = field.SubCategoryId,
+            options = field.Options != null ? System.Text.Json.JsonSerializer.Deserialize<string[]>(field.Options) : null,
+            placeholder = field.Placeholder,
+            isRequired = field.IsRequired,
+            isActive = field.IsActive,
+            displayOrder = field.DisplayOrder,
+            validationRules = field.ValidationRules != null ? System.Text.Json.JsonSerializer.Deserialize<object>(field.ValidationRules) : null
+        };
+    }
+
+    private static string GetRequiredString(IDictionary<string, object?> data, string key)
+    {
+        if (data.TryGetValue(key, out var value) && value != null)
+        {
+            var text = value.ToString();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                return text.Trim();
+            }
+        }
+
+        throw new ArgumentException($"Field '{key}' is required.");
+    }
+
+    private static string? GetOptionalString(IDictionary<string, object?> data, string key)
+    {
+        if (data.TryGetValue(key, out var value) && value != null)
+        {
+            var text = value.ToString();
+            return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+        }
+
+        return null;
+    }
+
+    private static int? GetOptionalInt(IDictionary<string, object?> data, string key)
+    {
+        if (data.TryGetValue(key, out var value) && value != null && int.TryParse(value.ToString(), out var parsed))
+        {
+            return parsed;
+        }
+
+        return null;
+    }
+
+    private static bool GetOptionalBool(IDictionary<string, object?> data, string key, bool defaultValue)
+    {
+        if (data.TryGetValue(key, out var value) && value != null && bool.TryParse(value.ToString(), out var parsed))
+        {
+            return parsed;
+        }
+
+        return defaultValue;
+    }
+
+    private static string? SerializeIfPresent(IDictionary<string, object?> data, string key)
+    {
+        return data.TryGetValue(key, out var value) && value != null
+            ? System.Text.Json.JsonSerializer.Serialize(value)
+            : null;
     }
 
     // DELETE: api/tickets/settings/custom-fields/{id}
@@ -855,7 +975,7 @@ public class TicketSettingsController : ControllerBase
     }
 
     // ================= Tags =================
-    // TODO: Fix entity reference issues 
+    // Tags endpoints moved to TicketTagController.cs
     /*
     // GET: api/tickets/settings/tags
     [HttpGet("tags")]
@@ -865,13 +985,12 @@ public class TicketSettingsController : ControllerBase
         {
             var tags = await _context.TicketTags
                 .Where(t => includeInactive || t.IsActive)
-                .Include(t => t.SubCategory)
                 .Select(t => new
                 {
                     Id = t.Id,
                     Name = t.Name,
                     SubCategoryId = t.SubCategoryId,
-                    SubCategoryName = t.SubCategory != null ? t.SubCategory.Name : null,
+                    SubCategoryName = (string?)null,
                     IsActive = t.IsActive,
                     CreatedAt = t.CreatedAt,
                     UpdatedAt = t.UpdatedAt

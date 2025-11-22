@@ -1,42 +1,30 @@
-﻿import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, Filter, Download, AlertCircle, Clock, User, ChevronLeft, ChevronRight } from 'lucide-react';
-import { ticketsApi } from '../services/ticketsApi';
-import { settingsApi } from '../../../shared/services/api/settingsApi';
+import { ticketsApi, Ticket, TicketCategory, TicketPriority, TicketStatus } from '../services/ticketsApi';
+import { settingsApi, TicketCategoryConfig, PriorityLevel, TicketStatusConfig, Agent } from '../../../shared/services/api/settingsApi';
+import { formatTicketDateTime } from '../../../shared/utils/dateUtils';
 
-// IST Date formatting utility
-const formatDateIST = (dateString: string, includeTime: boolean = false) => {
-  try {
-    console.log('📅 formatDateIST input:', dateString, 'Type:', typeof dateString);
-    const date = new Date(dateString);
-    console.log('📅 Parsed Date object:', date, 'IsValid:', !isNaN(date.getTime()));
-    
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date string:', dateString);
-      return 'Invalid date';
-    }
-    
-    const options: Intl.DateTimeFormatOptions = {
-      timeZone: 'Asia/Kolkata',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    };
-    
-    if (includeTime) {
-      options.hour = '2-digit';
-      options.minute = '2-digit';
-      options.hour12 = true;
-    }
-    
-    const formatted = date.toLocaleString('en-IN', options);
-    console.log('📅 Formatted result:', formatted);
-    return formatted;
-  } catch (error) {
-    console.error('Date formatting error:', error, 'Input was:', dateString);
-    return 'Invalid date';
-  }
+type CategoryReference = { id?: number; name?: string };
+type PriorityReference = { id?: number; name?: string; level?: number };
+type StatusReference = { id?: number; name?: string };
+type AssignedAgentReference = { id?: number; userId?: string; name?: string; email?: string };
+
+type TicketListItem = Omit<Ticket, 'category' | 'priority' | 'status'> & {
+  category?: TicketCategory | CategoryReference | null;
+  categoryId?: number;
+  categoryName?: string;
+  priority?: TicketPriority | PriorityReference | null;
+  priorityId?: number;
+  priorityName?: string;
+  status?: TicketStatus | StatusReference | null;
+  statusId?: number;
+  statusName?: string;
+  assignedAgent?: AssignedAgentReference;
+  assignedAgentId?: string | number;
+  assignedToUserId?: string | number;
+  agentName?: string;
 };
 
 const MyTicketsPage: React.FC = () => {
@@ -47,26 +35,51 @@ const MyTicketsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
+  const toStringValue = (value?: string | number | null): string | undefined => {
+    if (value == null) {
+      return undefined;
+    }
+    return value.toString();
+  };
+
+  const toNumericValue = (value?: string | number | null): number | undefined => {
+    if (typeof value === 'number' && !Number.isNaN(value)) {
+      return value;
+    }
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    }
+    return undefined;
+  };
+
   // Generate public ticket ID
-  const getPublicTicketId = (ticket: any) => {
-    if (ticket.publicId) return ticket.publicId;
-    // Generate a consistent 6-digit public ID from ticket ID
-    const hash = ticket.id.toString().split('').reduce((a: number, b: string) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
+  const getPublicTicketId = (ticket: TicketListItem): string => {
+    if (ticket.publicId != null) {
+      return ticket.publicId.toString();
+    }
+
+    const baseId = ticket.id?.toString() || '';
+    if (!baseId) {
+      return '000000';
+    }
+
+    const hash = baseId.split('').reduce((acc, char) => {
+      const next = ((acc << 5) - acc) + char.charCodeAt(0);
+      return next & next;
     }, 0);
     return Math.abs(hash).toString().padStart(6, '0').slice(-6);
   };
 
   // Fetch tickets (includes assigned tickets AND tickets where user is a collaborator)
-  const { data: tickets, isLoading, error } = useQuery({
+  const { data: tickets, isLoading, error } = useQuery<TicketListItem[]>({
     queryKey: ['my-tickets'],
-    queryFn: async () => {
+    queryFn: async (): Promise<TicketListItem[]> => {
       console.log('🎫 Fetching my tickets (assigned + collaborator)...');
       try {
         const result = await ticketsApi.getMyTickets();
         console.log('✅ My tickets loaded:', { count: result?.length, sample: result?.[0] });
-        return result;
+        return result as TicketListItem[];
       } catch (err) {
         console.error('❌ Failed to load my tickets:', err);
         throw err;
@@ -77,107 +90,117 @@ const MyTicketsPage: React.FC = () => {
   });
 
   // Fetch settings for display names
-  const { data: categories } = useQuery({
+  const { data: categories } = useQuery<TicketCategoryConfig[]>({
     queryKey: ['ticket-categories'],
     queryFn: () => settingsApi.getTicketCategories(),
   });
 
-  const { data: priorities } = useQuery({
+  const { data: priorities } = useQuery<PriorityLevel[]>({
     queryKey: ['ticket-priorities'],
     queryFn: () => settingsApi.getPriorityLevels(),
   });
 
-  const { data: statuses } = useQuery({
+  const { data: statuses } = useQuery<TicketStatusConfig[]>({
     queryKey: ['ticket-statuses'],
     queryFn: () => settingsApi.getTicketStatuses(),
   });
 
-  const { data: agents } = useQuery({
+  const { data: agents } = useQuery<Agent[]>({
     queryKey: ['agents'],
     queryFn: () => settingsApi.getAgents(),
   });
 
   // Helper functions for display names
-  const getCategoryName = (ticket: any) => {
+  const getCategoryName = (ticket: TicketListItem) => {
     // Handle both nested object and direct ID lookup
-    if (ticket.category?.name) return ticket.category.name;
+    if (typeof ticket.category === 'object' && ticket.category?.name) return ticket.category.name;
     if (ticket.categoryName) return ticket.categoryName;
     
     // Map backend enum values to category names  
-    switch (ticket.category) {
+    const categoryValue = typeof ticket.category === 'number' ? Number(ticket.category) : undefined;
+    switch (categoryValue) {
       case 0: return 'General Inquiry';
       case 1: return 'Technical Support';
       case 2: return 'Bug Report';
       case 3: return 'Feature Request';
-      default:
+      default: {
         // Fallback to settings lookup
-        const category = categories?.find((cat: any) => 
-          cat.id === ticket.categoryId || cat.id === ticket.category
+        const categoryId = ticket.categoryId ?? (typeof ticket.category === 'object' ? ticket.category?.id : undefined);
+        const category = categories?.find((cat) => 
+          cat.id === categoryId
         );
         return category?.name || 'No Category';
+      }
     }
   };
 
-  const getPriorityName = (ticket: any) => {
+  const getPriorityName = (ticket: TicketListItem) => {
     // Handle both nested object and direct ID lookup
-    if (ticket.priority?.name) return ticket.priority.name;
+    if (typeof ticket.priority === 'object' && ticket.priority?.name) return ticket.priority.name;
     if (ticket.priorityName) return ticket.priorityName;
     
     // Map backend enum values to priority names
-    switch (ticket.priority) {
+    const priorityValue = typeof ticket.priority === 'number' ? Number(ticket.priority) : undefined;
+    switch (priorityValue) {
       case 0: return 'Low';
       case 1: return 'Medium'; 
       case 2: return 'High';
       case 3: return 'Critical';
-      default:
+      default: {
         // Fallback to settings lookup
-        const priority = priorities?.find((pri: any) => 
-          pri.id === ticket.priorityId || pri.id === ticket.priority || pri.level === ticket.priority
+        const derivedPriorityId = ticket.priorityId ?? (typeof ticket.priority === 'object' ? ticket.priority?.id : undefined);
+        const derivedLevel = typeof ticket.priority === 'object' ? ticket.priority?.level : undefined;
+        const priority = priorities?.find((pri) => 
+          pri.id === derivedPriorityId || pri.level === (priorityValue ?? derivedLevel)
         );
         return priority?.name || 'No Priority';
+      }
     }
   };
 
-  const getStatusName = (ticket: any) => {
+  const getStatusName = useCallback((ticket: TicketListItem) => {
     // Handle both nested object and direct ID lookup
-    if (ticket.status?.name) return ticket.status.name;
+    if (typeof ticket.status === 'object' && ticket.status?.name) return ticket.status.name;
     if (ticket.statusName) return ticket.statusName;
     
     // Map backend enum values to status names
-    switch (ticket.status) {
+    const statusValue = typeof ticket.status === 'number' ? Number(ticket.status) : undefined;
+    switch (statusValue) {
       case 0: return 'New';
       case 1: return 'Open';
       case 2: return 'In Progress';
       case 3: return 'Resolved';
       case 4: return 'Closed';
-      default:
+      default: {
         // Fallback to settings lookup
-        const status = statuses?.find((s: any) => 
-          s.id === ticket.statusId || s.id === ticket.status
+        const statusId = ticket.statusId ?? (typeof ticket.status === 'object' ? ticket.status?.id : undefined);
+        const status = statuses?.find((s) => 
+          s.id === (statusId ?? statusValue)
         );
         return status?.name || 'No Status';
+      }
     }
-  };
+  }, [statuses]);
 
-  const getAgentName = (ticket: any) => {
+  const getAgentName = (ticket: TicketListItem) => {
     // Handle both nested object and direct ID lookup
     if (ticket.assignedAgent?.name) return ticket.assignedAgent.name;
     if (ticket.assignedAgent?.email) return ticket.assignedAgent.email;
     if (ticket.agentName) return ticket.agentName;
     
     // If no user is assigned, return unassigned
-    if (!ticket.assignedToUserId) return 'Unassigned';
+    if (!ticket.assignedToUserId && !ticket.assignedAgentId) return 'Unassigned';
     
     // Look up agent by userId
-    const agent = agents?.find((a: any) => 
-      a.userId === ticket.assignedToUserId || 
-      a.id === ticket.assignedAgentId ||
-      a.email === ticket.assignedAgent?.email
+    const agent = agents?.find((a) => 
+      (ticket.assignedToUserId && a.userId === toStringValue(ticket.assignedToUserId)) || 
+      (ticket.assignedAgentId != null && a.id === toNumericValue(ticket.assignedAgentId) ) ||
+      (ticket.assignedAgent?.email && a.email === ticket.assignedAgent.email)
     );
     return agent?.name || agent?.email || 'Unassigned';
   };
 
-  const getStatusColor = (ticket: any) => {
+  const getStatusColor = (ticket: TicketListItem) => {
     const statusName = getStatusName(ticket)?.toLowerCase();
     switch (statusName) {
       case 'open': case 'new': return 'bg-blue-100 text-blue-800';
@@ -188,7 +211,7 @@ const MyTicketsPage: React.FC = () => {
     }
   };
 
-  const getPriorityColor = (ticket: any) => {
+  const getPriorityColor = (ticket: TicketListItem) => {
     const priorityName = getPriorityName(ticket)?.toLowerCase();
     switch (priorityName) {
       case 'low': return 'text-green-600';
@@ -200,31 +223,37 @@ const MyTicketsPage: React.FC = () => {
   };
 
   // Filter tickets
-  const filteredTickets = useMemo(() => {
-    const filtered = tickets?.filter((ticket: any) => {
-      // Exclude deleted tickets (status 99)
-      if (ticket.status === 99) return false;
+  const filteredTickets = useMemo<TicketListItem[]>(() => {
+    if (!tickets) {
+      return [];
+    }
+
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return tickets.filter((ticket) => {
+      const numericStatus = typeof ticket.status === 'number' ? Number(ticket.status) : undefined;
+      if (numericStatus === 99) return false;
       
-      const matchesSearch = !searchTerm || 
-        ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getPublicTicketId(ticket).includes(searchTerm);
+      const matchesSearch = !normalizedSearch || 
+        ticket.title?.toLowerCase().includes(normalizedSearch) ||
+        ticket.description?.toLowerCase().includes(normalizedSearch) ||
+        getPublicTicketId(ticket).includes(normalizedSearch);
       
       // Category filter
       const matchesCategory = categoryFilter === 'all' || 
-        ticket.categoryId?.toString() === categoryFilter ||
-        ticket.category?.toString() === categoryFilter;
+        toStringValue(ticket.categoryId) === categoryFilter ||
+        (typeof ticket.category === 'number' && ticket.category.toString() === categoryFilter);
       
       // Agent filter
       const matchesAgent = agentFilter === 'all' || 
         (agentFilter === 'unassigned' && !ticket.assignedToUserId && !ticket.assignedAgentId) ||
-        ticket.assignedToUserId?.toString() === agentFilter ||
-        ticket.assignedAgentId?.toString() === agentFilter;
+        (ticket.assignedToUserId != null && toStringValue(ticket.assignedToUserId) === agentFilter) ||
+        (ticket.assignedAgentId != null && toStringValue(ticket.assignedAgentId) === agentFilter);
       
       if (statusFilter === 'all') return matchesSearch && matchesCategory && matchesAgent;
       
       const statusName = getStatusName(ticket)?.toLowerCase() || '';
-      const statusId = ticket.statusId || ticket.status;
+      const statusId = ticket.statusId ?? numericStatus;
       
       // More flexible status matching
       const matchesStatus = 
@@ -232,30 +261,28 @@ const MyTicketsPage: React.FC = () => {
           statusName.includes('open') || 
           statusName.includes('new') || 
           statusName.includes('pending') ||
-          statusId === 1
+          statusId === TicketStatus.Open
         )) ||
         (statusFilter === 'inprogress' && (
           statusName.includes('progress') || 
           statusName.includes('assigned') || 
           statusName.includes('working') ||
-          statusId === 2
+          statusId === TicketStatus.InProgress
         )) ||
         (statusFilter === 'resolved' && (
           statusName.includes('resolved') || 
           statusName.includes('completed') ||
-          statusId === 3
+          statusId === TicketStatus.Resolved
         )) ||
         (statusFilter === 'closed' && (
           statusName.includes('closed') || 
           statusName.includes('done') ||
-          statusId === 4
+          statusId === TicketStatus.Closed
         ));
       
       return matchesSearch && matchesStatus && matchesCategory && matchesAgent;
-    }) || [];
-
-    return filtered;
-  }, [tickets, searchTerm, statusFilter, categoryFilter, agentFilter]);
+    });
+  }, [tickets, searchTerm, statusFilter, categoryFilter, agentFilter, getStatusName]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
@@ -282,19 +309,25 @@ const MyTicketsPage: React.FC = () => {
   };
 
   // Calculate ticket counts for summary
-  const ticketCounts = {
-    total: tickets?.length || 0,
-    open: tickets?.filter(t => {
-      const status = getStatusName(t)?.toLowerCase();
-      return status === 'open' || status === 'new';
-    }).length || 0,
-    inProgress: tickets?.filter(t => {
-      const status = getStatusName(t)?.toLowerCase();
-      return status === 'in progress' || status === 'assigned';
-    }).length || 0,
-    resolved: tickets?.filter(t => getStatusName(t)?.toLowerCase() === 'resolved').length || 0,
-    closed: tickets?.filter(t => getStatusName(t)?.toLowerCase() === 'closed').length || 0,
-  };
+  const ticketCounts = (() => {
+    const allTickets = tickets ?? [];
+    const countWhere = (predicate: (ticket: TicketListItem) => boolean) =>
+      allTickets.filter(predicate).length;
+
+    return {
+      total: allTickets.length,
+      open: countWhere((ticket) => {
+        const status = getStatusName(ticket)?.toLowerCase();
+        return status === 'open' || status === 'new';
+      }),
+      inProgress: countWhere((ticket) => {
+        const status = getStatusName(ticket)?.toLowerCase();
+        return status === 'in progress' || status === 'assigned';
+      }),
+      resolved: countWhere((ticket) => getStatusName(ticket)?.toLowerCase() === 'resolved'),
+      closed: countWhere((ticket) => getStatusName(ticket)?.toLowerCase() === 'closed'),
+    };
+  })();
 
   // Export function
   const handleExport = () => {
@@ -305,14 +338,14 @@ const MyTicketsPage: React.FC = () => {
 
     const csvHeaders = ['ID', 'Title', 'Status', 'Priority', 'Category', 'Agent', 'Created', 'Updated'];
     const csvData = filteredTickets.map(ticket => [
-      ticket.publicId || ticket.id,
+      getPublicTicketId(ticket),
       `"${ticket.title?.replace(/"/g, '""') || ''}"`,
       getStatusName(ticket),
       getPriorityName(ticket),
       getCategoryName(ticket),
       getAgentName(ticket),
-      formatDateIST(ticket.createdAt, true),
-      formatDateIST(ticket.updatedAt, true),
+      formatTicketDateTime(ticket.createdAt),
+      formatTicketDateTime(ticket.updatedAt),
     ]);
 
     const csvContent = [csvHeaders, ...csvData].map(row => row.join(',')).join('\n');
@@ -441,7 +474,7 @@ const MyTicketsPage: React.FC = () => {
                   className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
                   <option value="all">All Categories</option>
-                  {categories?.map((cat: any) => (
+                  {categories?.map((cat) => (
                     <option key={cat.id} value={cat.id.toString()}>
                       {cat.name}
                     </option>
@@ -456,7 +489,7 @@ const MyTicketsPage: React.FC = () => {
                 >
                   <option value="all">All Agents</option>
                   <option value="unassigned">Unassigned</option>
-                  {agents?.map((agent: any) => (
+                  {agents?.map((agent) => (
                     <option key={agent.userId || agent.id} value={(agent.userId || agent.id)?.toString()}>
                       {agent.name || agent.email}
                     </option>
@@ -506,7 +539,7 @@ const MyTicketsPage: React.FC = () => {
 
               {/* Table Body */}
               <div className="divide-y divide-gray-200">
-                {currentTickets.map((ticket: any, index: number) => (
+                {currentTickets.map((ticket, index) => (
                   <div 
                     key={ticket.id} 
                     className={`px-sm py-3 hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}
@@ -524,7 +557,7 @@ const MyTicketsPage: React.FC = () => {
                         </Link>
                         <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
                           <Clock className="h-3 w-3" />
-                          {formatDateIST(ticket.createdAt, true)}
+                          {formatTicketDateTime(ticket.createdAt)}
                         </div>
                       </div>
                       <div className="col-span-2">

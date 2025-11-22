@@ -4,6 +4,16 @@ import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import { ticketsApi, TicketPriority, TicketCategory } from '../services/ticketsApi';
 import { settingsApi, Department, TicketCategoryConfig, SubCategory, PriorityLevel, TicketStatusConfig } from '../../../shared/services/api/settingsApi';
 
+type SimpleTicketFormData = {
+  title: string;
+  description: string;
+  categoryId: string;
+  subcategoryId: string;
+  departmentId: string;
+  priority: TicketPriority;
+  statusId: string;
+};
+
 // Helper function to map our new category system to the old enum
 const mapCategoryToEnum = (categoryId: string): TicketCategory => {
   const categoryIdNum = parseInt(categoryId);
@@ -34,7 +44,7 @@ const NewTicketPage: React.FC = () => {
   const [statuses, setStatuses] = useState<TicketStatusConfig[]>([]);
   const [availableSubcategories, setAvailableSubcategories] = useState<SubCategory[]>([]);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SimpleTicketFormData>({
     title: '',
     description: '',
     categoryId: '',
@@ -65,7 +75,8 @@ const NewTicketPage: React.FC = () => {
         // Set statuses and default to "New" status
         const statusData = statusesResponse.sort((a: TicketStatusConfig, b: TicketStatusConfig) => a.workflowOrder - b.workflowOrder);
         setStatuses(statusData);
-        const defaultStatus = statusData.find((s: TicketStatusConfig) => s.name === 'New') || statusData[0];
+        // Use the status marked as default, or fall back to the first status
+        const defaultStatus = statusData.find((s: TicketStatusConfig) => s.isDefault) || statusData[0];
         if (defaultStatus) {
           setFormData(prev => ({ ...prev, statusId: defaultStatus.id.toString() }));
         }
@@ -95,7 +106,7 @@ const NewTicketPage: React.FC = () => {
     } else {
       setAvailableSubcategories([]);
     }
-  }, [formData.categoryId, categories]);
+  }, [formData.categoryId, formData.subcategoryId, categories]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,7 +137,7 @@ const NewTicketPage: React.FC = () => {
     }
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = <K extends keyof SimpleTicketFormData>(field: K, value: SimpleTicketFormData[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (error) setError(null);
   };

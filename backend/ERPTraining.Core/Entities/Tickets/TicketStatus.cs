@@ -6,6 +6,7 @@ public class TicketStatus
     public string Name { get; set; } = string.Empty;
     public int WorkflowOrder { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; } = false;
     public string Color { get; set; } = string.Empty;
     public bool IsDefault { get; set; } = false;
     public bool IsClosedStatus { get; set; } = false;

@@ -24,14 +24,12 @@ import CategoriesTab from '@components/ticketing/settings/tabs/CategoriesTab';
 import SubCategoriesTab from '@components/ticketing/settings/tabs/SubCategoriesTab';
 import PrioritiesTab from '@components/ticketing/settings/tabs/PrioritiesTab';
 import StatusesTab from '@components/ticketing/settings/tabs/StatusesTab';
-import IssueTypesTab from '@components/ticketing/settings/tabs/IssueTypesTab';
 
 export type SettingsTab = 
   | 'categories'
   | 'subcategories' 
   | 'priorities'
   | 'statuses'
-  | 'issue-types'
   | 'tags'
   | 'email-config'
   | 'ticket-fields'
@@ -72,17 +70,10 @@ const tabConfigs: TabConfig[] = [
   },
   {
     id: 'statuses',
-    name: 'Statuses',
+    name: 'Status',
     description: 'Configure ticket statuses',
     icon: CheckCircleIcon,
     component: StatusesTab,
-  },
-  {
-    id: 'issue-types',
-    name: 'Issue Types',
-    description: 'Manage different types of issues',
-    icon: ExclamationTriangleIcon,
-    component: IssueTypesTab,
   },
   {
     id: 'tags',

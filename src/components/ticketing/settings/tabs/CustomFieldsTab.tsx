@@ -37,6 +37,7 @@ const CustomFieldsTab: React.FC = () => {
   // State management
   const [filters, setFilters] = useState<CustomFieldFilter>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [formData, setFormData] = useState<CustomFieldFormData>({
@@ -51,10 +52,10 @@ const CustomFieldsTab: React.FC = () => {
 
   // Queries
   const { data: customFields = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['customFields', filters],
+    queryKey: ['customFields', filters, showInactive],
     queryFn: async () => {
-      console.log('[CustomFields] Fetching with filters:', filters);
-      const result = await settingsApi.getCustomFields(filters.categoryId, filters.subCategoryId);
+      console.log('[CustomFields] Fetching with filters:', filters, 'includeInactive:', showInactive);
+      const result = await settingsApi.getCustomFields(filters.categoryId, filters.subCategoryId, showInactive);
       console.log('[CustomFields] API response:', result);
       return result;
     },
@@ -124,7 +125,8 @@ const CustomFieldsTab: React.FC = () => {
     },
     onError: (error: any) => {
       console.error('[CustomFields] Create error:', error);
-      toast.error(`Failed to create custom field: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : "Error creating custom field";
+      toast.error(errorMessage);
     }
   });
 
@@ -138,7 +140,8 @@ const CustomFieldsTab: React.FC = () => {
       resetForm();
     },
     onError: (error: any) => {
-      toast.error(`Failed to update custom field: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : "Error updating custom field";
+      toast.error(errorMessage);
     }
   });
 
@@ -149,7 +152,8 @@ const CustomFieldsTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['customFields'] });
     },
     onError: (error: any) => {
-      toast.error(`Failed to delete custom field: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : "Error deleting custom field";
+      toast.error(errorMessage);
     }
   });
 
@@ -217,6 +221,11 @@ const CustomFieldsTab: React.FC = () => {
   };
 
   const filteredFields = customFields.filter((field: CustomField) => {
+    const matchesStatus = showInactive ? !field.isActive : field.isActive;
+    if (!matchesStatus) {
+      return false;
+    }
+
     if (searchTerm && !field.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
         !field.label.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
@@ -267,12 +276,26 @@ const CustomFieldsTab: React.FC = () => {
             />
           </div>
 
+          {/* Show Inactive Toggle */}
+          <div className="flex items-center">
+            <label className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showInactive}
+                onChange={(e) => setShowInactive(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <span>Show inactive only</span>
+            </label>
+          </div>
+
           {/* Clear Filters */}
           <div>
             <button
               onClick={() => {
                 setFilters({});
                 setSearchTerm('');
+                setShowInactive(false);
               }}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
             >

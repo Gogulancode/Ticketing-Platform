@@ -35,6 +35,8 @@ namespace ERPTraining.Core.Entities.Ticketing
 
         public bool IsActive { get; set; } = true;
 
+        public bool IsDeleted { get; set; } = false;
+
         public int DisplayOrder { get; set; } = 0;
 
         [StringLength(1000)]

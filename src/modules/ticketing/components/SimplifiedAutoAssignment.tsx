@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Zap } from 'lucide-react';
 import { settingsApi, SubCategory } from '../../../shared/services/api/settingsApi';
+import LoadingSpinner from '../../../components/LoadingSpinner';
 
-interface SimplifiedAutoAssignmentProps {
-  // No props needed for now
-}
-
-export const SimplifiedAutoAssignment: React.FC<SimplifiedAutoAssignmentProps> = () => {
+export const SimplifiedAutoAssignment: React.FC = () => {
   const [allSubCategories, setAllSubCategories] = useState<SubCategory[]>([]);
   const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [keywordsBySubcategory, setKeywordsBySubcategory] = useState<{[key: number]: string}>({});
@@ -20,8 +17,7 @@ export const SimplifiedAutoAssignment: React.FC<SimplifiedAutoAssignmentProps> =
   const loadSubCategories = async () => {
     try {
       setLoadingSubCategories(true);
-      const response = await settingsApi.getSubCategories();
-      const subcategories = Array.isArray(response) ? response : (response as any)?.data || [];
+      const subcategories = await settingsApi.getSubCategories();
       setAllSubCategories(subcategories);
       
       // Initialize empty keywords for each subcategory for now
@@ -75,8 +71,7 @@ export const SimplifiedAutoAssignment: React.FC<SimplifiedAutoAssignmentProps> =
     return (
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="text-center py-8">
-          <div className="animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
-          <p className="text-gray-600">Loading subcategories...</p>
+          <LoadingSpinner size="lg" message="Loading subcategories..." />
         </div>
       </div>
     );

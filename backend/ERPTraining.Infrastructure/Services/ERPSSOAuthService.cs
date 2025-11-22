@@ -244,6 +244,22 @@ public class ERPSSOAuthService : IAuthService
         };
     }
 
+    public async Task<AuthResponseDto?> RefreshTokenAsync(string userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return null;
+
+        var token = await GenerateJwtTokenAsync(user);
+        var userDto = await MapToUserDtoAsync(user);
+
+        return new AuthResponseDto
+        {
+            Token = token,
+            User = userDto,
+            Expires = DateTime.UtcNow.AddDays(1)
+        };
+    }
+
     // Implement other interface methods (delegate to existing service or return appropriate responses)
     public Task<AuthResponseDto?> RegisterAsync(RegisterDto registerDto)
     {

@@ -72,10 +72,13 @@ export interface IssueType {
 export interface PriorityLevel {
   id: number;
   name: string;
+  description?: string;
   level: number; // 1-5 where 1 is highest priority
   color: string;
   isActive: boolean;
   order: number;
+  displayOrder?: number;
+  isDeleted?: boolean;
 }
 
 export interface TicketStatusConfig {
@@ -262,8 +265,10 @@ class SettingsApiService {
     this.baseUrl = cleaned;
     this.useMocks = envObj.VITE_USE_MOCKS === 'true';
     
-    // Debug log to check the actual baseUrl being used
-    console.log('[SettingsApi] Using baseUrl:', this.baseUrl);
+    // Debug log to check the actual baseUrl being used (only in development)
+    if (import.meta.env.DEV) {
+      console.log('[SettingsApi] Using baseUrl:', this.baseUrl);
+    }
   }
 
   private getAuthHeaders(): HeadersInit {
@@ -279,7 +284,26 @@ class SettingsApiService {
       const errorText = await response.text();
       throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
-    return response.json();
+
+    if (response.status === 204 || response.status === 205) {
+      return undefined as T;
+    }
+
+    const contentLength = response.headers.get('content-length');
+    if (contentLength !== null && Number(contentLength) === 0) {
+      return undefined as T;
+    }
+
+    const raw = await response.text();
+    if (!raw) {
+      return undefined as T;
+    }
+
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return raw as unknown as T;
+    }
   }
 
   // Department configurations
@@ -567,15 +591,25 @@ class SettingsApiService {
       // Handle API response format: { value: [...], Count: n } 
       const priorities = data.value || data || [];
       console.log('🔍 API response priorities:', priorities);
-      
-      return (Array.isArray(priorities) ? priorities : []).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        level: (p.level ?? 3) as number,
-        color: p.color ?? '#6b7280',
-        isActive: p.isActive ?? true,
-        order: (p.displayOrder ?? p.sortOrder ?? 0) as number,
-      }));
+
+      const normalizedPriorities = (Array.isArray(priorities) ? priorities : []).map((p: any) => {
+        const resolvedLevel = Number(p.level ?? p.Level ?? 0) || 0;
+        const resolvedOrder = Number(p.displayOrder ?? p.sortOrder ?? resolvedLevel ?? 0) || 0;
+        return {
+          id: p.id,
+          name: p.name,
+          level: resolvedLevel,
+          color: p.color ?? '#6b7280',
+          isActive: p.isActive ?? true,
+          order: resolvedOrder,
+        };
+      });
+
+      return normalizedPriorities.sort((a: PriorityLevel, b: PriorityLevel) => {
+        if (a.level !== b.level) return a.level - b.level;
+        if (a.order !== b.order) return a.order - b.order;
+        return (a.id ?? 0) - (b.id ?? 0);
+      });
     } catch (error) {
       if (this.useMocks) {
         console.warn('[mocks] Priorities API failed; using mock data:', error);
@@ -2064,12 +2098,13 @@ class SettingsApiService {
   }
 
   // Custom Fields Methods
-  async getCustomFields(categoryId?: number, subCategoryId?: number): Promise<CustomField[]> {
+  async getCustomFields(categoryId?: number, subCategoryId?: number, includeInactive: boolean = false): Promise<CustomField[]> {
     try {
       let url = `${this.baseUrl}/tickets/settings/custom-fields`;
       const params = new URLSearchParams();
       if (categoryId) params.append('categoryId', categoryId.toString());
       if (subCategoryId) params.append('subCategoryId', subCategoryId.toString());
+      if (includeInactive) params.append('includeInactive', 'true');
       
       if (params.toString()) {
         url += `?${params.toString()}`;

@@ -7,6 +7,7 @@ public record TicketPriorityDto(
     int Level,
     string? Color,
     bool IsActive,
+    bool IsDeleted,
     int DisplayOrder
 );
 

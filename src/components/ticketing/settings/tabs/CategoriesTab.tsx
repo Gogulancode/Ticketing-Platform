@@ -7,6 +7,7 @@ import {
   MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 import { useForm } from 'react-hook-form';
+import { toast } from 'react-hot-toast';
 import { settingsApi } from '@api/settingsApi';
 
 interface Category {
@@ -63,10 +64,13 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, category
   const onSubmit = async (data: CategoryFormData) => {
     try {
       await onSave(data, !!category);
+      toast.success(category ? 'Category updated successfully!' : 'Category created successfully!');
       onClose();
       reset();
     } catch (error) {
-      console.error('Error saving category:', error);
+      // Show user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save category';
+      toast.error(errorMessage);
     }
   };
 
@@ -180,6 +184,7 @@ const CategoriesTab: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showInactive, setShowInactive] = useState(false); // Default to active-only view
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -193,14 +198,15 @@ const CategoriesTab: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await settingsApi.getTicketCategories();
+      // Always fetch all categories including inactive ones
+      const data = await settingsApi.getTicketCategories(true); // includeInactive = true
       // Transform the API response to match our Category interface
       const transformedCategories: Category[] = data.map(cat => ({
         id: cat.id,
         name: cat.name,
         description: cat.description,
         isActive: cat.isActive,
-        displayOrder: cat.order,
+        displayOrder: cat.order ?? cat.displayOrder ?? 0,
         color: undefined, // API doesn't provide these yet
         iconName: undefined,
         ticketCount: 0 // We'll need another API call for this
@@ -222,8 +228,7 @@ const CategoriesTab: React.FC = () => {
           name: data.name,
           description: data.description || '',
           isActive: data.isActive,
-          order: data.displayOrder || editingCategory.displayOrder,
-          subCategories: [] // Required by API but we're not updating subcategories here
+          order: data.displayOrder ?? editingCategory.displayOrder,
         });
       } else {
         // Create new category
@@ -231,23 +236,25 @@ const CategoriesTab: React.FC = () => {
           name: data.name,
           description: data.description || '',
           isActive: data.isActive,
-          order: data.displayOrder || categories.length + 1
+          order: data.displayOrder ?? categories.length + 1,
+          displayOrder: data.displayOrder ?? categories.length + 1,
         });
       }
       
       // Reload categories to reflect changes
       await loadCategories();
     } catch (error) {
-      console.error('Error saving category:', error);
       throw error;
     }
   };
 
-  // Filter categories by search term
-  const filteredCategories = categories.filter((category: Category) =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (category.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
-  );
+  // Filter categories by search term and active status
+  const filteredCategories = categories.filter((category: Category) => {
+    const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (category.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    const matchesActiveFilter = showInactive ? !category.isActive : category.isActive;
+    return matchesSearch && matchesActiveFilter;
+  });
 
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
@@ -258,10 +265,11 @@ const CategoriesTab: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
       try {
         await settingsApi.deleteCategory(categoryId);
+        toast.success('Category deleted successfully!');
         await loadCategories(); // Reload the list
       } catch (error) {
-        console.error('Error deleting category:', error);
-        alert('Failed to delete category. Please try again.');
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete category';
+        toast.error(errorMessage);
       }
     }
   };
@@ -312,6 +320,17 @@ const CategoriesTab: React.FC = () => {
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Add Category
           </button>
+          
+          {/* Show/Hide Inactive Toggle */}
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <span className="ml-2 text-sm text-gray-700">Show inactive</span>
+          </label>
         </div>
 
         {/* Search */}
@@ -351,15 +370,15 @@ const CategoriesTab: React.FC = () => {
         ) : (
           <ul className="divide-y divide-gray-200">
             {filteredCategories.map((category) => (
-              <li key={category.id} className="px-6 py-4">
+              <li key={category.id} className={`px-6 py-4 ${!category.isActive ? 'bg-gray-50 opacity-75' : ''}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
-                      <Squares2X2Icon className="h-8 w-8 text-blue-600" />
+                      <Squares2X2Icon className={`h-8 w-8 ${category.isActive ? 'text-blue-600' : 'text-gray-400'}`} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center space-x-2">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                        <h3 className={`text-sm font-medium truncate ${category.isActive ? 'text-gray-900' : 'text-gray-500'}`}>
                           {category.name}
                         </h3>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

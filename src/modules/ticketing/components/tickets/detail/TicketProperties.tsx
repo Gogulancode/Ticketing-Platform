@@ -1,16 +1,78 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle } from 'lucide-react';
-import { settingsApi } from '../../../../../shared/services/api/settingsApi';
+import {
+  settingsApi,
+  type TicketCategoryConfig,
+  type SubCategory,
+  type PriorityLevel,
+  type TicketStatusConfig,
+  type CustomField,
+  type Agent as SettingsAgent,
+} from '../../../../../shared/services/api/settingsApi';
 import { ticketsV2Api, TicketUpdateRequest } from '../../../services/ticketsV2Api';
 
+type FormValue = string | number | undefined;
+
+interface TicketFormData extends Record<string, FormValue> {
+  categoryId: FormValue;
+  subcategoryId: FormValue;
+  priorityId: FormValue;
+  statusId: FormValue;
+  assignedAgentId: FormValue;
+}
+
+interface TicketReference {
+  id: string;
+  categoryId?: number | string | null;
+  category?: { id?: number | null } | number | null;
+  subcategoryId?: number | string | null;
+  subCategory?: { id?: number | null } | number | null;
+  priorityId?: number | string | null;
+  priority?: { id?: number | null } | number | null;
+  statusId?: number | string | null;
+  status?: { id?: number | null } | number | null;
+  assignedToUserId?: string;
+  assignedAgentId?: string;
+  assignedToUser?: { id?: string } | null;
+  customFieldValues?: Array<{ customFieldId?: number; fieldId?: number; id?: number; value?: FormValue }> | Record<string, FormValue>;
+}
+
 interface TicketPropertiesProps {
-  ticket: any;
-  agents?: any[]; // Optional filtered agents from parent
+  ticket: TicketReference;
+  agents?: SettingsAgent[]; // Optional filtered agents from parent
 }
 
 const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) => {
   const queryClient = useQueryClient();
+
+  const extractId = (
+    entity: number | string | { id?: number | null } | null | undefined
+  ): FormValue => {
+    if (entity === null || entity === undefined) {
+      return '';
+    }
+    if (typeof entity === 'number' || typeof entity === 'string') {
+      return entity;
+    }
+    if (typeof entity === 'object' && 'id' in entity && entity.id != null) {
+      return entity.id ?? '';
+    }
+    return '';
+  };
+
+  const toNumericId = (value: FormValue): number | undefined => {
+    if (value === undefined || value === '' || value === null) {
+      return undefined;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+
+  const toInputValue = (value: FormValue): string =>
+    value !== undefined && value !== null ? String(value) : '';
+
+  const [hasChanges, setHasChanges] = useState(false);
   
   // Debug: Log the ticket data structure
   console.log('🎫 TicketProperties received ticket:', {
@@ -24,22 +86,13 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
     assignedToUserId: ticket?.assignedToUserId
   });
 
-  const [formData, setFormData] = useState<{
-    categoryId: any;
-    subcategoryId: any;
-    issueType: any;
-    priorityId: any;
-    statusId: any;
-    assignedAgentId: any;
-    [key: string]: any;
-  }>({
-    categoryId: ticket?.categoryId || ticket?.category?.id || '',
-    subcategoryId: ticket?.subcategoryId || ticket?.subCategory?.id || '',
-    issueType: ticket?.issueType || '',
-    priorityId: ticket?.priorityId || ticket?.priority?.id || '',
-    statusId: ticket?.statusId || ticket?.status?.id || '',
-    assignedAgentId: ticket?.assignedToUserId || '',
-  });
+  const [formData, setFormData] = useState<TicketFormData>(() => ({
+    categoryId: extractId(ticket?.categoryId ?? ticket?.category),
+    subcategoryId: extractId(ticket?.subcategoryId ?? ticket?.subCategory),
+    priorityId: extractId(ticket?.priorityId ?? ticket?.priority),
+    statusId: extractId(ticket?.statusId ?? ticket?.status),
+    assignedAgentId: ticket?.assignedToUserId || ticket?.assignedAgentId || ticket?.assignedToUser?.id || '',
+  }));
 
   // Update form data when ticket changes - only on initial mount or when ticket ID changes
   useEffect(() => {
@@ -66,23 +119,31 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
         customFieldValuesLength: ticket?.customFieldValues?.length
       });
       
-      const newFormData: any = {
-        categoryId: ticket?.categoryId || ticket?.category?.id || ticket?.category || '',
-        subcategoryId: ticket?.subcategoryId || ticket?.subCategory?.id || ticket?.subCategory || '',
-        issueType: ticket?.issueType || ticket?.issueTypeId || '',
-        priorityId: ticket?.priorityId || ticket?.priority?.id || ticket?.priority || '',
-        statusId: ticket?.statusId !== undefined && ticket?.statusId !== null 
-          ? ticket.statusId 
-          : (ticket?.status?.id !== undefined && ticket?.status?.id !== null 
-            ? ticket.status.id 
-            : (typeof ticket?.status === 'number' ? ticket.status : 1)), // Default to 1 (New)
+      const fallbackStatus = (() => {
+        if (ticket?.statusId !== undefined && ticket?.statusId !== null) {
+          return ticket.statusId;
+        }
+        const statusEntity = ticket?.status;
+        if (typeof statusEntity === 'number') {
+          return statusEntity;
+        }
+        if (statusEntity && typeof statusEntity === 'object' && statusEntity.id != null) {
+          return statusEntity.id;
+        }
+        return 1;
+      })();
+
+      const newFormData: TicketFormData = {
+        categoryId: extractId(ticket?.categoryId ?? ticket?.category),
+        subcategoryId: extractId(ticket?.subcategoryId ?? ticket?.subCategory),
+        priorityId: extractId(ticket?.priorityId ?? ticket?.priority),
+        statusId: fallbackStatus,
         assignedAgentId: ticket?.assignedToUserId || ticket?.assignedAgentId || ticket?.assignedToUser?.id || '',
       };
       
       console.log('🔍 Parsed field values:', {
         categoryId: newFormData.categoryId,
         subcategoryId: newFormData.subcategoryId,
-        issueType: newFormData.issueType,
         priorityId: newFormData.priorityId,
         statusId: newFormData.statusId,
         assignedAgentId: newFormData.assignedAgentId
@@ -94,7 +155,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
         
         if (Array.isArray(ticket.customFieldValues)) {
           // Array format from V2 API
-          ticket.customFieldValues.forEach((fieldValue: any) => {
+          ticket.customFieldValues.forEach((fieldValue) => {
             console.log('🔍 Processing array field value:', JSON.stringify(fieldValue, null, 2));
             const fieldId = fieldValue.customFieldId || fieldValue.fieldId || fieldValue.id;
             if (fieldId) {
@@ -107,7 +168,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
           Object.entries(ticket.customFieldValues).forEach(([key, value]) => {
             console.log(`🔍 Processing object field: ${key} = ${value}`);
             const fieldKey = key.startsWith('customField_') ? key : `customField_${key}`;
-            newFormData[fieldKey] = value;
+            newFormData[fieldKey] = value as FormValue;
             console.log(`✅ Set ${fieldKey} = ${value}`);
           });
         }
@@ -125,9 +186,12 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
       });
       setFormData(newFormData);
     }
-  }, [ticket?.id]); // Only depend on ticket ID, not the entire ticket object
+  }, [ticket, hasChanges]);
 
-  const { data: customFields } = useQuery({
+  const numericCategoryId = toNumericId(formData.categoryId);
+  const numericSubcategoryId = toNumericId(formData.subcategoryId);
+
+  const { data: customFields } = useQuery<CustomField[]>({
     queryKey: ['custom-fields', formData.categoryId, formData.subcategoryId],
     queryFn: async () => {
       console.log('🔧 Custom Fields Query:', {
@@ -138,8 +202,8 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
       });
 
       const fields = await settingsApi.getCustomFields(
-        formData.categoryId ? Number(formData.categoryId) : undefined,
-        formData.subcategoryId ? Number(formData.subcategoryId) : undefined
+        numericCategoryId,
+        numericSubcategoryId
       );
 
       console.log('📋 Custom Fields Result:', {
@@ -157,31 +221,26 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
 
       return fields;
     },
-    enabled: !!(formData.categoryId && formData.subcategoryId),
+    enabled: !!(numericCategoryId && numericSubcategoryId),
   });
 
-  const { data: categories } = useQuery({
+  const { data: categories } = useQuery<TicketCategoryConfig[]>({
     queryKey: ['ticket-categories'],
     queryFn: () => settingsApi.getTicketCategories(),
   });
 
-  const { data: subcategories } = useQuery({
+  const { data: subcategories } = useQuery<SubCategory[]>({
     queryKey: ['ticket-subcategories', formData.categoryId],
-    queryFn: () => settingsApi.getSubCategories(formData.categoryId),
-    enabled: !!formData.categoryId,
+    queryFn: () => settingsApi.getSubCategories(numericCategoryId),
+    enabled: !!numericCategoryId,
   });
 
-  const { data: issueTypes } = useQuery({
-    queryKey: ['issue-types'],
-    queryFn: () => settingsApi.getIssueTypes(),
-  });
-
-  const { data: priorities } = useQuery({
+  const { data: priorities } = useQuery<PriorityLevel[]>({
     queryKey: ['ticket-priorities'],
     queryFn: () => settingsApi.getPriorityLevels(),
   });
 
-  const { data: statuses } = useQuery({
+  const { data: statuses } = useQuery<TicketStatusConfig[]>({
     queryKey: ['ticket-statuses'],
     queryFn: () => settingsApi.getTicketStatuses(),
   });
@@ -191,19 +250,19 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
     if (statuses && statuses.length > 0) {
       console.log('✅ Statuses loaded:', {
         count: statuses.length,
-        statusesList: statuses.map((s: any) => ({ id: s.id, idType: typeof s.id, name: s.name })),
+        statusesList: statuses.map((s) => ({ id: s.id, idType: typeof s.id, name: s.name })),
         currentStatusId: formData.statusId,
         currentStatusIdType: typeof formData.statusId,
-        hasMatchingStatus: statuses.some((s: any) => s.id === formData.statusId || String(s.id) === String(formData.statusId))
+        hasMatchingStatus: statuses.some((s) => s.id === formData.statusId || String(s.id) === String(formData.statusId))
       });
     }
   }, [statuses, formData.statusId]);
 
   // Use agents from props if provided (filtered), otherwise query all agents
-  const { data: queriedAgents } = useQuery({
+  const { data: queriedAgents } = useQuery<SettingsAgent[]>({
     queryKey: ['agents', formData.categoryId, formData.subcategoryId],
     queryFn: () => settingsApi.getAgents(),
-    enabled: !!(formData.categoryId && formData.subcategoryId) && !agents,
+    enabled: !!(numericCategoryId && numericSubcategoryId) && !agents,
   });
   
   const effectiveAgents = agents || queriedAgents;
@@ -217,9 +276,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
     agentsList: effectiveAgents?.map(a => ({ id: a.id, userId: a.userId, name: a.name }))
   });
 
-  const [hasChanges, setHasChanges] = useState(false);
-
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: FormValue) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
 
@@ -236,12 +293,11 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
   };
 
   const updateMutation = useMutation({
-    mutationFn: async (updates: any) => {
+    mutationFn: async (updates: TicketFormData) => {
       console.log('🚀 Updating ticket with data:', updates);
-      console.log('📝 Note: IssueType field is not yet supported by the backend API');
       
       // Extract custom fields from form data
-      const customFields: { [key: string]: any } = {};
+      const customFields: Record<string, FormValue> = {};
       Object.keys(updates).forEach(key => {
         if (key.startsWith('customField_')) {
           const fieldId = key.replace('customField_', '');
@@ -251,19 +307,23 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
       
       // Map form data to API format exactly as the backend expects
       const updateRequest: TicketUpdateRequest = {
-        category: updates.categoryId ? Number(updates.categoryId) : undefined,
-        categoryId: updates.categoryId ? Number(updates.categoryId) : undefined,
-        subcategoryId: updates.subcategoryId ? Number(updates.subcategoryId) : undefined,
-        priority: updates.priorityId ? Number(updates.priorityId) : undefined,
-        status: updates.statusId ? Number(updates.statusId) : undefined,
-        assignedToUserId: updates.assignedAgentId || undefined,
+        category: toNumericId(updates.categoryId),
+        categoryId: toNumericId(updates.categoryId),
+        subcategoryId: toNumericId(updates.subcategoryId),
+        priority: toNumericId(updates.priorityId),
+        status: toNumericId(updates.statusId),
+        assignedToUserId:
+          updates.assignedAgentId !== undefined && updates.assignedAgentId !== ''
+            ? String(updates.assignedAgentId)
+            : undefined,
         customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
       };
 
       // Remove undefined values
       Object.keys(updateRequest).forEach(key => {
-        if (updateRequest[key as keyof TicketUpdateRequest] === undefined) {
-          delete updateRequest[key as keyof TicketUpdateRequest];
+        const typedKey = key as keyof TicketUpdateRequest;
+        if (updateRequest[typedKey] === undefined) {
+          delete updateRequest[typedKey];
         }
       });
 
@@ -307,12 +367,12 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
           <select
-            value={formData.categoryId}
+            value={toInputValue(formData.categoryId)}
             onChange={(e) => handleInputChange('categoryId', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select Category</option>
-            {categories?.map((category: any) => (
+            {categories?.map((category) => (
               <option key={category.id} value={category.id}>{category.name}</option>
             ))}
           </select>
@@ -321,13 +381,13 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Sub Category</label>
           <select
-            value={formData.subcategoryId}
+            value={toInputValue(formData.subcategoryId)}
             onChange={(e) => handleInputChange('subcategoryId', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={!formData.categoryId}
           >
             <option value="">Select Sub Category</option>
-            {subcategories?.map((subcategory: any) => (
+            {subcategories?.map((subcategory) => (
               <option key={subcategory.id} value={subcategory.id}>{subcategory.name}</option>
             ))}
           </select>
@@ -335,7 +395,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
 
         {formData.categoryId && formData.subcategoryId && customFields && customFields.length > 0 && (
           <>
-            {customFields.map((field: any) => (
+            {customFields.map((field) => (
               <div key={field.id}>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {field.label || field.name}
@@ -344,7 +404,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
 
                 {field.type === 'select' ? (
                   <select
-                    value={formData[`customField_${field.id}`] || ''}
+                    value={toInputValue(formData[`customField_${field.id}`])}
                     onChange={(e) => handleInputChange(`customField_${field.id}`, e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -356,7 +416,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
                 ) : (
                   <input
                     type="text"
-                    value={formData[`customField_${field.id}`] || ''}
+                    value={toInputValue(formData[`customField_${field.id}`])}
                     onChange={(e) => handleInputChange(`customField_${field.id}`, e.target.value)}
                     placeholder={field.placeholder}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -367,32 +427,15 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
           </>
         )}
 
-        {/* Issue Type field temporarily disabled - backend API doesn't support this field yet */}
-        {false && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-          <select
-            value={formData.issueType}
-            onChange={(e) => handleInputChange('issueType', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select Type</option>
-            {issueTypes?.map((type: any) => (
-              <option key={type.id} value={type.id}>{type.name}</option>
-            ))}
-          </select>
-        </div>
-        )}
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
           <select
-            value={formData.priorityId !== undefined && formData.priorityId !== null ? String(formData.priorityId) : ''}
+            value={toInputValue(formData.priorityId)}
             onChange={(e) => handleInputChange('priorityId', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select Priority</option>
-            {priorities?.map((priority: any) => (
+            {priorities?.map((priority) => (
               <option key={priority.id} value={String(priority.id)}>{priority.name}</option>
             ))}
           </select>
@@ -402,7 +445,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
           <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
           <select
             value={(() => {
-              const val = formData.statusId !== undefined && formData.statusId !== null ? String(formData.statusId) : '';
+              const val = toInputValue(formData.statusId);
               console.log('🎯 Status dropdown value:', {
                 formDataStatusId: formData.statusId,
                 calculatedValue: val,
@@ -415,7 +458,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select Status</option>
-            {statuses?.map((status: any) => (
+            {statuses?.map((status) => (
               <option key={status.id} value={String(status.id)}>{status.name}</option>
             ))}
           </select>
@@ -424,13 +467,13 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Agent</label>
           <select
-            value={String(formData.assignedAgentId || '')}
+            value={toInputValue(formData.assignedAgentId)}
             onChange={(e) => handleInputChange('assignedAgentId', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={!formData.categoryId || !formData.subcategoryId}
           >
             <option value="">Select Agent</option>
-            {effectiveAgents?.map((agent: any) => (
+            {effectiveAgents?.map((agent) => (
               <option key={agent.id} value={agent.userId}>{agent.name || agent.email || `Agent ${agent.id}`}</option>
             ))}
           </select>

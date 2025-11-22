@@ -326,7 +326,7 @@ public class ModulesController : ControllerBase
     /// <returns>Success message</returns>
     [HttpPut("{id}/toggle-status")]
     // [Authorize(Roles = "Admin")] // Temporarily commented for testing
-    public async Task<ActionResult> ToggleModuleStatus(int id, [FromBody] ToggleStatusRequest request)
+    public ActionResult ToggleModuleStatus(int id, [FromBody] ToggleStatusRequest request)
     {
         try
         {
@@ -355,7 +355,7 @@ public class ModulesController : ControllerBase
     /// <returns>Success message</returns>
     [HttpPut("{moduleId}/sections/{sectionId}/toggle-status")]
     // [Authorize(Roles = "Admin")] // Temporarily commented for testing
-    public async Task<ActionResult> ToggleSectionStatus(int moduleId, int sectionId, [FromBody] ToggleStatusRequest request)
+    public ActionResult ToggleSectionStatus(int moduleId, int sectionId, [FromBody] ToggleStatusRequest request)
     {
         try
         {

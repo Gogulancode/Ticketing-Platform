@@ -2,7 +2,7 @@
 
 export interface ResolutionResponseReport {
   ticketId: string;
-  publicId: number;
+  publicId: number | null;
   title: string;
   category: string;
   priority: string;
@@ -31,7 +31,7 @@ export interface AgentPerformanceReport {
 
 export interface UnresolvedTicket {
   ticketId: string;
-  publicId: number;
+  publicId: number | null;
   title: string;
   category: string;
   priority: string;
@@ -45,7 +45,7 @@ export interface UnresolvedTicket {
 
 export interface TicketSummary {
   ticketId: string;
-  publicId: number;
+  publicId: number | null;
   title: string;
   category: string;
   subcategory?: string;
@@ -74,6 +74,8 @@ export interface ExportOptions {
   format: 'csv' | 'excel' | 'pdf';
   includeCharts?: boolean;
 }
+
+export type ReportStatistics = Record<string, unknown>;
 
 const API_BASE = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/reports`;
 
@@ -168,7 +170,7 @@ export const reportsApi = {
   },
 
   // Get Report Statistics
-  async getReportStatistics(filters?: ReportFilters): Promise<any> {
+  async getReportStatistics(filters?: ReportFilters): Promise<ReportStatistics> {
     const params = new URLSearchParams();
     if (filters?.startDate) params.append('startDate', filters.startDate);
     if (filters?.endDate) params.append('endDate', filters.endDate);
@@ -178,7 +180,8 @@ export const reportsApi = {
     if (!response.ok) {
       throw new Error(`Failed to get report statistics: ${response.statusText}`);
     }
-    return response.json();
+    const stats = (await response.json()) as ReportStatistics;
+    return stats;
   }
 };
 
@@ -243,10 +246,15 @@ export const reportUtils = {
 
   getStatusColor: (status: string): string => {
     const colors = {
+      'New': 'text-blue-600 bg-blue-50',
       'Open': 'text-blue-600 bg-blue-50',
       'In Progress': 'text-purple-600 bg-purple-50',
+      'In Review': 'text-purple-600 bg-purple-50',
+      'Waiting for User': 'text-amber-600 bg-amber-50',
       'Resolved': 'text-green-600 bg-green-50',
-      'Closed': 'text-gray-600 bg-gray-50'
+      'Closed': 'text-gray-600 bg-gray-50',
+      'Merged': 'text-indigo-600 bg-indigo-50',
+      'Deleted': 'text-red-600 bg-red-50'
     };
     return colors[status as keyof typeof colors] || 'text-gray-600 bg-gray-50';
   }

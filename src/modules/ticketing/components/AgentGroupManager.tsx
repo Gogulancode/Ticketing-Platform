@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import { X, Users, User, Check, Plus, Minus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { settingsApi, Agent, TicketGroup } from '../../../shared/services/api/settingsApi';
@@ -26,13 +26,7 @@ const AgentGroupManager: React.FC<AgentGroupManagerProps> = ({
   const [assignedAgents, setAssignedAgents] = useState<Agent[]>([]);
   const [availableAgents, setAvailableAgents] = useState<Agent[]>([]);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadData();
-    }
-  }, [isOpen, agent, group, mode]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       if (mode === 'agent' && agent) {
@@ -61,7 +55,13 @@ const AgentGroupManager: React.FC<AgentGroupManagerProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [agent, group, mode]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadData();
+    }
+  }, [isOpen, loadData]);
 
   const handleAssign = async (targetId: number) => {
     if (!agent && !group) return;
@@ -107,8 +107,116 @@ const AgentGroupManager: React.FC<AgentGroupManagerProps> = ({
     ? `Manage Groups for Agent: ${agent?.name}`
     : `Manage Agents for Group: ${group?.name}`;
 
-  const assignedItems = mode === 'agent' ? assignedGroups : assignedAgents;
-  const availableItems = mode === 'agent' ? availableGroups : availableAgents;
+  const assignedCount = mode === 'agent' ? assignedGroups.length : assignedAgents.length;
+  const availableCount = mode === 'agent' ? availableGroups.length : availableAgents.length;
+
+  const renderAssignedItems = (): ReactNode => {
+    if (mode === 'agent') {
+      if (assignedGroups.length === 0) {
+        return (
+          <div className="text-center py-8 text-gray-500">
+            <Users className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+            <p>No groups assigned</p>
+          </div>
+        );
+      }
+
+      return assignedGroups.map((assignedGroup) => (
+        <div key={assignedGroup.id} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div>
+            <p className="font-medium text-green-900">{assignedGroup.name}</p>
+            <p className="text-sm text-green-700">Category: {assignedGroup.categoryName}</p>
+          </div>
+          <button
+            onClick={() => handleUnassign(assignedGroup.id)}
+            className="p-2 text-red-600 hover:bg-red-100 rounded-full"
+            title="Remove assignment"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+        </div>
+      ));
+    }
+
+    if (assignedAgents.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <Users className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+          <p>No agents assigned</p>
+        </div>
+      );
+    }
+
+    return assignedAgents.map((assignedAgent) => (
+      <div key={assignedAgent.id} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+        <div>
+          <p className="font-medium text-green-900">{assignedAgent.name}</p>
+          <p className="text-sm text-green-700">Email: {assignedAgent.email}</p>
+        </div>
+        <button
+          onClick={() => handleUnassign(assignedAgent.id)}
+          className="p-2 text-red-600 hover:bg-red-100 rounded-full"
+          title="Remove assignment"
+        >
+          <Minus className="h-4 w-4" />
+        </button>
+      </div>
+    ));
+  };
+
+  const renderAvailableItems = (): ReactNode => {
+    if (mode === 'agent') {
+      if (availableGroups.length === 0) {
+        return (
+          <div className="text-center py-8 text-gray-500">
+            <User className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+            <p>All groups are assigned</p>
+          </div>
+        );
+      }
+
+      return availableGroups.map((availableGroup) => (
+        <div key={availableGroup.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100">
+          <div>
+            <p className="font-medium text-gray-900">{availableGroup.name}</p>
+            <p className="text-sm text-gray-600">Category: {availableGroup.categoryName}</p>
+          </div>
+          <button
+            onClick={() => handleAssign(availableGroup.id)}
+            className="p-2 text-green-600 hover:bg-green-100 rounded-full"
+            title="Add assignment"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+      ));
+    }
+
+    if (availableAgents.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <User className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+          <p>All agents are assigned</p>
+        </div>
+      );
+    }
+
+    return availableAgents.map((availableAgent) => (
+      <div key={availableAgent.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100">
+        <div>
+          <p className="font-medium text-gray-900">{availableAgent.name}</p>
+          <p className="text-sm text-gray-600">Email: {availableAgent.email}</p>
+        </div>
+        <button
+          onClick={() => handleAssign(availableAgent.id)}
+          className="p-2 text-green-600 hover:bg-green-100 rounded-full"
+          title="Add assignment"
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+      </div>
+    ));
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -141,35 +249,10 @@ const AgentGroupManager: React.FC<AgentGroupManagerProps> = ({
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
                   <Check className="h-5 w-5 text-green-600 mr-2" />
-                  {mode === 'agent' ? 'Assigned Groups' : 'Assigned Agents'} ({assignedItems.length})
+                  {mode === 'agent' ? 'Assigned Groups' : 'Assigned Agents'} ({assignedCount})
                 </h3>
                 <div className="space-y-2">
-                  {assignedItems.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <Users className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                      <p>No {mode === 'agent' ? 'groups' : 'agents'} assigned</p>
-                    </div>
-                  ) : (
-                    assignedItems.map((item: any) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <div>
-                          <p className="font-medium text-green-900">{item.name}</p>
-                          {mode === 'agent' ? (
-                            <p className="text-sm text-green-700">Category: {(item as TicketGroup).categoryName}</p>
-                          ) : (
-                            <p className="text-sm text-green-700">Email: {(item as Agent).email}</p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => handleUnassign(item.id)}
-                          className="p-2 text-red-600 hover:bg-red-100 rounded-full"
-                          title="Remove assignment"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))
-                  )}
+                  {renderAssignedItems()}
                 </div>
               </div>
 
@@ -177,35 +260,10 @@ const AgentGroupManager: React.FC<AgentGroupManagerProps> = ({
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
                   <Plus className="h-5 w-5 text-blue-600 mr-2" />
-                  Available {mode === 'agent' ? 'Groups' : 'Agents'} ({availableItems.length})
+                  Available {mode === 'agent' ? 'Groups' : 'Agents'} ({availableCount})
                 </h3>
                 <div className="space-y-2">
-                  {availableItems.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <User className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                      <p>All {mode === 'agent' ? 'groups' : 'agents'} are assigned</p>
-                    </div>
-                  ) : (
-                    availableItems.map((item: any) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100">
-                        <div>
-                          <p className="font-medium text-gray-900">{item.name}</p>
-                          {mode === 'agent' ? (
-                            <p className="text-sm text-gray-600">Category: {(item as TicketGroup).categoryName}</p>
-                          ) : (
-                            <p className="text-sm text-gray-600">Email: {(item as Agent).email}</p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => handleAssign(item.id)}
-                          className="p-2 text-green-600 hover:bg-green-100 rounded-full"
-                          title="Add assignment"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))
-                  )}
+                  {renderAvailableItems()}
                 </div>
               </div>
             </div>
@@ -217,8 +275,8 @@ const AgentGroupManager: React.FC<AgentGroupManagerProps> = ({
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-600">
               {mode === 'agent' 
-                ? `${assignedItems.length} groups assigned to ${agent?.name}`
-                : `${assignedItems.length} agents assigned to ${group?.name}`
+                ? `${assignedCount} groups assigned to ${agent?.name}`
+                : `${assignedCount} agents assigned to ${group?.name}`
               }
             </div>
             <button

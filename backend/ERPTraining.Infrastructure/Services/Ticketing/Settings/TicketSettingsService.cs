@@ -34,7 +34,9 @@ public class TicketSettingsService : IA_TicketSettingsService
                 return cached;
         }
 
-        IQueryable<TicketCategory> query = _db.TicketCategories.AsNoTracking();
+        IQueryable<TicketCategory> query = _db.TicketCategories
+            .AsNoTracking()
+            .Where(c => !c.IsDeleted);
         if (!includeInactive)
             query = query.Where(c => c.IsActive);
 
@@ -58,13 +60,47 @@ public class TicketSettingsService : IA_TicketSettingsService
     public async Task<TicketCategory?> GetCategoryAsync(int id)
     {
         // Single lookups are cheap; no cache (avoid stale state complexity for now)
-        return await _db.TicketCategories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+        return await _db.TicketCategories
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
     }
 
     public async Task<TicketCategory> CreateCategoryAsync(TicketCategory category, CancellationToken ct = default)
     {
+        _logger.LogInformation("CreateCategoryAsync called for category: {Name}", category.Name);
+        
+        // Check if an inactive category with the same name exists
+        var existingInactive = await _db.TicketCategories
+            .FirstOrDefaultAsync(c => c.Name == category.Name && !c.IsActive, ct);
+        
+        if (existingInactive != null)
+        {
+            _logger.LogInformation("Found existing inactive category with name {Name}. Reactivating it.", category.Name);
+            
+            // Reactivate the existing category with new properties
+            existingInactive.IsActive = true;
+            existingInactive.IsDeleted = false;
+            existingInactive.Description = category.Description;
+            existingInactive.Color = category.Color;
+            existingInactive.IconName = category.IconName;
+            existingInactive.UpdatedAt = DateTime.UtcNow;
+            
+            if (category.DisplayOrder > 0)
+            {
+                existingInactive.DisplayOrder = category.DisplayOrder;
+            }
+            
+            await _db.SaveChangesAsync(ct);
+            _logger.LogInformation("Reactivated category {Name} with ID {Id}", existingInactive.Name, existingInactive.Id);
+            
+            InvalidateCache();
+            return existingInactive;
+        }
+        
+        // Create new category
         category.CreatedAt = DateTime.UtcNow;
         category.UpdatedAt = category.CreatedAt;
+        category.IsDeleted = false;
 
         if (category.DisplayOrder == 0)
         {
@@ -73,14 +109,27 @@ public class TicketSettingsService : IA_TicketSettingsService
         }
 
         _db.TicketCategories.Add(category);
-        await _db.SaveChangesAsync(ct);
+        
+        _logger.LogInformation("About to save category {Name} with DisplayOrder {DisplayOrder}", 
+            category.Name, category.DisplayOrder);
+        
+        var rowsAffected = await _db.SaveChangesAsync(ct);
+        
+        _logger.LogInformation("SaveChangesAsync completed. Rows affected: {RowsAffected}, Category ID: {Id}", 
+            rowsAffected, category.Id);
+        
+        if (rowsAffected == 0)
+        {
+            _logger.LogWarning("SaveChangesAsync returned 0 rows affected for category {Name}!", category.Name);
+        }
+        
         InvalidateCache();
         return category;
     }
 
     public async Task<TicketCategory?> UpdateCategoryAsync(int id, Action<TicketCategory> mutate, CancellationToken ct = default)
     {
-        var entity = await _db.TicketCategories.FirstOrDefaultAsync(c => c.Id == id, ct);
+        var entity = await _db.TicketCategories.FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
         if (entity == null) return null;
 
         mutate(entity);
@@ -92,10 +141,15 @@ public class TicketSettingsService : IA_TicketSettingsService
 
     public async Task<bool> SoftDeleteCategoryAsync(int id, CancellationToken ct = default)
     {
-        var entity = await _db.TicketCategories.FirstOrDefaultAsync(c => c.Id == id, ct);
+        var entity = await _db.TicketCategories.FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, ct);
         if (entity == null) return false;
-        if (!entity.IsActive) return true; // idempotent
-        entity.IsActive = false;
+        // Always mark the record as deleted even if it was already inactive so the
+        // category disappears from "includeInactive" lists as well.
+        if (entity.IsActive)
+        {
+            entity.IsActive = false;
+        }
+        entity.IsDeleted = true;
         entity.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
         InvalidateCache();
@@ -114,7 +168,9 @@ public class TicketSettingsService : IA_TicketSettingsService
                 return cached;
         }
 
-        IQueryable<TicketSubCategory> query = _db.TicketSubCategories.AsNoTracking();
+        IQueryable<TicketSubCategory> query = _db.TicketSubCategories
+            .AsNoTracking()
+            .Where(sc => !sc.IsDeleted);
         if (categoryId.HasValue)
             query = query.Where(sc => sc.CategoryId == categoryId.Value);
         if (!includeInactive)
@@ -139,13 +195,50 @@ public class TicketSettingsService : IA_TicketSettingsService
 
     public async Task<TicketSubCategory?> GetSubCategoryAsync(int id)
     {
-        return await _db.TicketSubCategories.AsNoTracking().FirstOrDefaultAsync(sc => sc.Id == id);
+        return await _db.TicketSubCategories
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sc => sc.Id == id && !sc.IsDeleted);
     }
 
     public async Task<TicketSubCategory> CreateSubCategoryAsync(TicketSubCategory subCategory, CancellationToken ct = default)
     {
+        _logger.LogInformation("CreateSubCategoryAsync called for subcategory: {Name}, CategoryId: {CategoryId}", 
+            subCategory.Name, subCategory.CategoryId);
+        
+        // Check if an inactive subcategory with the same name and category exists
+        var existingInactive = await _db.TicketSubCategories
+            .FirstOrDefaultAsync(sc => sc.Name == subCategory.Name && 
+                                      sc.CategoryId == subCategory.CategoryId && 
+                                      !sc.IsActive, ct);
+        
+        if (existingInactive != null)
+        {
+            _logger.LogInformation("Found existing inactive subcategory with name {Name} for category {CategoryId}. Reactivating it.", 
+                subCategory.Name, subCategory.CategoryId);
+            
+            // Reactivate the existing subcategory with new properties
+            existingInactive.IsActive = true;
+            existingInactive.IsDeleted = false;
+            existingInactive.Description = subCategory.Description;
+            existingInactive.UpdatedAt = DateTime.UtcNow;
+            
+            if (subCategory.DisplayOrder > 0)
+            {
+                existingInactive.DisplayOrder = subCategory.DisplayOrder;
+            }
+            
+            await _db.SaveChangesAsync(ct);
+            _logger.LogInformation("Reactivated subcategory {Name} with ID {Id}", existingInactive.Name, existingInactive.Id);
+            
+            // Invalidate category-specific cache
+            _cache.Remove(SubCategoriesCacheKey(existingInactive.CategoryId));
+            return existingInactive;
+        }
+        
+        // Create new subcategory
         subCategory.CreatedAt = DateTime.UtcNow;
         subCategory.UpdatedAt = subCategory.CreatedAt;
+        subCategory.IsDeleted = false;
 
         if (subCategory.DisplayOrder == 0)
         {
@@ -156,7 +249,20 @@ public class TicketSettingsService : IA_TicketSettingsService
         }
 
         _db.TicketSubCategories.Add(subCategory);
-        await _db.SaveChangesAsync(ct);
+        
+        _logger.LogInformation("About to save subcategory {Name} with DisplayOrder {DisplayOrder}", 
+            subCategory.Name, subCategory.DisplayOrder);
+        
+        var rowsAffected = await _db.SaveChangesAsync(ct);
+        
+        _logger.LogInformation("SaveChangesAsync completed. Rows affected: {RowsAffected}, SubCategory ID: {Id}", 
+            rowsAffected, subCategory.Id);
+        
+        if (rowsAffected == 0)
+        {
+            _logger.LogWarning("SaveChangesAsync returned 0 rows affected for subcategory {Name}!", subCategory.Name);
+        }
+        
         // Invalidate category-specific cache
         _cache.Remove(SubCategoriesCacheKey(subCategory.CategoryId));
         return subCategory;
@@ -164,7 +270,7 @@ public class TicketSettingsService : IA_TicketSettingsService
 
     public async Task<TicketSubCategory?> UpdateSubCategoryAsync(int id, Action<TicketSubCategory> mutate, CancellationToken ct = default)
     {
-        var entity = await _db.TicketSubCategories.FirstOrDefaultAsync(sc => sc.Id == id, ct);
+        var entity = await _db.TicketSubCategories.FirstOrDefaultAsync(sc => sc.Id == id && !sc.IsDeleted, ct);
         if (entity == null) return null;
         mutate(entity);
         entity.UpdatedAt = DateTime.UtcNow;
@@ -175,10 +281,10 @@ public class TicketSettingsService : IA_TicketSettingsService
 
     public async Task<bool> SoftDeleteSubCategoryAsync(int id, CancellationToken ct = default)
     {
-        var entity = await _db.TicketSubCategories.FirstOrDefaultAsync(sc => sc.Id == id, ct);
+        var entity = await _db.TicketSubCategories.FirstOrDefaultAsync(sc => sc.Id == id && !sc.IsDeleted, ct);
         if (entity == null) return false;
-        if (!entity.IsActive) return true;
         entity.IsActive = false;
+        entity.IsDeleted = true;
         entity.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
         _cache.Remove(SubCategoriesCacheKey(entity.CategoryId));
@@ -222,6 +328,32 @@ public class TicketSettingsService : IA_TicketSettingsService
 
     public async Task<TicketDepartment> CreateDepartmentAsync(TicketDepartment department, CancellationToken ct = default)
     {
+        // Check if an inactive department with the same name exists
+        var existingInactive = await _db.TicketDepartments
+            .FirstOrDefaultAsync(d => d.Name == department.Name && !d.IsActive, ct);
+        
+        if (existingInactive != null)
+        {
+            _logger.LogInformation("Found existing inactive department with name {Name}. Reactivating it.", department.Name);
+            
+            // Reactivate the existing department
+            existingInactive.IsActive = true;
+            existingInactive.Description = department.Description;
+            existingInactive.UpdatedAt = DateTime.UtcNow;
+            
+            if (department.SortOrder > 0)
+            {
+                existingInactive.SortOrder = department.SortOrder;
+            }
+            
+            await _db.SaveChangesAsync(ct);
+            _logger.LogInformation("Reactivated department {Name} with ID {Id}", existingInactive.Name, existingInactive.Id);
+            
+            _cache.Remove(DepartmentsCacheKey);
+            return existingInactive;
+        }
+        
+        // Create new department
         department.CreatedAt = DateTime.UtcNow;
         department.UpdatedAt = department.CreatedAt;
 
@@ -269,7 +401,9 @@ public class TicketSettingsService : IA_TicketSettingsService
                 return cached;
         }
 
-        IQueryable<TicketPriority> query = _db.TicketPriorities.AsNoTracking();
+        IQueryable<TicketPriority> query = _db.TicketPriorities
+            .AsNoTracking()
+            .Where(p => !p.IsDeleted);
         if (!includeInactive)
             query = query.Where(p => p.IsActive);
 
@@ -293,13 +427,45 @@ public class TicketSettingsService : IA_TicketSettingsService
 
     public async Task<TicketPriority?> GetPriorityAsync(int id)
     {
-        return await _db.TicketPriorities.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+        return await _db.TicketPriorities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
     }
 
     public async Task<TicketPriority> CreatePriorityAsync(TicketPriority priority, CancellationToken ct = default)
     {
+        // Check if an inactive priority with the same name exists
+        var existingInactive = await _db.TicketPriorities
+            .FirstOrDefaultAsync(p => p.Name == priority.Name && (!p.IsActive || p.IsDeleted), ct);
+        
+        if (existingInactive != null)
+        {
+            _logger.LogInformation("Found existing inactive priority with name {Name}. Reactivating it.", priority.Name);
+            
+            // Reactivate the existing priority
+            existingInactive.IsActive = true;
+            existingInactive.Description = priority.Description;
+            existingInactive.Color = priority.Color;
+            existingInactive.Level = priority.Level;
+            existingInactive.IsDeleted = false;
+            existingInactive.UpdatedAt = DateTime.UtcNow;
+            
+            if (priority.SortOrder > 0)
+            {
+                existingInactive.SortOrder = priority.SortOrder;
+            }
+            
+            await _db.SaveChangesAsync(ct);
+            _logger.LogInformation("Reactivated priority {Name} with ID {Id}", existingInactive.Name, existingInactive.Id);
+            
+            _cache.Remove(PrioritiesCacheKey);
+            return existingInactive;
+        }
+        
+        // Create new priority
         priority.CreatedAt = DateTime.UtcNow;
         priority.UpdatedAt = priority.CreatedAt;
+        priority.IsDeleted = false;
 
         if (priority.SortOrder == 0)
         {
@@ -315,7 +481,7 @@ public class TicketSettingsService : IA_TicketSettingsService
 
     public async Task<TicketPriority?> UpdatePriorityAsync(int id, Action<TicketPriority> mutate, CancellationToken ct = default)
     {
-        var entity = await _db.TicketPriorities.FirstOrDefaultAsync(p => p.Id == id, ct);
+        var entity = await _db.TicketPriorities.FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, ct);
         if (entity == null) return null;
         mutate(entity);
         entity.UpdatedAt = DateTime.UtcNow;
@@ -326,10 +492,10 @@ public class TicketSettingsService : IA_TicketSettingsService
 
     public async Task<bool> SoftDeletePriorityAsync(int id, CancellationToken ct = default)
     {
-        var entity = await _db.TicketPriorities.FirstOrDefaultAsync(p => p.Id == id, ct);
+        var entity = await _db.TicketPriorities.FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, ct);
         if (entity == null) return false;
-        if (!entity.IsActive) return true;
         entity.IsActive = false;
+        entity.IsDeleted = true;
         entity.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
         _cache.Remove(PrioritiesCacheKey);
@@ -345,7 +511,7 @@ public class TicketSettingsService : IA_TicketSettingsService
                 return cached;
         }
 
-        IQueryable<TicketStatus> query = _db.TicketStatuses.AsNoTracking();
+        IQueryable<TicketStatus> query = _db.TicketStatuses.AsNoTracking().Where(s => !s.IsDeleted);
         if (!includeInactive)
             query = query.Where(s => s.IsActive);
 
@@ -373,6 +539,46 @@ public class TicketSettingsService : IA_TicketSettingsService
 
     public async Task<TicketStatus> CreateStatusAsync(TicketStatus status, CancellationToken ct = default)
     {
+        // If this status is being set as default, remove default from all others
+        if (status.IsDefault)
+        {
+            var currentDefaults = await _db.TicketStatuses.Where(s => s.IsDefault).ToListAsync(ct);
+            foreach (var defaultStatus in currentDefaults)
+            {
+                defaultStatus.IsDefault = false;
+                defaultStatus.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+        
+        // Check if an inactive status with the same name exists
+        var existingInactive = await _db.TicketStatuses
+            .FirstOrDefaultAsync(s => s.Name == status.Name && !s.IsActive, ct);
+        
+        if (existingInactive != null)
+        {
+            _logger.LogInformation("Found existing inactive status with name {Name}. Reactivating it.", status.Name);
+            
+            // Reactivate the existing status
+            existingInactive.IsActive = true;
+            existingInactive.Color = status.Color;
+            existingInactive.IsClosedStatus = status.IsClosedStatus;
+            existingInactive.IsDefault = status.IsDefault;
+            existingInactive.AllowedTransitions = status.AllowedTransitions;
+            existingInactive.UpdatedAt = DateTime.UtcNow;
+            
+            if (status.WorkflowOrder > 0)
+            {
+                existingInactive.WorkflowOrder = status.WorkflowOrder;
+            }
+            
+            await _db.SaveChangesAsync(ct);
+            _logger.LogInformation("Reactivated status {Name} with ID {Id}", existingInactive.Name, existingInactive.Id);
+            
+            _cache.Remove(StatusesCacheKey);
+            return existingInactive;
+        }
+        
+        // Create new status
         status.CreatedAt = DateTime.UtcNow;
         status.UpdatedAt = status.CreatedAt;
 
@@ -392,8 +598,27 @@ public class TicketSettingsService : IA_TicketSettingsService
     {
         var entity = await _db.TicketStatuses.FirstOrDefaultAsync(s => s.Id == id, ct);
         if (entity == null) return null;
+        
+        // Store the old default state
+        var wasDefault = entity.IsDefault;
+        
         mutate(entity);
         entity.UpdatedAt = DateTime.UtcNow;
+        
+        // If this status is being set as default, remove default from all others
+        if (entity.IsDefault && !wasDefault)
+        {
+            var otherDefaults = await _db.TicketStatuses
+                .Where(s => s.IsDefault && s.Id != id)
+                .ToListAsync(ct);
+            
+            foreach (var defaultStatus in otherDefaults)
+            {
+                defaultStatus.IsDefault = false;
+                defaultStatus.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+        
         await _db.SaveChangesAsync(ct);
         _cache.Remove(StatusesCacheKey);
         return entity;
@@ -403,7 +628,18 @@ public class TicketSettingsService : IA_TicketSettingsService
     {
         var entity = await _db.TicketStatuses.FirstOrDefaultAsync(s => s.Id == id, ct);
         if (entity == null) return false;
-        if (!entity.IsActive) return true;
+        
+        // If already inactive, mark as deleted
+        if (!entity.IsActive)
+        {
+            entity.IsDeleted = true;
+            entity.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+            _cache.Remove(StatusesCacheKey);
+            return true;
+        }
+        
+        // Otherwise, just mark as inactive (soft delete)
         entity.IsActive = false;
         entity.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
@@ -572,6 +808,42 @@ public class TicketSettingsService : IA_TicketSettingsService
     public async Task<ERPTraining.Core.Entities.Ticketing.Agent?> GetAgentAsync(int id)
     {
         return await _db.Agents.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
+    }
+
+    public async Task<bool> UpdateAgentStatusAsync(int agentId, bool isActive, CancellationToken ct = default)
+    {
+        var agent = await _db.Agents.FirstOrDefaultAsync(a => a.Id == agentId, ct);
+        if (agent == null)
+        {
+            return false;
+        }
+
+        var now = DateTime.UtcNow;
+        if (!isActive)
+        {
+            agent.AvailabilityStatus = "Unavailable";
+        }
+        else if (string.IsNullOrWhiteSpace(agent.AvailabilityStatus) || string.Equals(agent.AvailabilityStatus, "Unavailable", System.StringComparison.OrdinalIgnoreCase))
+        {
+            agent.AvailabilityStatus = "Available";
+        }
+
+        agent.IsActive = isActive;
+        agent.UpdatedAt = now;
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == agent.UserId, ct);
+        if (user != null)
+        {
+            if (user.IsAgent != isActive)
+            {
+                user.IsAgent = isActive;
+            }
+
+            user.UpdatedAt = now;
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return true;
     }
 
     public async Task<IReadOnlyList<ERPTraining.Core.Entities.Ticketing.TicketGroup>> GetGroupsForAgentAsync(int agentId, bool includeInactive = false)

@@ -32,8 +32,9 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
       setNewComment('');
       toast.success('Comment added successfully');
     },
-    onError: (error: any) => {
-      toast.error(`Failed to add comment: ${error?.message || 'Unknown error'}`);
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to add comment: ${message}`);
     }
   });
 

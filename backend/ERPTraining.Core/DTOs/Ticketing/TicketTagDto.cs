@@ -8,7 +8,9 @@ public class TicketTagDto
     public string Name { get; set; } = string.Empty;
     public int SubCategoryId { get; set; }
     public string SubCategoryName { get; set; } = string.Empty;
+    public string CategoryName { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public bool IsDeleted { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

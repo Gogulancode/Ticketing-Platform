@@ -1,31 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Settings as SettingsIcon,
   Mail,
   Brain,
   Plus,
   Edit,
   Trash2,
-  Save,
-  X,
   Users,
   Tag,
   AlertCircle,
   CheckCircle,
-  Clock,
   Building,
-  User,
-  Search,
-  Filter,
-  Download,
-  Upload,
-  RefreshCw,
-  Eye,
-  EyeOff,
-  Key,
-  TestTube
+  User
 } from 'lucide-react';
-import { settingsApi, Department, TicketCategoryConfig, SubCategory, PriorityLevel, TicketStatusConfig, CategoryEmailMapping, TicketGroup as ApiTicketGroup, Agent as ApiAgent } from '../../../shared/services/api/settingsApi';
+import { settingsApi, Department, TicketCategoryConfig, PriorityLevel, TicketStatusConfig } from '../../../shared/services/api/settingsApi';
 import { SimplifiedAutoAssignment } from '../components/SimplifiedAutoAssignment';
 
 interface TicketGroup {
@@ -65,17 +52,6 @@ const TicketSettingsPage: React.FC = () => {
   const [statuses, setStatuses] = useState<TicketStatusConfig[]>([]);
   const [groups, setGroups] = useState<TicketGroup[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [emailMappings, setEmailMappings] = useState<CategoryEmailMapping[]>([]);
-
-  // Modal states
-  const [showModal, setShowModal] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
-  const [modalType, setModalType] = useState('');
-
-  // Email configuration states
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [editingEmailMapping, setEditingEmailMapping] = useState<Partial<CategoryEmailMapping> | null>(null);
-  const [emailConfigTab, setEmailConfigTab] = useState<'basic' | 'smtp' | 'imap' | 'auto-assignment'>('basic');
 
   const tabs = [
     { id: 'categories', label: 'Categories', icon: Tag },
@@ -89,71 +65,113 @@ const TicketSettingsPage: React.FC = () => {
   ];
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        switch (activeTab) {
+          case 'categories': {
+            const categoriesData = await settingsApi.getTicketCategories();
+            if (!isMounted) break;
+            setCategories(categoriesData);
+            break;
+          }
+          case 'departments': {
+            const departmentsData = await settingsApi.getDepartments();
+            if (!isMounted) break;
+            setDepartments(departmentsData);
+            break;
+          }
+          case 'priorities': {
+            const prioritiesData = await settingsApi.getPriorityLevels();
+            if (!isMounted) break;
+            setPriorities(prioritiesData);
+            break;
+          }
+          case 'statuses': {
+            const statusesData = await settingsApi.getTicketStatuses();
+            if (!isMounted) break;
+            setStatuses(statusesData);
+            break;
+          }
+          case 'groups': {
+            const groupsData = await settingsApi.getTicketGroups();
+            if (!isMounted) break;
+            setGroups(groupsData);
+            break;
+          }
+          case 'agents': {
+            const agentsData = await settingsApi.getAgentsWithGroups();
+            if (!isMounted) break;
+            const transformedAgents = agentsData.map((item) => ({
+              ...item.agent,
+              groups: item.groups
+            }));
+            setAgents(transformedAgents);
+            break;
+          }
+          default:
+            break;
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(`Failed to load ${activeTab} data`);
+        }
+        console.error(`Error loading ${activeTab}:`, err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
     loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [activeTab]);
 
-  const loadData = async () => {
-    setLoading(true);
-    setError('');
+  const handleCategorySubmit = async (existing?: TicketCategoryConfig) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const nameInput = window.prompt('Category name', existing?.name ?? '');
+    const name = nameInput?.trim();
+    if (!name) {
+      return;
+    }
+
+    const descriptionInput = window.prompt('Category description', existing?.description ?? '') ?? '';
+    const description = descriptionInput.trim() ? descriptionInput.trim() : undefined;
+
+    const payload = {
+      name,
+      description,
+      isActive: existing?.isActive ?? true,
+      order: existing?.order ?? categories.length + 1
+    };
+
     try {
-      switch (activeTab) {
-        case 'categories':
-          const categoriesData = await settingsApi.getTicketCategories();
-          setCategories(categoriesData);
-          break;
-        case 'departments':
-          const departmentsData = await settingsApi.getDepartments();
-          setDepartments(departmentsData);
-          break;
-        case 'priorities':
-          const prioritiesData = await settingsApi.getPriorityLevels();
-          setPriorities(prioritiesData);
-          break;
-        case 'statuses':
-          const statusesData = await settingsApi.getTicketStatuses();
-          setStatuses(statusesData);
-          break;
-        case 'groups':
-          const groupsData = await settingsApi.getTicketGroups();
-          setGroups(groupsData);
-          break;
-        case 'agents':
-          const agentsData = await settingsApi.getAgentsWithGroups();
-          // Transform the API response to match our Agent interface
-          const transformedAgents = agentsData.map(item => ({
-            ...item.agent,
-            groups: item.groups
-          }));
-          setAgents(transformedAgents);
-          break;
-        case 'email':
-          const [categoriesForEmail, mappingsData] = await Promise.all([
-            settingsApi.getTicketCategories(),
-            settingsApi.getCategoryEmailMappings()
-          ]);
-          setCategories(categoriesForEmail);
-          setEmailMappings(mappingsData);
-          break;
+      if (existing) {
+        const updated = await settingsApi.updateCategory(existing.id, payload);
+        setCategories((prev) => prev.map((category) => (category.id === existing.id ? updated : category)));
+      } else {
+        const created = await settingsApi.createCategory(payload);
+        setCategories((prev) => [...prev, created]);
       }
     } catch (err) {
-      setError(`Failed to load ${activeTab} data`);
-      console.error(`Error loading ${activeTab}:`, err);
-    } finally {
-      setLoading(false);
+      setError('Failed to save category');
+      console.error('Error saving category:', err);
     }
   };
 
-  const handleAdd = (type: string) => {
-    setModalType(type);
-    setEditingItem(null);
-    setShowModal(true);
-  };
+  const handleCategoryCreate = () => handleCategorySubmit();
 
-  const handleEdit = (item: any, type: string) => {
-    setModalType(type);
-    setEditingItem(item);
-    setShowModal(true);
-  };
+  const handleCategoryEdit = (category: TicketCategoryConfig) => handleCategorySubmit(category);
 
   const handleDelete = async (id: number, type: string) => {
     if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
@@ -191,112 +209,6 @@ const TicketSettingsPage: React.FC = () => {
     }
   };
 
-  const handleSave = async (data: any) => {
-    try {
-      switch (modalType) {
-        case 'category':
-          if (editingItem) {
-            const updated = await settingsApi.updateCategory(editingItem.id, data);
-            setCategories(categories.map(c => c.id === editingItem.id ? updated : c));
-          } else {
-            const created = await settingsApi.createCategory(data);
-            setCategories([...categories, created]);
-          }
-          break;
-        case 'department':
-          if (editingItem) {
-            const updated = await settingsApi.updateDepartment(editingItem.id, data);
-            setDepartments(departments.map(d => d.id === editingItem.id ? updated : d));
-          } else {
-            const created = await settingsApi.createDepartment(data);
-            setDepartments([...departments, created]);
-          }
-          break;
-        case 'priority':
-          if (editingItem) {
-            const updated = await settingsApi.updatePriority(editingItem.id, data);
-            setPriorities(priorities.map(p => p.id === editingItem.id ? updated : p));
-          } else {
-            const created = await settingsApi.createPriority(data);
-            setPriorities([...priorities, created]);
-          }
-          break;
-        case 'status':
-          if (editingItem) {
-            const updated = await settingsApi.updateStatus(editingItem.id, data);
-            setStatuses(statuses.map(s => s.id === editingItem.id ? updated : s));
-          } else {
-            const created = await settingsApi.createStatus(data);
-            setStatuses([...statuses, created]);
-          }
-          break;
-        case 'group':
-          if (editingItem) {
-            const updated = await settingsApi.updateGroup(editingItem.id, data);
-            setGroups(groups.map(g => g.id === editingItem.id ? updated : g));
-          } else {
-            const created = await settingsApi.createGroup(data);
-            setGroups([...groups, created]);
-          }
-          break;
-        case 'agent':
-          if (editingItem) {
-            const updated = await settingsApi.updateAgent(editingItem.id, data);
-            setAgents(agents.map(a => a.id === editingItem.id ? updated : a));
-          } else {
-            const created = await settingsApi.createAgent(data);
-            setAgents([...agents, created]);
-          }
-          break;
-      }
-      setShowModal(false);
-      setEditingItem(null);
-    } catch (err) {
-      setError(`Failed to save ${modalType}`);
-      console.error(`Error saving ${modalType}:`, err);
-    }
-  };
-
-  const handleEmailConfigure = (category: TicketCategoryConfig) => {
-    const existingMapping = emailMappings.find(m => m.categoryId === category.id);
-    setEditingEmailMapping(existingMapping || {
-      categoryId: category.id,
-      emailAddress: '',
-      smtpHost: '',
-      smtpPort: 587,
-      smtpUseSsl: true,
-      smtpUsername: '',
-      smtpPassword: '',
-      imapHost: '',
-      imapPort: 993,
-      imapUseSsl: true,
-      imapUsername: '',
-      imapPassword: '',
-      keywordMappings: '',
-      isActive: true
-    });
-    setEmailConfigTab('basic');
-    setShowEmailModal(true);
-  };
-
-  const handleEmailMappingUpdate = async () => {
-    if (!editingEmailMapping) return;
-
-    try {
-      if (editingEmailMapping.id) {
-        const updated = await settingsApi.updateCategoryEmailMapping(editingEmailMapping.id, editingEmailMapping);
-        setEmailMappings(emailMappings.map(m => m.id === editingEmailMapping.id ? updated : m));
-      } else {
-        const created = await settingsApi.createCategoryEmailMapping(editingEmailMapping);
-        setEmailMappings([...emailMappings, created]);
-      }
-      setShowEmailModal(false);
-      setEditingEmailMapping(null);
-    } catch (err) {
-      setError('Failed to save email configuration');
-      console.error('Error saving email mapping:', err);
-    }
-  };
 
   const renderAutoAssignmentTab = () => {
     return (
@@ -330,7 +242,7 @@ const TicketSettingsPage: React.FC = () => {
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold leading-tight">Ticket Categories</h3>
         <button
-          onClick={() => handleAdd('category')}
+          onClick={handleCategoryCreate}
           className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center space-x-2 text-sm"
         >
           <Plus className="w-4 h-4" />
@@ -364,7 +276,7 @@ const TicketSettingsPage: React.FC = () => {
               </div>
               <div className="flex space-x-1">
                 <button
-                  onClick={() => handleEdit(category, 'category')}
+                  onClick={() => handleCategoryEdit(category)}
                   className="p-1 text-gray-400 hover:text-blue-600"
                 >
                   <Edit className="w-4 h-4" />

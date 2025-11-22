@@ -23,6 +23,11 @@ public class TicketGroupDto
     public string? SubCategoryName { get; set; }
 
     public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; } = false;
+    public bool AutoAssignmentEnabled { get; set; } = false;
+    public int MaxTicketsPerAgent { get; set; } = 10;
+    public List<int>? AssignedAgentIds { get; set; }
+    public int TotalTickets { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

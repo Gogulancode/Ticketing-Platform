@@ -4,7 +4,7 @@ namespace ERPTraining.Core.Interfaces.Ticketing;
 
 public interface ITicketTagService
 {
-    Task<IEnumerable<TicketTagDto>> GetAllAsync();
+    Task<IEnumerable<TicketTagDto>> GetAllAsync(bool includeInactive = false);
     Task<IEnumerable<TicketTagDto>> GetBySubCategoryIdAsync(int subCategoryId);
     Task<TicketTagDto?> GetByIdAsync(int id);
     Task<TicketTagDto> CreateAsync(CreateTicketTagDto dto);

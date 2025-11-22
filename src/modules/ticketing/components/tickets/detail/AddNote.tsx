@@ -13,11 +13,6 @@ const AddNote: React.FC<AddNoteProps> = ({ ticketId, isAgent }) => {
   const [noteContent, setNoteContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Don't render if user is not an agent
-  if (!isAgent) {
-    return null;
-  }
-
   // Mutation to add internal note
   const addNoteMutation = useMutation({
     mutationFn: (request: AddCommentRequest) => commentsApi.addComment(ticketId, request),
@@ -60,6 +55,10 @@ const AddNote: React.FC<AddNoteProps> = ({ ticketId, isAgent }) => {
       setIsSubmitting(false);
     }
   };
+
+  if (!isAgent) {
+    return null;
+  }
 
   return (
     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">

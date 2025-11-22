@@ -1,6 +1,8 @@
 // Mock API endpoints for missing services
 // This handles the 404 errors we're seeing in the console
 
+import { ForwardHistory } from './ticketForwardService';
+
 export interface EmailHistoryEntry {
   id: string;
   ticketId: string;
@@ -53,7 +55,7 @@ class MockApiService {
    * Handle forward history
    * Endpoint: /api/tickets/{ticketId}/forwards
    */
-  async getForwardHistory(ticketId: string): Promise<any[]> {
+  async getForwardHistory(ticketId: string): Promise<ForwardHistory[]> {
     console.log(`🔄 Mock: Fetching forward history for ticket ${ticketId}`);
     
     // Mock forward history - empty for now

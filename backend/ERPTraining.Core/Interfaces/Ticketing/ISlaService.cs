@@ -7,16 +7,16 @@ public interface ISlaService
 {
     // SLA Policy Management
     Task<IEnumerable<SlaPolicyDto>> GetAllPoliciesAsync(bool includeInactive = false, CancellationToken cancellationToken = default);
-    Task<SlaPolicyDto?> GetPolicyByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<SlaPolicyDto?> GetPolicyByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<SlaPolicyDto?> GetPolicyByPriorityAsync(int priorityId, CancellationToken cancellationToken = default);
     Task<SlaPolicyDto> CreatePolicyAsync(CreateSlaPolicyRequest request, CancellationToken cancellationToken = default);
-    Task<SlaPolicyDto?> UpdatePolicyAsync(int id, UpdateSlaPolicyRequest request, CancellationToken cancellationToken = default);
-    Task<bool> DeletePolicyAsync(int id, CancellationToken cancellationToken = default);
+    Task<SlaPolicyDto?> UpdatePolicyAsync(Guid id, UpdateSlaPolicyRequest request, CancellationToken cancellationToken = default);
+    Task<bool> DeletePolicyAsync(Guid id, CancellationToken cancellationToken = default);
     
     // Escalation Contacts Management
-    Task<IEnumerable<SlaEscalationContactDto>> GetEscalationContactsAsync(int slaPolicyId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<SlaEscalationContactDto>> GetEscalationContactsAsync(Guid? slaPolicyId = null, CancellationToken cancellationToken = default);
     Task<SlaEscalationContactDto?> GetEscalationContactByIdAsync(int id, CancellationToken cancellationToken = default);
-    Task<SlaEscalationContactDto> CreateEscalationContactAsync(int slaPolicyId, CreateSlaEscalationContactRequest request, CancellationToken cancellationToken = default);
+    Task<SlaEscalationContactDto> CreateEscalationContactAsync(Guid slaPolicyId, CreateSlaEscalationContactRequest request, CancellationToken cancellationToken = default);
     Task<SlaEscalationContactDto?> UpdateEscalationContactAsync(int id, UpdateSlaEscalationContactRequest request, CancellationToken cancellationToken = default);
     Task<bool> DeleteEscalationContactAsync(int id, CancellationToken cancellationToken = default);
     
@@ -32,6 +32,6 @@ public interface ISlaService
     Task<bool> CheckAndTriggerEscalationsAsync(CancellationToken cancellationToken = default); // For background service
     
     // SLA Analytics
-    Task<object> GetSlaPolicyStatsAsync(int slaPolicyId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default);
+    Task<object> GetSlaPolicyStatsAsync(Guid slaPolicyId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default);
     Task<object> GetOverallSlaPerformanceAsync(DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default);
 }

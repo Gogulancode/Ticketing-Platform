@@ -9,6 +9,7 @@ using ERPTraining.Core.Entities;
 using ERPTraining.Core.Entities.Ticketing;
 using ERPTraining.Core.Entities.Tickets;
 using ERPTraining.Core.Models.Ticketing;
+using ApplicationUser = ERPTraining.Core.Entities.User;
 
 namespace ERPTraining.Infrastructure.Services.Ticketing;
 
@@ -102,7 +103,13 @@ public class MicrosoftGraphEmailService : IEmailService
     /// <summary>
     /// Sends an email using Microsoft Graph API
     /// </summary>
-    public async Task SendEmailAsync(string toEmail, string subject, string body, bool isHtml = true, CancellationToken cancellationToken = default)
+    public async Task SendEmailAsync(
+        string toEmail,
+        string subject,
+        string body,
+        bool isHtml = true,
+        IEnumerable<OutgoingEmailAttachment>? attachments = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -127,6 +134,36 @@ public class MicrosoftGraphEmailService : IEmailService
                     }
                 }
             };
+
+            if (attachments != null)
+            {
+                var fileAttachments = new List<Microsoft.Graph.Models.Attachment>();
+
+                foreach (var attachment in attachments)
+                {
+                    if (attachment?.Content == null || attachment.Content.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    var contentType = string.IsNullOrWhiteSpace(attachment.ContentType)
+                        ? "application/octet-stream"
+                        : attachment.ContentType;
+
+                    fileAttachments.Add(new Microsoft.Graph.Models.FileAttachment
+                    {
+                        OdataType = "#microsoft.graph.fileAttachment",
+                        Name = attachment.FileName,
+                        ContentType = contentType,
+                        ContentBytes = attachment.Content
+                    });
+                }
+
+                if (fileAttachments.Count > 0)
+                {
+                    message.Attachments = fileAttachments;
+                }
+            }
 
             // Try to send email using the service account with proper application permissions
             await _graphServiceClient.Users[_serviceAccountEmail]
@@ -161,7 +198,7 @@ public class MicrosoftGraphEmailService : IEmailService
             
             string body = GenerateStatusUpdateEmailBody(ticket, newStatus);
 
-            await SendEmailAsync(toEmail, subject, body, true, cancellationToken);
+            await SendEmailAsync(toEmail, subject, body, true, attachments: null, cancellationToken: cancellationToken);
 
             _logger.LogInformation("Status update email sent for ticket {TicketId} to {Email}", ticket.Id, toEmail);
         }
@@ -370,6 +407,187 @@ public class MicrosoftGraphEmailService : IEmailService
             Importance.Low => 1,
             _ => 2
         };
+    }
+
+    /// <summary>
+    /// Sends email notification when a ticket is assigned to an agent
+    /// </summary>
+    public async Task SendTicketAssignmentNotificationAsync(Ticket ticket, ApplicationUser agent, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var ticketNumber = ticket.PublicId?.ToString() ?? ticket.Id.ToString().Substring(0, 8);
+            var subject = $"[Ticket #{ticketNumber}] Assigned to You - {ticket.Title}";
+            
+            var body = $@"
+<html>
+<body style='font-family: Arial, sans-serif;'>
+    <h2 style='color: #2563eb;'>New Ticket Assigned to You</h2>
+    <p>Dear {agent.FirstName} {agent.LastName},</p>
+    
+    <p>A new support ticket has been assigned to you:</p>
+    
+    <div style='background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;'>
+        <p><strong>Ticket Number:</strong> #{ticketNumber}</p>
+        <p><strong>Title:</strong> {ticket.Title}</p>
+        <p><strong>Priority:</strong> {ticket.Priority}</p>
+        <p><strong>Status:</strong> {ticket.Status}</p>
+        <p><strong>Created:</strong> {ticket.CreatedAt:yyyy-MM-dd HH:mm}</p>
+    </div>
+    
+    <p><strong>Description:</strong></p>
+    <div style='background-color: #ffffff; border-left: 4px solid #2563eb; padding: 15px; margin: 15px 0;'>
+        {ticket.Description?.Replace("\n", "<br/>")}
+    </div>
+    
+    <p>Please review and respond to this ticket at your earliest convenience.</p>
+    
+    <p style='margin-top: 30px;'>
+        Best regards,<br/>
+        Support Team
+    </p>
+    
+    <hr style='margin-top: 30px; border: none; border-top: 1px solid #e5e7eb;'/>
+    <p style='font-size: 12px; color: #6b7280;'>
+        This is an automated notification. Please do not reply to this email.
+    </p>
+</body>
+</html>";
+
+            await SendEmailAsync(agent.Email!, subject, body, true, attachments: null, cancellationToken: cancellationToken);
+            _logger.LogInformation("Sent assignment notification to agent {AgentEmail} for ticket #{TicketNumber}", agent.Email, ticketNumber);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send ticket assignment notification to {AgentEmail}", agent.Email);
+        }
+    }
+
+    /// <summary>
+    /// Sends email notification when someone is added as a collaborator to a ticket
+    /// </summary>
+    public async Task SendCollaboratorAddedNotificationAsync(Ticket ticket, ApplicationUser collaborator, ApplicationUser addedBy, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var ticketNumber = ticket.PublicId?.ToString() ?? ticket.Id.ToString().Substring(0, 8);
+            var subject = $"[Ticket #{ticketNumber}] You've been added as a Collaborator - {ticket.Title}";
+            
+            var body = $@"
+<html>
+<body style='font-family: Arial, sans-serif;'>
+    <h2 style='color: #059669;'>Added as Ticket Collaborator</h2>
+    <p>Dear {collaborator.FirstName} {collaborator.LastName},</p>
+    
+    <p>You have been added as a collaborator on the following support ticket by <strong>{addedBy.FirstName} {addedBy.LastName}</strong>:</p>
+    
+    <div style='background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;'>
+        <p><strong>Ticket Number:</strong> #{ticketNumber}</p>
+        <p><strong>Title:</strong> {ticket.Title}</p>
+        <p><strong>Priority:</strong> {ticket.Priority}</p>
+        <p><strong>Status:</strong> {ticket.Status}</p>
+        <p><strong>Created:</strong> {ticket.CreatedAt:yyyy-MM-dd HH:mm}</p>
+    </div>
+    
+    <p><strong>Description:</strong></p>
+    <div style='background-color: #ffffff; border-left: 4px solid #059669; padding: 15px; margin: 15px 0;'>
+        {ticket.Description?.Replace("\n", "<br/>")}
+    </div>
+    
+    <p>As a collaborator, you will receive updates on this ticket and can contribute to its resolution.</p>
+    
+    <p style='margin-top: 30px;'>
+        Best regards,<br/>
+        Support Team
+    </p>
+    
+    <hr style='margin-top: 30px; border: none; border-top: 1px solid #e5e7eb;'/>
+    <p style='font-size: 12px; color: #6b7280;'>
+        This is an automated notification. Please do not reply to this email.
+    </p>
+</body>
+</html>";
+
+            await SendEmailAsync(collaborator.Email!, subject, body, true, attachments: null, cancellationToken: cancellationToken);
+            _logger.LogInformation("Sent collaborator notification to {CollaboratorEmail} for ticket #{TicketNumber}", collaborator.Email, ticketNumber);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send collaborator notification to {CollaboratorEmail}", collaborator.Email);
+        }
+    }
+
+    /// <summary>
+    /// Sends email notification when a ticket is resolved
+    /// </summary>
+    public async Task SendTicketResolvedNotificationAsync(Ticket ticket, ApplicationUser creator, string? resolutionNotes, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var ticketNumber = ticket.PublicId?.ToString() ?? ticket.Id.ToString().Substring(0, 8);
+            var subject = $"[Ticket #{ticketNumber}] Resolved - {ticket.Title}";
+            
+            // Generate reopen link (will be handled by a new endpoint)
+            var reopenLink = $"http://localhost:5015/api/tickets-v2/{ticket.Id}/reopen";
+            
+            var body = $@"
+<html>
+<body style='font-family: Arial, sans-serif;'>
+    <h2 style='color: #16a34a;'>✅ Your Ticket Has Been Resolved</h2>
+    <p>Dear {creator.FirstName} {creator.LastName},</p>
+    
+    <p>We're writing to inform you that your support ticket has been resolved:</p>
+    
+    <div style='background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;'>
+        <p><strong>Ticket Number:</strong> #{ticketNumber}</p>
+        <p><strong>Title:</strong> {ticket.Title}</p>
+        <p><strong>Status:</strong> Resolved</p>
+        <p><strong>Resolved On:</strong> {ticket.ResolvedAt?.ToString("yyyy-MM-dd HH:mm") ?? DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm")}</p>
+    </div>
+    
+    <p><strong>Original Issue:</strong></p>
+    <div style='background-color: #ffffff; border-left: 4px solid #16a34a; padding: 15px; margin: 15px 0;'>
+        {ticket.Description?.Replace("\n", "<br/>")}
+    </div>
+    
+    {(!string.IsNullOrEmpty(resolutionNotes) ? $@"
+    <p><strong>Resolution Notes:</strong></p>
+    <div style='background-color: #ecfdf5; border-left: 4px solid #16a34a; padding: 15px; margin: 15px 0;'>
+        {resolutionNotes.Replace("\n", "<br/>")}
+    </div>
+    " : "")}
+    
+    <div style='background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;'>
+        <p style='margin: 0; color: #92400e;'><strong>Not Satisfied?</strong></p>
+        <p style='margin: 10px 0 0 0; color: #92400e;'>If the issue is not fully resolved or you need further assistance, you can reopen this ticket by clicking the button below:</p>
+        <div style='margin-top: 15px;'>
+            <a href='{reopenLink}' style='background-color: #f59e0b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;'>
+                🔄 Reopen Ticket
+            </a>
+        </div>
+    </div>
+    
+    <p style='margin-top: 30px;'>
+        Thank you for using our support system.<br/>
+        <br/>
+        Best regards,<br/>
+        Support Team
+    </p>
+    
+    <hr style='margin-top: 30px; border: none; border-top: 1px solid #e5e7eb;'/>
+    <p style='font-size: 12px; color: #6b7280;'>
+        This is an automated notification from the IT Help Desk system.
+    </p>
+</body>
+</html>";
+
+            await SendEmailAsync(creator.Email!, subject, body, true, attachments: null, cancellationToken: cancellationToken);
+            _logger.LogInformation("Sent resolution notification to {CreatorEmail} for ticket #{TicketNumber}", creator.Email, ticketNumber);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send resolution notification to {CreatorEmail}", creator.Email);
+        }
     }
 }
 

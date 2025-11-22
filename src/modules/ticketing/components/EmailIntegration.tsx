@@ -387,7 +387,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                           </label>
                           <select
                             value={rule.priority}
-                            onChange={(e) => updateRule(rule.id, { priority: e.target.value as any })}
+                            onChange={(e) => updateRule(rule.id, { priority: e.target.value as EmailRule['priority'] })}
                             className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                           >
                             <option value="Low">Low</option>

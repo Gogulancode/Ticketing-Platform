@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Forward, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { mockApiService } from '../../../../../shared/services/mockApiService';
+import { ForwardHistory } from '../../../../../shared/services/ticketForwardService';
 
 interface ForwardHistoryProps {
   ticketId: string;
@@ -9,7 +10,7 @@ interface ForwardHistoryProps {
 
 const ForwardHistoryComponent: React.FC<ForwardHistoryProps> = ({ ticketId }) => {
   // Query to fetch forward history
-  const { data: forwardHistory, isLoading } = useQuery({
+  const { data: forwardHistory, isLoading } = useQuery<ForwardHistory[]>({
     queryKey: ['forward-history', ticketId],
     queryFn: () => mockApiService.getForwardHistory(ticketId),
     refetchOnWindowFocus: false,
@@ -73,7 +74,7 @@ const ForwardHistoryComponent: React.FC<ForwardHistoryProps> = ({ ticketId }) =>
       </div>
 
       <div className="space-y-3">
-        {forwardHistory.map((forward: any) => (
+        {forwardHistory.map((forward) => (
           <div key={forward.id} className={`p-3 rounded-lg border ${getStatusColor(forward.status)}`}>
             <div className="flex items-start justify-between">
               <div className="flex-1">

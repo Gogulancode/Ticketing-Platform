@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Briefcase, Shield, Edit2, Save, X } from 'lucide-react';
+import { LoadingSpinner } from '../../components';
 
 const Profile: React.FC = () => {
   const [user, setUser] = useState<any>(null);
@@ -93,10 +94,7 @@ const Profile: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading profile...</p>
-        </div>
+        <LoadingSpinner size="lg" message="Loading profile..." />
       </div>
     );
   }

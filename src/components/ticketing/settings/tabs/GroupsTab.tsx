@@ -441,9 +441,10 @@ const GroupsTab: React.FC = () => {
   const [editingGroup, setEditingGroup] = useState<AdvancedTicketGroupDto | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
 
   // Fetch data
-  const { data: allGroups = [], isLoading, error } = useAdvancedTicketGroups();
+  const { data: allGroups = [], isLoading, error } = useAdvancedTicketGroups(showInactive);
   const [categories, setCategories] = useState<Array<{ id: number; name: string }>>([]);
   const [subcategories, setSubcategories] = useState<Array<{ id: number; name: string; categoryId: number }>>([]);
   const [agents, setAgents] = useState<Array<{ id: number; name: string; email: string; department?: string }>>([]);
@@ -451,14 +452,42 @@ const GroupsTab: React.FC = () => {
   const deleteMutation = useDeleteAdvancedTicketGroup();
 
   // Filter and search groups
-  const filteredGroups = allGroups.filter(group => {
-    const matchesCategory = selectedCategory === 0 || group.categoryId === selectedCategory;
-    const matchesSearch = !searchTerm || 
-      group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (group.description && group.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    return matchesCategory && matchesSearch;
-  });
+  const visibleGroups = allGroups.filter((group: AdvancedTicketGroupDto) => !group.isDeleted);
+
+  const filteredGroups = React.useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return visibleGroups.filter((group: AdvancedTicketGroupDto) => {
+      const matchesCategory = selectedCategory === 0 || group.categoryId === selectedCategory;
+      const matchesActiveState = showInactive ? !group.isActive : group.isActive;
+
+      if (!normalizedSearch) {
+        return matchesCategory && matchesActiveState;
+      }
+
+      const groupName = (group.name || '').toLowerCase();
+      const groupDescription = (group.description || '').toLowerCase();
+      const categoryName = group.categoryId
+        ? categories.find(cat => cat.id === group.categoryId)?.name?.toLowerCase() ?? ''
+        : '';
+      const subcategoryName = group.subcategoryId
+        ? subcategories.find(sub => sub.id === group.subcategoryId)?.name?.toLowerCase() ?? ''
+        : '';
+      const agentNames = (group.assignedAgentIds || [])
+        .map((id: number) => agents.find((agent) => agent.id === id)?.name?.toLowerCase())
+        .filter(Boolean)
+        .join(' ');
+
+      const matchesSearch =
+        groupName.includes(normalizedSearch) ||
+        groupDescription.includes(normalizedSearch) ||
+        (categoryName && categoryName.includes(normalizedSearch)) ||
+        (subcategoryName && subcategoryName.includes(normalizedSearch)) ||
+        (agentNames && agentNames.includes(normalizedSearch));
+
+      return matchesCategory && matchesActiveState && matchesSearch;
+    });
+  }, [visibleGroups, selectedCategory, searchTerm, showInactive, categories, subcategories, agents]);
 
   // Load categories, subcategories, and agents on mount
   React.useEffect(() => {
@@ -573,6 +602,17 @@ const GroupsTab: React.FC = () => {
               ))}
             </select>
           </div>
+
+          {/* Show Inactive Checkbox */}
+          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+            />
+            <span>Show inactive</span>
+          </label>
         </div>
       </div>
 
@@ -625,7 +665,7 @@ const GroupsTab: React.FC = () => {
           </div>
         ) : (
           <ul className="divide-y divide-gray-200">
-            {filteredGroups.map((group) => (
+            {filteredGroups.map((group: AdvancedTicketGroupDto) => (
               <li key={group.id} className="px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -725,24 +765,24 @@ const GroupsTab: React.FC = () => {
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{allGroups.length}</div>
+            <div className="text-2xl font-bold text-blue-600">{visibleGroups.length}</div>
             <div className="text-sm text-gray-500">Total Groups</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
-              {allGroups.filter(g => g.isActive).length}
+              {visibleGroups.filter((g: AdvancedTicketGroupDto) => g.isActive).length}
             </div>
             <div className="text-sm text-gray-500">Active Groups</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-purple-600">
-              {allGroups.filter(g => g.autoAssignmentEnabled).length}
+              {visibleGroups.filter((g: AdvancedTicketGroupDto) => g.autoAssignmentEnabled).length}
             </div>
             <div className="text-sm text-gray-500">Auto-Assign</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-600">
-              {allGroups.reduce((total, group) => total + (group.assignedAgentIds?.length || 0), 0)}
+              {visibleGroups.reduce((total: number, group: AdvancedTicketGroupDto) => total + (group.assignedAgentIds?.length || 0), 0)}
             </div>
             <div className="text-sm text-gray-500">Agent Assignments</div>
           </div>

@@ -199,7 +199,7 @@ public class DeprecatedTicketSettingsService : ILegacyTicketSettingsService
     public async Task<IEnumerable<TicketPriority>> GetPrioritiesAsync()
     {
         return await _context.TicketPriorities
-            .Where(p => p.IsActive)
+            .Where(p => p.IsActive && !p.IsDeleted)
             .OrderBy(p => p.SortOrder)
             .ToListAsync();
     }
@@ -207,13 +207,14 @@ public class DeprecatedTicketSettingsService : ILegacyTicketSettingsService
     public async Task<TicketPriority?> GetPriorityByIdAsync(int id)
     {
         return await _context.TicketPriorities
-            .FirstOrDefaultAsync(p => p.Id == id);
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
     }
 
     public async Task<TicketPriority> CreatePriorityAsync(TicketPriority priority)
     {
         priority.CreatedAt = DateTime.UtcNow;
         priority.UpdatedAt = DateTime.UtcNow;
+        priority.IsDeleted = false;
         
         _context.TicketPriorities.Add(priority);
         await _context.SaveChangesAsync();
@@ -231,10 +232,11 @@ public class DeprecatedTicketSettingsService : ILegacyTicketSettingsService
 
     public async Task<bool> DeletePriorityAsync(int id)
     {
-        var priority = await _context.TicketPriorities.FindAsync(id);
+        var priority = await _context.TicketPriorities.FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
         if (priority == null) return false;
 
         priority.IsActive = false;
+        priority.IsDeleted = true;
         priority.UpdatedAt = DateTime.UtcNow;
         
         _context.TicketPriorities.Update(priority);

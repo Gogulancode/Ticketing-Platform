@@ -1,7 +1,10 @@
 // Update profile
-export const updateProfile = (data) => apiFetch('/auth/me', { method: 'PUT', body: JSON.stringify(data) });
+export const updateProfile = (data: any) => apiFetch('/auth/me', { method: 'PUT', body: JSON.stringify(data) });
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'; // Backend running on port 5015
+import { API_CONFIG } from '../config/api';
+
+// Use centralized API configuration
+const API_BASE = API_CONFIG.BASE_URL;
 
 function getToken(): string | null {
   return localStorage.getItem('token');
@@ -23,6 +26,7 @@ async function apiFetch(path: string, options: { [key: string]: any } = {}): Pro
 export const login = (data: any) => apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(data) });
 export const register = (data: any) => apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(data) });
 export const getCurrentUser = () => apiFetch('/auth/me');
+export const refreshToken = () => apiFetch('/auth/refresh', { method: 'POST' });
 
 // Modules
 export const getModules = () => apiFetch('/Modules');

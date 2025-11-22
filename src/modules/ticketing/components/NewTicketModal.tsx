@@ -4,6 +4,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ticketsApi, CreateTicketDto, TicketCategory, TicketPriority } from '../api/ticketsApi';
 import { TicketContext } from './TicketButton';
 
+interface TicketModalFormState {
+  title: string;
+  description: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+}
+
 interface NewTicketModalProps {
   open: boolean;
   onClose: () => void;
@@ -11,7 +18,7 @@ interface NewTicketModalProps {
 }
 
 const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onClose, context }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<TicketModalFormState>({
     title: '',
     description: '',
     category: TicketCategory.Other,
@@ -36,7 +43,7 @@ const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onClose, context 
       // Show success message
       alert('Ticket created successfully!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error creating ticket:', error);
       alert('Failed to create ticket. Please try again.');
     },
@@ -75,7 +82,7 @@ const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onClose, context 
     createTicketMutation.mutate(payload);
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = <Field extends keyof TicketModalFormState>(field: Field, value: TicketModalFormState[Field]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));

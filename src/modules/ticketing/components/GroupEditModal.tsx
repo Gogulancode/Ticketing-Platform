@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2, Users, Tag } from 'lucide-react';
+import { X, Save, Users, Tag } from 'lucide-react';
 import { AgentGroup, TicketCategory } from '../types/ticketGroups';
 
 interface GroupEditModalProps {

@@ -127,6 +127,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
     // SLA entities
     public DbSet<SlaPolicy> SlaPolicies { get; set; }
     public DbSet<SlaEscalationContact> SlaEscalationContacts { get; set; }
+    public DbSet<SlaEscalationLevel> SlaEscalationLevels { get; set; }
 
     // Notification entities
     public DbSet<UserNotification> UserNotifications { get; set; }
@@ -661,6 +662,12 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<Attachment>()
+            .HasOne(a => a.Comment)
+            .WithMany(c => c.Attachments)
+            .HasForeignKey(a => a.CommentId)
+            .OnDelete(DeleteBehavior.NoAction); // NoAction to avoid multiple cascade paths
+
+        builder.Entity<Attachment>()
             .HasOne(a => a.UploadedByUser)
             .WithMany()
             .HasForeignKey(a => a.UploadedByUserId)
@@ -668,6 +675,9 @@ public class ApplicationDbContext : IdentityDbContext<User>
 
         builder.Entity<Attachment>()
             .HasIndex(a => a.TicketId);
+
+        builder.Entity<Attachment>()
+            .HasIndex(a => a.CommentId);
 
         // SLA - Commented out to avoid table conflict with SlaPolicy
         // builder.Entity<SLA>()
@@ -764,6 +774,12 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .HasForeignKey(ec => ec.SlaPolicyId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.Entity<SlaPolicy>()
+            .HasMany(sp => sp.EscalationLevels)
+            .WithOne(el => el.SlaPolicy)
+            .HasForeignKey(el => el.SlaPolicyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // SLA Escalation Contact configuration
         builder.Entity<SlaEscalationContact>()
             .HasIndex(ec => new { ec.SlaPolicyId, ec.Level, ec.Email })
@@ -778,5 +794,10 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .Property(ec => ec.Name)
             .HasMaxLength(200)
             .IsRequired();
+
+        // SLA Escalation Level configuration
+        builder.Entity<SlaEscalationLevel>()
+            .HasIndex(el => new { el.SlaPolicyId, el.Level })
+            .IsUnique();
     }
 }

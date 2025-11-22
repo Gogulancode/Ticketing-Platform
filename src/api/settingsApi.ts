@@ -23,6 +23,7 @@ export interface TicketCategoryConfig {
   description?: string;
   isActive: boolean;
   order: number;
+  displayOrder?: number;
   subCategories: SubCategory[];
 }
 
@@ -33,6 +34,7 @@ export interface SubCategory {
   categoryId: number;
   isActive: boolean;
   order: number;
+  displayOrder?: number;
 }
 
 export interface IssueType {
@@ -53,6 +55,8 @@ export interface PriorityLevel {
   color: string;
   isActive: boolean;
   order: number;
+  displayOrder?: number;
+  isDeleted?: boolean;
 }
 
 export interface TicketStatusConfig {
@@ -134,6 +138,79 @@ export interface CategoryEmailMapping {
   keywordMappings?: string;
 }
 
+type NumericLike = number | string | null | undefined;
+
+type RawTicketCategory = Partial<TicketCategoryConfig> & {
+  id: number;
+  name: string;
+  subCategories?: RawSubCategory[];
+};
+
+type RawSubCategory = Partial<SubCategory> & {
+  id: number;
+  name: string;
+  categoryId?: number;
+};
+
+type RawPriorityLevel = Partial<PriorityLevel> & {
+  id: number;
+  name: string;
+  level?: NumericLike;
+  order?: NumericLike;
+  displayOrder?: NumericLike;
+  sortOrder?: NumericLike;
+};
+
+type RawAdvancedTicketGroup = {
+  id: number;
+  name: string;
+  description?: string;
+  categoryId?: number;
+  subCategoryId?: number;
+  groupAgents?: RawGroupAgent[];
+  maxTicketsPerAgent?: number;
+  autoAssignmentEnabled?: boolean;
+  assignedAgentIds?: NumericLike[];
+  totalTickets?: NumericLike;
+  isActive?: boolean;
+  isDeleted?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+type RawGroupAgent = {
+  agentId: number;
+  isActive?: boolean;
+};
+
+type RawSlaEscalationLevel = {
+  level: NumericLike;
+  triggerAtMinutes?: NumericLike;
+};
+
+type RawSlaPolicy = {
+  id: string | number;
+  name: string;
+  priority: NumericLike;
+  firstResponseTime?: number;
+  firstResponseMins?: number;
+  resolutionTime?: number;
+  resolutionMins?: number;
+  escalationTime?: number | null;
+  isActive?: boolean;
+  isDeleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  escalationContactsCount?: number;
+  priorityName?: string;
+  escalationLevels?: RawSlaEscalationLevel[];
+};
+
+type UpdateTicketCategoryInput = Partial<TicketCategoryConfig> & {
+  color?: string | null;
+  iconName?: string | null;
+};
+
 class SettingsApiService {
   protected baseUrl = import.meta.env.DEV ? 'http://localhost:5015/api' : API_CONFIG.BASE_URL;
 
@@ -159,16 +236,18 @@ class SettingsApiService {
   }
 
   // Category configurations
-  async getTicketCategories(): Promise<TicketCategoryConfig[]> {
+  async getTicketCategories(includeInactive: boolean = false): Promise<TicketCategoryConfig[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/categories`);
+      const url = `${this.baseUrl}/tickets/settings/categories${includeInactive ? '?includeInactive=true' : ''}`;
+      const response = await fetch(url);
       if (!response.ok) {
         console.warn('Categories API not available, using mock data');
         return this.getMockCategories();
       }
-      const data = await response.json();
-      console.log('✅ Successfully fetched categories from API:', data);
-      return Array.isArray(data) ? data : data.categories || [];
+        const data = await response.json();
+        console.log('✅ Successfully fetched categories from API:', data);
+        const items = (Array.isArray(data) ? data : data.categories || []) as RawTicketCategory[];
+        return items.map((cat) => this.normalizeCategory(cat));
     } catch (error) {
       console.warn('Categories API not available, using mock data:', error);
       return this.getMockCategories();
@@ -176,26 +255,35 @@ class SettingsApiService {
   }
 
   // Sub Category configurations
-  async getSubCategories(categoryId?: number): Promise<SubCategory[]> {
+  async getSubCategories(categoryId?: number, includeInactive: boolean = false): Promise<SubCategory[]> {
     try {
-      const url = categoryId 
-        ? `${this.baseUrl}/tickets/settings/subcategories?categoryId=${categoryId}`
-        : `${this.baseUrl}/tickets/settings/subcategories`;
+      let url = `${this.baseUrl}/tickets/settings/subcategories`;
+      const params = new URLSearchParams();
+      
+      if (categoryId) params.append('categoryId', categoryId.toString());
+      if (includeInactive) params.append('includeInactive', 'true');
+      
+      if (params.toString()) url += `?${params.toString()}`;
+      
       const response = await fetch(url);
       if (!response.ok) {
         console.warn('Sub-categories API not available, using mock data');
         return this.getMockSubCategories().filter(sc => !categoryId || sc.categoryId === categoryId);
       }
-      const data = await response.json();
-      console.log('✅ Successfully fetched subcategories from API:', data);
-      return Array.isArray(data) ? data : data.subCategories || [];
+        const data = await response.json();
+        const items = (Array.isArray(data) ? data : data.subCategories || []) as RawSubCategory[];
+        return items
+          .filter(sc => !categoryId || sc.categoryId === categoryId)
+          .map((sc) => this.normalizeSubCategory(sc));
     } catch (error) {
       console.warn('Sub-categories API not available, using mock data:', error);
       const mockData = this.getMockSubCategories();
-      if (categoryId) {
-        return mockData.filter(sc => sc.categoryId === categoryId);
-      }
-      return mockData;
+      const filtered = categoryId ? mockData.filter(sc => sc.categoryId === categoryId) : mockData;
+      return filtered.map((sc) => ({
+        ...sc,
+        order: sc.order ?? sc.displayOrder ?? 0,
+        displayOrder: sc.displayOrder ?? sc.order ?? 0,
+      }));
     }
   }
 
@@ -217,16 +305,22 @@ class SettingsApiService {
   }
 
   // Priority Level configurations
-  async getPriorityLevels(): Promise<PriorityLevel[]> {
+  async getPriorityLevels(includeInactive: boolean = false): Promise<PriorityLevel[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/priorities`);
+      const url = `${this.baseUrl}/tickets/settings/priorities${includeInactive ? '?includeInactive=true' : ''}`;
+      const response = await fetch(url);
       if (!response.ok) {
         console.warn('Priorities API not available, using mock data');
         return this.getMockPriorityLevels();
       }
       const data = await response.json();
-      console.log('✅ Successfully fetched priorities from API:', data);
-      return Array.isArray(data) ? data : data.priorities || [];
+        const rawPriorities = (Array.isArray(data) ? data : data.priorities || data.value || []) as RawPriorityLevel[];
+        const normalizedPriorities = rawPriorities.map((priority) => this.normalizePriorityLevel(priority));
+      return normalizedPriorities.sort((a: PriorityLevel, b: PriorityLevel) => {
+        if (a.level !== b.level) return a.level - b.level;
+        if ((a.order ?? 0) !== (b.order ?? 0)) return (a.order ?? 0) - (b.order ?? 0);
+        return (a.id ?? 0) - (b.id ?? 0);
+      });
     } catch (error) {
       console.warn('Priorities API not available, using mock data:', error);
       return this.getMockPriorityLevels();
@@ -234,15 +328,15 @@ class SettingsApiService {
   }
 
   // Ticket Status configurations  
-  async getTicketStatuses(): Promise<TicketStatusConfig[]> {
+  async getTicketStatuses(includeInactive: boolean = false): Promise<TicketStatusConfig[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/statuses`);
+      const url = `${this.baseUrl}/tickets/settings/statuses${includeInactive ? '?includeInactive=true' : ''}`;
+      const response = await fetch(url);
       if (!response.ok) {
         console.warn('Statuses API not available, using mock data');
         return this.getMockTicketStatuses();
       }
       const data = await response.json();
-      console.log('✅ Successfully fetched statuses from API:', data);
       return Array.isArray(data) ? data : data.statuses || [];
     } catch (error) {
       console.warn('Statuses API not available, using mock data:', error);
@@ -306,45 +400,61 @@ class SettingsApiService {
 
   // Create operations
   async createTicketCategory(category: Omit<TicketCategoryConfig, 'id' | 'subCategories'>): Promise<TicketCategoryConfig> {
-    try {
-      const request = {
-        name: category.name,
-        description: category.description,
-        displayOrder: category.order,
-        color: null,
-        iconName: null
-      };
+    const request = {
+      name: category.name,
+      description: category.description,
+      displayOrder: category.order ?? category.displayOrder ?? 0,
+      color: null,
+      iconName: null
+    };
 
-      const response = await fetch(`${this.baseUrl}/tickets/settings/categories`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(request)
-      });
-      
-      if (!response.ok) {
+    const response = await fetch(`${this.baseUrl}/tickets/settings/categories`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    });
+    
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}`;
+      try {
         const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        // Try to parse as JSON first (if backend returns structured error)
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorJson.title || errorText;
+        } catch {
+          // If not JSON, use the text as-is
+          errorMessage = errorText || errorMessage;
+        }
+      } catch {
+        errorMessage = `Failed to create category (HTTP ${response.status})`;
       }
-      
-      const data = await response.json();
-      console.log('✅ Successfully created category:', data);
-      return data;
-    } catch (error) {
-      console.error('Error creating category:', error);
-      throw error;
+      throw new Error(errorMessage);
     }
+    
+    const data = await response.json();
+    return data;
   }
 
-  async updateTicketCategory(id: number, category: Partial<TicketCategoryConfig>): Promise<TicketCategoryConfig> {
+  async updateTicketCategory(id: number, category: UpdateTicketCategoryInput): Promise<TicketCategoryConfig> {
     try {
+      const payload: Record<string, unknown> = {};
+      if (category.name !== undefined) payload.name = category.name;
+        if (category.description !== undefined) payload.description = category.description;
+        const displayOrderValue = category.order ?? category.displayOrder;
+      if (displayOrderValue !== undefined) payload.displayOrder = displayOrderValue;
+      if (category.isActive !== undefined) payload.isActive = category.isActive;
+        if (category.color !== undefined) payload.color = category.color;
+        if (category.iconName !== undefined) payload.iconName = category.iconName;
+
       const response = await fetch(`${this.baseUrl}/tickets/settings/categories/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ ...category, id })
+        body: JSON.stringify(payload)
       });
       
       if (!response.ok) {
@@ -731,40 +841,61 @@ class SettingsApiService {
 
   // Additional CRUD methods
   async createSubCategory(subCategory: Omit<SubCategory, 'id'>): Promise<SubCategory> {
-    try {
-      const request = {
-        categoryId: subCategory.categoryId,
-        name: subCategory.name,
-        description: subCategory.description,
-        displayOrder: subCategory.order
-      };
+    const request = {
+      categoryId: subCategory.categoryId,
+      name: subCategory.name,
+      description: subCategory.description,
+      displayOrder: subCategory.order ?? subCategory.displayOrder ?? 0,
+      isActive: subCategory.isActive ?? true
+    };
 
-      const response = await fetch(`${this.baseUrl}/tickets/settings/subcategories`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request)
-      });
-      
-      if (!response.ok) {
+    const response = await fetch(`${this.baseUrl}/tickets/settings/subcategories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request)
+    });
+    
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}`;
+      try {
         const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        // Try to parse as JSON first (if backend returns structured error)
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorJson.title || errorText;
+        } catch {
+          // If not JSON, use the text as-is
+          errorMessage = errorText || errorMessage;
+        }
+      } catch {
+        errorMessage = `Failed to create sub-category (HTTP ${response.status})`;
       }
-      
-      const data = await response.json();
-      console.log('✅ Successfully created subcategory:', data);
-      return data;
-    } catch (error) {
-      console.error('Error creating subcategory:', error);
-      throw error;
+      throw new Error(errorMessage);
     }
+    
+    const data = await response.json();
+    console.log('✅ Successfully created subcategory:', data);
+    return {
+      ...data,
+      order: data.order ?? data.displayOrder ?? request.displayOrder,
+      displayOrder: data.displayOrder ?? data.order ?? request.displayOrder,
+    };
   }
 
   async updateSubCategory(id: number, subCategory: Partial<SubCategory>): Promise<SubCategory> {
     try {
+      const request: Record<string, unknown> = {};
+      if (subCategory.name !== undefined) request.name = subCategory.name;
+      if (subCategory.description !== undefined) request.description = subCategory.description;
+      const displayOrderValue = subCategory.order ?? subCategory.displayOrder;
+      if (displayOrderValue !== undefined) request.displayOrder = displayOrderValue;
+      if (subCategory.categoryId !== undefined) request.categoryId = subCategory.categoryId;
+      if (subCategory.isActive !== undefined) request.isActive = subCategory.isActive;
+
       const response = await fetch(`${this.baseUrl}/tickets/settings/subcategories/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...subCategory, id })
+        body: JSON.stringify(request)
       });
       
       if (!response.ok) {
@@ -773,7 +904,11 @@ class SettingsApiService {
       
       const data = await response.json();
       console.log('✅ Successfully updated subcategory:', data);
-      return data;
+      return {
+        ...data,
+        order: data.order ?? data.displayOrder ?? displayOrderValue ?? 0,
+        displayOrder: data.displayOrder ?? data.order ?? displayOrderValue ?? 0,
+      };
     } catch (error) {
       console.error('Error updating subcategory:', error);
       throw error;
@@ -823,87 +958,269 @@ class SettingsApiService {
   }
 
   async createPriority(priority: Omit<PriorityLevel, 'id'>): Promise<PriorityLevel> {
-    try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/priorities`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(priority)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    const resolvedOrder = priority.order ?? priority.displayOrder ?? 0;
+    const payload = {
+      name: priority.name,
+      description: priority.description,
+      level: priority.level,
+      color: priority.color,
+      displayOrder: resolvedOrder,
+      isActive: priority.isActive ?? true,
+    };
+    const response = await fetch(`${this.baseUrl}/tickets/settings/priorities`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}`;
+      try {
+        const errorText = await response.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorJson.title || errorText;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+      } catch {
+        errorMessage = `Failed to create priority (HTTP ${response.status})`;
       }
-      
-      const data = await response.json();
-      console.log('✅ Successfully created priority:', data);
-      return data;
-    } catch (error) {
-      console.error('Error creating priority:', error);
-      throw error;
+      throw new Error(errorMessage);
     }
+    
+    const data = await response.json();
+    return this.normalizePriorityLevel(data);
   }
 
   async updatePriority(id: number, priority: Partial<PriorityLevel>): Promise<PriorityLevel> {
-    try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/priorities/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...priority, id })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('✅ Successfully updated priority:', data);
-      return data;
-    } catch (error) {
-      console.error('Error updating priority:', error);
-      throw error;
+    const resolvedOrder = priority.order ?? priority.displayOrder;
+    const payload: Record<string, unknown> = {
+      name: priority.name,
+      description: priority.description,
+      level: priority.level,
+      color: priority.color,
+      isActive: priority.isActive,
+    };
+    if (resolvedOrder !== undefined) {
+      payload.displayOrder = resolvedOrder;
     }
+    const response = await fetch(`${this.baseUrl}/tickets/settings/priorities/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}`;
+      try {
+        const errorText = await response.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorJson.title || errorText;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+      } catch {
+        errorMessage = `Failed to update priority (HTTP ${response.status})`;
+      }
+      throw new Error(errorMessage);
+    }
+    
+    const data = await response.json();
+    return this.normalizePriorityLevel(data);
   }
 
   async createStatus(status: Omit<TicketStatusConfig, 'id'>): Promise<TicketStatusConfig> {
-    try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/statuses`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(status)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    const response = await fetch(`${this.baseUrl}/tickets/settings/statuses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(status)
+    });
+    
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}`;
+      try {
+        const errorText = await response.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorJson.title || errorText;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+      } catch {
+        errorMessage = `Failed to create status (HTTP ${response.status})`;
       }
-      
-      const data = await response.json();
-      console.log('✅ Successfully created status:', data);
-      return data;
-    } catch (error) {
-      console.error('Error creating status:', error);
-      throw error;
+      throw new Error(errorMessage);
     }
+    
+    const data = await response.json();
+    return data;
   }
 
   async updateStatus(id: number, status: Partial<TicketStatusConfig>): Promise<TicketStatusConfig> {
-    try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/statuses/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...status, id })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    const response = await fetch(`${this.baseUrl}/tickets/settings/statuses/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...status, id })
+    });
+    
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}`;
+      try {
+        const errorText = await response.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorJson.title || errorText;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+      } catch {
+        errorMessage = `Failed to update status (HTTP ${response.status})`;
       }
-      
-      const data = await response.json();
-      console.log('✅ Successfully updated status:', data);
-      return data;
-    } catch (error) {
-      console.error('Error updating status:', error);
-      throw error;
+      throw new Error(errorMessage);
     }
+    
+    const data = await response.json();
+    return data;
+  }
+
+  private normalizePriorityLevel(priority: RawPriorityLevel): PriorityLevel {
+    const normalizedLevel = this.toNumber(priority.level, 1);
+    const normalizedOrder = this.toNumber(
+      priority.order ?? priority.displayOrder ?? priority.sortOrder ?? normalizedLevel,
+      0
+    );
+    const normalizedDisplayOrder =
+      priority.displayOrder !== undefined
+        ? this.toNumber(priority.displayOrder, normalizedOrder)
+        : normalizedOrder;
+
+    return {
+      id: priority.id,
+      name: priority.name ?? 'Priority',
+      description: priority.description ?? undefined,
+      level: normalizedLevel,
+      color: priority.color ?? '#6b7280',
+      isActive: priority.isActive ?? true,
+      order: normalizedOrder,
+      displayOrder: normalizedDisplayOrder,
+      isDeleted: priority.isDeleted ?? false,
+    };
+  }
+
+  private normalizeCategory(category: RawTicketCategory): TicketCategoryConfig {
+    const normalizedOrder = this.toNumber(category.order ?? category.displayOrder, 0);
+    const normalizedDisplayOrder =
+      category.displayOrder !== undefined
+        ? this.toNumber(category.displayOrder, normalizedOrder)
+        : normalizedOrder;
+
+    return {
+      id: category.id,
+      name: category.name ?? 'Category',
+      description: category.description,
+      isActive: category.isActive ?? true,
+      order: normalizedOrder,
+      displayOrder: normalizedDisplayOrder,
+      subCategories: (category.subCategories ?? []).map((subCategory) =>
+        this.normalizeSubCategory(subCategory, category.id)
+      ),
+    };
+  }
+
+  private normalizeSubCategory(subCategory: RawSubCategory, fallbackCategoryId?: number): SubCategory {
+    const normalizedOrder = this.toNumber(subCategory.order ?? subCategory.displayOrder, 0);
+    const normalizedDisplayOrder =
+      subCategory.displayOrder !== undefined
+        ? this.toNumber(subCategory.displayOrder, normalizedOrder)
+        : normalizedOrder;
+
+    return {
+      id: subCategory.id,
+      name: subCategory.name ?? 'Sub Category',
+      description: subCategory.description,
+      categoryId: subCategory.categoryId ?? fallbackCategoryId ?? 0,
+      isActive: subCategory.isActive ?? true,
+      order: normalizedOrder,
+      displayOrder: normalizedDisplayOrder,
+    };
+  }
+
+  protected normalizeAdvancedTicketGroup(group: RawAdvancedTicketGroup): AdvancedTicketGroupDto {
+    const idsFromPayload = Array.isArray(group.assignedAgentIds)
+      ? group.assignedAgentIds
+          .map((id) => this.toNumber(id, 0))
+          .filter((id) => id > 0)
+      : undefined;
+
+    const fallbackAgentIds = (group.groupAgents ?? [])
+      .filter((agent) => agent && (agent.isActive ?? true))
+      .map((agent) => this.toNumber(agent.agentId, 0))
+      .filter((id) => id > 0);
+
+    const assignedAgentIds = idsFromPayload ?? fallbackAgentIds;
+
+    return {
+      id: group.id,
+      name: group.name,
+      description: group.description,
+      categoryId: group.categoryId,
+      subcategoryId: group.subCategoryId,
+      assignedAgentIds,
+      maxTicketsPerAgent: this.toNumber(group.maxTicketsPerAgent, 10) || 10,
+      autoAssignmentEnabled: group.autoAssignmentEnabled ?? false,
+      totalTickets: this.toNumber(group.totalTickets, 0),
+      isActive: group.isActive ?? true,
+      isDeleted: group.isDeleted ?? false,
+      createdAt: group.createdAt,
+      updatedAt: group.updatedAt ?? group.createdAt,
+    };
+  }
+
+  protected normalizeSlaPolicy(policy: RawSlaPolicy): SlaPolicyDto {
+    const normalizedPriority = this.toNumber(policy.priority, 0);
+    const escalationLevels = Array.isArray(policy.escalationLevels) ? policy.escalationLevels : [];
+
+    const findLevelMinutes = (level: number): number | null => {
+      const levelEntry = escalationLevels.find((entry) => this.toNumber(entry.level, 0) === level);
+      if (!levelEntry || levelEntry.triggerAtMinutes === undefined || levelEntry.triggerAtMinutes === null) {
+        return null;
+      }
+      return this.toNumber(levelEntry.triggerAtMinutes, 0) || null;
+    };
+
+    return {
+      id: String(policy.id ?? ''),
+      name: policy.name ?? 'SLA Policy',
+      priorityId: normalizedPriority + 1,
+      priorityName: policy.priorityName,
+      responseTimeMinutes: policy.firstResponseTime ?? policy.firstResponseMins ?? 0,
+      resolutionTimeMinutes: policy.resolutionTime ?? policy.resolutionMins ?? 0,
+      escalationLevel1Minutes: findLevelMinutes(1) ?? (policy.escalationTime ?? null),
+      escalationLevel2Minutes: findLevelMinutes(2),
+      escalationLevel3Minutes: findLevelMinutes(3),
+      isActive: policy.isActive ?? true,
+      isDeleted: policy.isDeleted ?? false,
+      createdAt: this.ensureDateString(policy.createdAt),
+      updatedAt: this.ensureDateString(policy.updatedAt),
+      escalationContactsCount: policy.escalationContactsCount ?? 0,
+    };
+  }
+
+  private toNumber(value: NumericLike, fallback = 0): number {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+    return fallback;
+  }
+
+  private ensureDateString(value?: string): string {
+    return value ?? new Date().toISOString();
   }
 
   private getMockDepartments(): Department[] {
@@ -931,8 +1248,8 @@ class SettingsApiService {
           { id: 3, name: 'ERP System', description: 'Enterprise Resource Planning', categoryId: 1, isActive: true, order: 3 },
         ]
       },
-      { 
-        id: 2, 
+      {
+        id: 2,
         name: 'Hardware', 
         description: 'Hardware related issues', 
         isActive: true, 
@@ -1011,7 +1328,11 @@ class SettingsApiService {
       { id: 3, name: 'Medium', level: 3, color: '#ca8a04', isActive: true, order: 3 },
       { id: 4, name: 'Low', level: 4, color: '#16a34a', isActive: true, order: 4 },
       { id: 5, name: 'Very Low', level: 5, color: '#6b7280', isActive: true, order: 5 },
-    ];
+    ].map((priority) => ({
+      ...priority,
+      displayOrder: priority.order,
+      isDeleted: false,
+    }));
   }
 
   private getMockTicketStatuses(): TicketStatusConfig[] {
@@ -1344,7 +1665,9 @@ export interface TicketTagDto {
   id: number;
   name: string;
   subCategoryId: number;
+  categoryName?: string;
   isActive: boolean;
+  isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -1352,11 +1675,13 @@ export interface TicketTagDto {
 export interface CreateTicketTagDto {
   name: string;
   subCategoryId: number;
+  isActive?: boolean;
 }
 
 export interface UpdateTicketTagDto {
   name: string;
   subCategoryId: number;
+  isActive?: boolean;
 }
 
 export interface GraphEmailConfigDto {
@@ -1436,11 +1761,12 @@ export interface AdvancedTicketGroupDto {
   description?: string;
   categoryId?: number;
   subcategoryId?: number;
-  assignedAgentIds?: number[];
-  maxTicketsPerAgent?: number;
-  autoAssignmentEnabled?: boolean;
-  totalTickets?: number;
+  assignedAgentIds: number[];
+  maxTicketsPerAgent: number;
+  autoAssignmentEnabled: boolean;
+  totalTickets: number;
   isActive: boolean;
+  isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -1450,8 +1776,10 @@ export interface CreateAdvancedTicketGroupDto {
   description?: string;
   categoryId?: number;
   subcategoryId?: number;
-  assignedAgentIds?: number[];
-  maxTicketsPerAgent?: number;
+  assignedAgentIds: number[];
+  maxTicketsPerAgent: number;
+  autoAssignmentEnabled?: boolean;
+  isActive?: boolean;
 }
 
 export interface UpdateAdvancedTicketGroupDto {
@@ -1461,6 +1789,8 @@ export interface UpdateAdvancedTicketGroupDto {
   subcategoryId?: number;
   assignedAgentIds?: number[];
   maxTicketsPerAgent?: number;
+  autoAssignmentEnabled?: boolean;
+  isActive?: boolean;
 }
 
 export interface TicketGroupAgentDto {
@@ -1481,7 +1811,7 @@ export interface ReorderFieldsRequest {
 // =============================================================================
 
 export interface SlaPolicyDto {
-  id: number;
+  id: string;
   name: string;
   priorityId: number;
   priorityName?: string;
@@ -1491,6 +1821,7 @@ export interface SlaPolicyDto {
   escalationLevel2Minutes?: number | null;
   escalationLevel3Minutes?: number | null;
   isActive: boolean;
+  isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
   escalationContactsCount?: number;
@@ -1508,22 +1839,23 @@ export interface CreateSlaPolicyDto {
   isActive?: boolean;
 }
 
-export interface UpdateSlaPolicyDto extends CreateSlaPolicyDto {}
+export type UpdateSlaPolicyDto = CreateSlaPolicyDto;
 
 export interface SlaEscalationContactDto {
   id: number;
-  slaPolicyId: number;
+  slaPolicyId: string;
   level: number;
   name: string;
   email: string;
   notifyByEmail: boolean;
   notifyBySystem: boolean;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateSlaEscalationContactDto {
-  slaPolicyId: number;
+  slaPolicyId: string;
   level: number;
   name: string;
   email: string;
@@ -1546,7 +1878,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
   // TICKET TAGS API
   // =============================================================================
 
-  async getTicketTags(): Promise<TicketTagDto[]> {
+  async getTicketTags(includeInactive: boolean = false): Promise<TicketTagDto[]> {
     try {
       const token = localStorage.getItem('token');
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -1554,13 +1886,13 @@ class EnhancedSettingsApiService extends SettingsApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${this.baseUrl}/tickets/settings/tags`, { headers });
+      const url = `${this.baseUrl}/tickets/settings/tags${includeInactive ? '?includeInactive=true' : ''}`;
+      const response = await fetch(url, { headers });
       if (!response.ok) {
         console.warn('Tags API not available, using mock data');
         return this.getMockTicketTags();
       }
       const data = await response.json();
-      console.log('✅ Successfully fetched tags from API:', data);
       return Array.isArray(data) ? data : [];
     } catch (error) {
       console.warn('Tags API not available, using mock data:', error);
@@ -1991,7 +2323,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
   // ADVANCED TICKET GROUPS API
   // =============================================================================
 
-  async getAdvancedTicketGroups(): Promise<AdvancedTicketGroupDto[]> {
+  async getAdvancedTicketGroups(includeInactive: boolean = false): Promise<AdvancedTicketGroupDto[]> {
     try {
       const token = localStorage.getItem('token');
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -1999,33 +2331,21 @@ class EnhancedSettingsApiService extends SettingsApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${this.baseUrl}/tickets/settings/groups`, { headers });
+      const params = new URLSearchParams();
+      if (includeInactive) {
+        params.append('includeInactive', 'true');
+      }
+
+      const url = `${this.baseUrl}/tickets/settings/groups${params.toString() ? '?' + params.toString() : ''}`;
+      const response = await fetch(url, { headers });
       if (!response.ok) {
         console.warn('Advanced groups API not available, using mock data');
         return this.getMockAdvancedTicketGroups();
       }
       const rawData = await response.json();
       console.log('✅ Successfully fetched advanced groups from API:', rawData);
-      
-      // Transform API response to match frontend interface
-      const data = Array.isArray(rawData) ? rawData.map((group: any) => ({
-        id: group.id,
-        name: group.name,
-        description: group.description,
-        categoryId: group.categoryId,
-        subcategoryId: group.subCategoryId, // Note: API uses subCategoryId, frontend expects subcategoryId
-        assignedAgentIds: (group.groupAgents || [])
-          .filter((agent: any) => agent.isActive)
-          .map((agent: any) => agent.agentId),
-        maxTicketsPerAgent: group.maxTicketsPerAgent || 10, // Default value if not provided
-        autoAssignmentEnabled: group.autoAssignmentEnabled || false,
-        totalTickets: group.totalTickets || 0,
-        isActive: group.isActive,
-        createdAt: group.createdAt,
-        updatedAt: group.updatedAt
-      })) : [];
-      
-      return data;
+      const groups = Array.isArray(rawData) ? (rawData as RawAdvancedTicketGroup[]) : [];
+      return groups.map((group) => this.normalizeAdvancedTicketGroup(group));
     } catch (error) {
       console.warn('Advanced groups API not available, using mock data:', error);
       return this.getMockAdvancedTicketGroups();
@@ -2040,14 +2360,22 @@ class EnhancedSettingsApiService extends SettingsApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
+      const payload = {
+        ...data,
+        subcategoryId: data.subcategoryId && data.subcategoryId > 0 ? data.subcategoryId : undefined,
+        autoAssignmentEnabled: data.autoAssignmentEnabled ?? false,
+        isActive: data.isActive ?? true,
+      };
+
       const response = await fetch(`${this.baseUrl}/tickets/settings/groups`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(errorText || `HTTP error! status: ${response.status}`);
       }
       
       const result = await response.json();
@@ -2067,14 +2395,20 @@ class EnhancedSettingsApiService extends SettingsApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
+      const payload = {
+        ...data,
+        subcategoryId: data.subcategoryId && data.subcategoryId > 0 ? data.subcategoryId : undefined,
+      };
+
       const response = await fetch(`${this.baseUrl}/tickets/settings/groups/${id}`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(errorText || `HTTP error! status: ${response.status}`);
       }
       
       const result = await response.json();
@@ -2171,7 +2505,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
   // SLA API
   // =============================================================================
 
-  async getSlaPolicies(): Promise<SlaPolicyDto[]> {
+  async getSlaPolicies(includeInactive: boolean = false): Promise<SlaPolicyDto[]> {
     try {
       const token = localStorage.getItem('token');
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -2179,7 +2513,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const url = `${this.baseUrl}/tickets/settings/sla`;
+      const url = `${this.baseUrl}/tickets/settings/sla${includeInactive ? '?includeInactive=true' : ''}`;
       const response = await fetch(url, { headers });
       if (!response.ok) {
         console.warn('SLA policies API not available, using mock data');
@@ -2189,21 +2523,8 @@ class EnhancedSettingsApiService extends SettingsApiService {
       console.log('✅ Successfully fetched SLA policies from API:', data);
       
       // Map API response to expected frontend format
-      const policies = Array.isArray(data) ? data : [];
-      return policies.map((policy: any) => ({
-        id: policy.id, // Keep as string (GUID)
-        name: policy.name,
-        priorityId: policy.priority + 1, // Convert 0-based to 1-based
-        responseTimeMinutes: policy.firstResponseTime || 0,
-        resolutionTimeMinutes: policy.resolutionTime || 0,
-        escalationLevel1Minutes: policy.escalationTime,
-        escalationLevel2Minutes: null,
-        escalationLevel3Minutes: null,
-        isActive: policy.isActive,
-        createdAt: policy.createdAt,
-        updatedAt: policy.updatedAt,
-        escalationContactsCount: policy.escalationContactsCount || 0
-      }));
+      const policies = Array.isArray(data) ? (data as RawSlaPolicy[]) : [];
+      return policies.map((policy) => this.normalizeSlaPolicy(policy));
     } catch (error) {
       console.warn('SLA policies API not available, using mock data:', error);
       return this.getMockSlaPolicies();
@@ -2218,14 +2539,24 @@ class EnhancedSettingsApiService extends SettingsApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
+      const normalizedPriority = data.priorityId > 0 ? data.priorityId - 1 : 0;
+      const createLevel = (level: number, minutes?: number | null) =>
+        minutes != null ? { level, triggerAtMinutes: minutes } : undefined;
+      const escalationLevels = [
+        createLevel(1, data.escalationLevel1Minutes ?? undefined),
+        createLevel(2, data.escalationLevel2Minutes ?? undefined),
+        createLevel(3, data.escalationLevel3Minutes ?? undefined),
+      ].filter((level): level is { level: number; triggerAtMinutes: number } => level !== undefined);
+
       // Map frontend format to backend format
       const backendPayload = {
         name: data.name,
         description: data.description || '',
         category: 0, // Default category
-        priority: data.priorityId - 1, // Convert 1-based to 0-based
+        priority: normalizedPriority,
         firstResponseMins: data.responseTimeMinutes,
-        resolutionMins: data.resolutionTimeMinutes
+        resolutionMins: data.resolutionTimeMinutes,
+        escalationLevels: escalationLevels.length ? escalationLevels : undefined
       };
 
       console.log('📤 Creating SLA policy:', backendPayload);
@@ -2243,28 +2574,15 @@ class EnhancedSettingsApiService extends SettingsApiService {
       
       const result = await response.json();
       console.log('✅ Successfully created SLA policy:', result);
-      
-      // Map response back to frontend format
-      return {
-        id: result.id,
-        name: result.name,
-        priorityId: result.priority + 1, // Convert back to 1-based
-        responseTimeMinutes: result.firstResponseTime,
-        resolutionTimeMinutes: result.resolutionTime,
-        escalationLevel1Minutes: result.escalationTime,
-        escalationLevel2Minutes: null,
-        escalationLevel3Minutes: null,
-        isActive: result.isActive,
-        createdAt: result.createdAt,
-        updatedAt: result.updatedAt
-      };
+
+      return this.normalizeSlaPolicy(result as RawSlaPolicy);
     } catch (error) {
       console.error('Error creating SLA policy:', error);
       throw error;
     }
   }
 
-  async updateSlaPolicy(id: string | number, data: UpdateSlaPolicyDto): Promise<SlaPolicyDto> {
+  async updateSlaPolicy(id: string, data: UpdateSlaPolicyDto): Promise<SlaPolicyDto> {
     try {
       const token = localStorage.getItem('token');
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -2272,15 +2590,25 @@ class EnhancedSettingsApiService extends SettingsApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
+      const normalizedPriority = data.priorityId > 0 ? data.priorityId - 1 : 0;
+      const createLevel = (level: number, minutes?: number | null) =>
+        minutes != null ? { level, triggerAtMinutes: minutes } : undefined;
+      const escalationLevels = [
+        createLevel(1, data.escalationLevel1Minutes ?? undefined),
+        createLevel(2, data.escalationLevel2Minutes ?? undefined),
+        createLevel(3, data.escalationLevel3Minutes ?? undefined),
+      ].filter((level): level is { level: number; triggerAtMinutes: number } => level !== undefined);
+
       // Map frontend format to backend format
       const backendPayload = {
         name: data.name,
         description: data.description || '',
         isActive: data.isActive ?? true,
         category: 0, // Default category
-        priority: data.priorityId - 1, // Convert 1-based to 0-based (1=Low becomes 0, 2=Medium becomes 1, etc.)
+        priority: normalizedPriority,
         firstResponseMins: data.responseTimeMinutes,
-        resolutionMins: data.resolutionTimeMinutes
+        resolutionMins: data.resolutionTimeMinutes,
+        escalationLevels: escalationLevels.length ? escalationLevels : undefined
       };
 
       console.log('📤 Sending update request:', { id, backendPayload });
@@ -2299,28 +2627,15 @@ class EnhancedSettingsApiService extends SettingsApiService {
       
       const result = await response.json();
       console.log('✅ Successfully updated SLA policy:', result);
-      
-      // Map response back to frontend format
-      return {
-        id: result.id,
-        name: result.name,
-        priorityId: result.priority + 1, // Convert back to 1-based
-        responseTimeMinutes: result.firstResponseTime,
-        resolutionTimeMinutes: result.resolutionTime,
-        escalationLevel1Minutes: result.escalationTime,
-        escalationLevel2Minutes: null,
-        escalationLevel3Minutes: null,
-        isActive: result.isActive,
-        createdAt: result.createdAt,
-        updatedAt: result.updatedAt
-      };
+
+      return this.normalizeSlaPolicy(result as RawSlaPolicy);
     } catch (error) {
       console.error('Error updating SLA policy:', error);
       throw error;
     }
   }
 
-  async deleteSlaPolicy(id: string | number): Promise<boolean> {
+  async deleteSlaPolicy(id: string): Promise<boolean> {
     try {
       const token = localStorage.getItem('token');
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -2341,7 +2656,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
     }
   }
 
-  async getEscalationContacts(policyId?: number): Promise<SlaEscalationContactDto[]> {
+  async getEscalationContacts(policyId?: string): Promise<SlaEscalationContactDto[]> {
     try {
       const token = localStorage.getItem('token');
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -2349,7 +2664,9 @@ class EnhancedSettingsApiService extends SettingsApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const url = `${this.baseUrl}/tickets/settings/sla/contacts`;
+      const url = policyId
+        ? `${this.baseUrl}/tickets/settings/sla/contacts?policyId=${encodeURIComponent(policyId)}`
+        : `${this.baseUrl}/tickets/settings/sla/contacts`;
       const response = await fetch(url, { headers });
       if (!response.ok) {
         console.warn('SLA escalation contacts API not available, using mock data');
@@ -2357,7 +2674,15 @@ class EnhancedSettingsApiService extends SettingsApiService {
       }
       const data = await response.json();
       console.log('✅ Successfully fetched escalation contacts from API:', data);
-      return Array.isArray(data) ? data : [];
+      return Array.isArray(data)
+        ? data.map(contact => ({
+            ...contact,
+            slaPolicyId: String(contact.slaPolicyId ?? ''),
+            notifyByEmail: contact.notifyByEmail ?? true,
+            notifyBySystem: contact.notifyBySystem ?? true,
+            isActive: contact.isActive ?? true,
+          }))
+        : [];
     } catch (error) {
       console.warn('SLA escalation contacts API not available, using mock data:', error);
       const mockData = this.getMockEscalationContacts();
@@ -2368,7 +2693,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
     }
   }
 
-  async createEscalationContact(policyId: string | number, data: Omit<CreateSlaEscalationContactDto, 'slaPolicyId'>): Promise<SlaEscalationContactDto> {
+  async createEscalationContact(policyId: string, data: Omit<CreateSlaEscalationContactDto, 'slaPolicyId'>): Promise<SlaEscalationContactDto> {
     try {
       const token = localStorage.getItem('token');
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -2391,7 +2716,13 @@ class EnhancedSettingsApiService extends SettingsApiService {
       
       const result = await response.json();
       console.log('✅ Successfully created escalation contact:', result);
-      return result;
+      return {
+        ...result,
+        slaPolicyId: String(result.slaPolicyId ?? policyId),
+        notifyByEmail: result.notifyByEmail ?? true,
+        notifyBySystem: result.notifyBySystem ?? true,
+        isActive: result.isActive ?? true,
+      };
     } catch (error) {
       console.error('Error creating escalation contact:', error);
       throw error;
@@ -2418,7 +2749,13 @@ class EnhancedSettingsApiService extends SettingsApiService {
       
       const result = await response.json();
       console.log('✅ Successfully updated escalation contact:', result);
-      return result;
+      return {
+        ...result,
+        slaPolicyId: String(result.slaPolicyId ?? ''),
+        notifyByEmail: result.notifyByEmail ?? true,
+        notifyBySystem: result.notifyBySystem ?? true,
+        isActive: result.isActive ?? true,
+      };
     } catch (error) {
       console.error('Error updating escalation contact:', error);
       throw error;
@@ -2457,6 +2794,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
         name: 'Urgent',
         subCategoryId: 1,
         isActive: true,
+        isDeleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       },
@@ -2465,6 +2803,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
         name: 'Bug',
         subCategoryId: 1,
         isActive: true,
+        isDeleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       },
@@ -2473,6 +2812,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
         name: 'Enhancement',
         subCategoryId: 1,
         isActive: true,
+        isDeleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
@@ -2564,7 +2904,10 @@ class EnhancedSettingsApiService extends SettingsApiService {
         subcategoryId: undefined, // Applies to all software subcategories
         assignedAgentIds: [3297],
         maxTicketsPerAgent: 10,
+        autoAssignmentEnabled: true,
+        totalTickets: 0,
         isActive: true, // Now active
+        isDeleted: false,
         createdAt: '2025-09-18T13:06:30.4825709',
         updatedAt: '2025-09-18T13:14:05.4933658'
       },
@@ -2576,7 +2919,10 @@ class EnhancedSettingsApiService extends SettingsApiService {
         subcategoryId: 1, // LT Application subcategory
         assignedAgentIds: [4002],
         maxTicketsPerAgent: 10,
+        autoAssignmentEnabled: true,
+        totalTickets: 0,
         isActive: true,
+        isDeleted: false,
         createdAt: '2025-09-18T13:13:56.5368673',
         updatedAt: '2025-09-18T13:13:56.5368673'
       }
@@ -2586,7 +2932,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
   private getMockSlaPolicies(): SlaPolicyDto[] {
     return [
       {
-        id: 1,
+        id: '1',
         name: 'Standard Support SLA',
         priorityId: 3,
         priorityName: 'Medium',
@@ -2596,12 +2942,13 @@ class EnhancedSettingsApiService extends SettingsApiService {
         escalationLevel2Minutes: 720, // 12 hours
         escalationLevel3Minutes: 960, // 16 hours
         isActive: true,
+        isDeleted: false,
         escalationContactsCount: 3,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       },
       {
-        id: 2,
+        id: '2',
         name: 'Critical Support SLA',
         priorityId: 1,
         priorityName: 'Critical',
@@ -2611,6 +2958,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
         escalationLevel2Minutes: 180, // 3 hours
         escalationLevel3Minutes: null,
         isActive: true,
+        isDeleted: false,
         escalationContactsCount: 2,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -2622,56 +2970,61 @@ class EnhancedSettingsApiService extends SettingsApiService {
     return [
       {
         id: 1,
-        slaPolicyId: 1,
+        slaPolicyId: '1',
         level: 1,
         name: 'Team Lead',
         email: 'team.lead@company.com',
         notifyByEmail: true,
         notifyBySystem: true,
+        isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       },
       {
         id: 2,
-        slaPolicyId: 1,
+        slaPolicyId: '1',
         level: 2,
         name: 'Department Manager',
         email: 'dept.manager@company.com',
         notifyByEmail: true,
         notifyBySystem: false,
+        isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       },
       {
         id: 3,
-        slaPolicyId: 1,
+        slaPolicyId: '1',
         level: 3,
         name: 'Director',
         email: 'director@company.com',
         notifyByEmail: true,
         notifyBySystem: true,
+        isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       },
       {
         id: 4,
-        slaPolicyId: 2,
+        slaPolicyId: '2',
         level: 1,
         name: 'Senior Engineer',
         email: 'senior.engineer@company.com',
         notifyByEmail: true,
         notifyBySystem: true,
+        isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       },
       {
         id: 5,
-        slaPolicyId: 2,
+        slaPolicyId: '2',
         level: 2,
         name: 'Engineering Manager',
         email: 'eng.manager@company.com',
         notifyByEmail: true,
         notifyBySystem: false,
+        isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }

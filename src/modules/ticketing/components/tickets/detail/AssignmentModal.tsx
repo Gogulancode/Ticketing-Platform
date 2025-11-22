@@ -46,8 +46,9 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
       toast.success('Ticket assigned successfully');
       onClose();
     },
-    onError: (error: any) => {
-      toast.error(`Failed to assign ticket: ${error?.message || 'Unknown error'}`);
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to assign ticket: ${message}`);
     }
   });
 
@@ -58,8 +59,9 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
       toast.success('Ticket unassigned successfully');
       onClose();
     },
-    onError: (error: any) => {
-      toast.error(`Failed to unassign ticket: ${error?.message || 'Unknown error'}`);
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to unassign ticket: ${message}`);
     }
   });
 

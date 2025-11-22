@@ -2,6 +2,7 @@ using ERPTraining.Core.DTOs.Ticketing.Sla;
 using ERPTraining.Core.Entities.Ticketing;
 using ERPTraining.Core.Interfaces.Ticketing;
 using ERPTraining.Infrastructure.Data;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -22,54 +23,67 @@ public class SimpleSlaService : ISlaService
 
     public async Task<IEnumerable<SlaPolicyDto>> GetAllPoliciesAsync(bool includeInactive = false, CancellationToken cancellationToken = default)
     {
-        var policies = await _context.SlaPolicies
+        var query = _context.SlaPolicies
             .Include(p => p.EscalationContacts)
-            .ToListAsync(cancellationToken);
+            .Include(p => p.EscalationLevels)
+            .AsQueryable()
+            .Where(p => !p.IsDeleted);
 
-        return policies.Select(p => new SlaPolicyDto(
-            p.Id,
-            p.Category,
-            p.Priority,
-            p.FirstResponseMins,
-            p.ResolutionMins,
-            p.CreatedAt,
-            p.UpdatedAt,
-            p.EscalationContacts?.Count ?? 0
-        ));
+        if (!includeInactive)
+        {
+            query = query.Where(p => p.IsActive);
+        }
+
+        var policies = await query.ToListAsync(cancellationToken);
+
+        return policies.Select(MapPolicyToDto);
     }
 
-    public async Task<SlaPolicyDto?> GetPolicyByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<SlaPolicyDto?> GetPolicyByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        // Convert int id to Guid for database query
-        if (!Guid.TryParse(id.ToString(), out var guidId))
-            return null;
-
         var policy = await _context.SlaPolicies
             .Include(p => p.EscalationContacts)
-            .FirstOrDefaultAsync(p => p.Id == guidId, cancellationToken);
+            .Include(p => p.EscalationLevels)
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
 
         if (policy == null) return null;
 
-        return new SlaPolicyDto(
-            policy.Id,
-            policy.Category,
-            policy.Priority,
-            policy.FirstResponseMins,
-            policy.ResolutionMins,
-            policy.CreatedAt,
-            policy.UpdatedAt,
-            policy.EscalationContacts?.Count ?? 0
-        );
+        return MapPolicyToDto(policy);
     }
 
     public async Task<SlaPolicyDto> CreatePolicyAsync(CreateSlaPolicyRequest request, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new ArgumentException("Policy name is required", nameof(request.Name));
+
+        if (request.FirstResponseMins <= 0)
+            throw new ArgumentException("Response time must be greater than zero", nameof(request.FirstResponseMins));
+
+        if (request.ResolutionMins <= 0)
+            throw new ArgumentException("Resolution time must be greater than zero", nameof(request.ResolutionMins));
+
+        ValidateEscalationLevels(request.EscalationLevels);
+
+        var duplicatePolicy = await _context.SlaPolicies
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                p => p.Category == request.Category &&
+                     p.Priority == request.Priority &&
+                     !p.IsDeleted,
+                cancellationToken);
+
+        if (duplicatePolicy is not null)
+        {
+            throw new InvalidOperationException("An SLA policy already exists for the selected priority. Please update the existing policy instead of creating a new one.");
+        }
+
         var policy = new SlaPolicy
         {
             Id = Guid.NewGuid(),
-            Name = request.Name,
-            Description = request.Description,
-            IsActive = true, // New policies are active by default
+            Name = request.Name.Trim(),
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            IsActive = true,
+            IsDeleted = false,
             Category = request.Category,
             Priority = request.Priority,
             FirstResponseMins = request.FirstResponseMins,
@@ -79,31 +93,73 @@ public class SimpleSlaService : ISlaService
         };
 
         _context.SlaPolicies.Add(policy);
+
+        if (request.EscalationLevels != null && request.EscalationLevels.Any())
+        {
+            foreach (var levelRequest in request.EscalationLevels)
+            {
+                var level = new SlaEscalationLevel
+                {
+                    SlaPolicyId = policy.Id,
+                    Level = levelRequest.Level,
+                    TriggerAtMinutes = levelRequest.TriggerAtMinutes,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.SlaEscalationLevels.Add(level);
+            }
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new SlaPolicyDto(
-            policy.Id,
-            policy.Category,
-            policy.Priority,
-            policy.FirstResponseMins,
-            policy.ResolutionMins,
-            policy.CreatedAt,
-            policy.UpdatedAt,
-            0
-        );
+        _logger.LogInformation("Created SLA policy {PolicyName} with priority {Priority}", policy.Name, policy.Priority);
+
+        var savedPolicy = await _context.SlaPolicies
+            .Include(p => p.EscalationContacts)
+            .Include(p => p.EscalationLevels)
+            .FirstOrDefaultAsync(p => p.Id == policy.Id, cancellationToken);
+
+        return MapPolicyToDto(savedPolicy!);
     }
 
-    public async Task<SlaPolicyDto?> UpdatePolicyAsync(int id, UpdateSlaPolicyRequest request, CancellationToken cancellationToken = default)
+    public async Task<SlaPolicyDto?> UpdatePolicyAsync(Guid id, UpdateSlaPolicyRequest request, CancellationToken cancellationToken = default)
     {
-        if (!Guid.TryParse(id.ToString(), out var guidId))
-            return null;
-
-        var policy = await _context.SlaPolicies.FindAsync(guidId);
+        var policy = await _context.SlaPolicies
+            .Include(p => p.EscalationLevels)
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
+            
         if (policy == null) return null;
 
+        if (request.FirstResponseMins <= 0)
+            throw new ArgumentException("Response time must be greater than zero", nameof(request.FirstResponseMins));
+
+        if (request.ResolutionMins <= 0)
+            throw new ArgumentException("Resolution time must be greater than zero", nameof(request.ResolutionMins));
+
+        ValidateEscalationLevels(request.EscalationLevels);
+
+        var isPriorityChanging = policy.Category != request.Category || policy.Priority != request.Priority;
+
+        if (isPriorityChanging)
+        {
+            var conflictingPolicy = await _context.SlaPolicies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    p => p.Id != id &&
+                         p.Category == request.Category &&
+                         p.Priority == request.Priority &&
+                         !p.IsDeleted,
+                    cancellationToken);
+
+            if (conflictingPolicy is not null)
+            {
+                throw new InvalidOperationException("An SLA policy already exists for the selected priority. Please adjust that policy instead of assigning the same priority twice.");
+            }
+        }
+
         // Update all fields from the request
-        policy.Name = request.Name;
-        policy.Description = request.Description;
+        policy.Name = request.Name.Trim();
+        policy.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
         policy.IsActive = request.IsActive;
         policy.Category = request.Category;
         policy.Priority = request.Priority;
@@ -111,99 +167,84 @@ public class SimpleSlaService : ISlaService
         policy.ResolutionMins = request.ResolutionMins;
         policy.UpdatedAt = DateTime.UtcNow;
 
+        // Update escalation levels
+        if (request.EscalationLevels != null)
+        {
+            // Remove existing levels
+            _context.SlaEscalationLevels.RemoveRange(policy.EscalationLevels);
+            
+            // Add new levels
+            foreach (var levelRequest in request.EscalationLevels)
+            {
+                var level = new SlaEscalationLevel
+                {
+                    SlaPolicyId = policy.Id,
+                    Level = levelRequest.Level,
+                    TriggerAtMinutes = levelRequest.TriggerAtMinutes,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.SlaEscalationLevels.Add(level);
+            }
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
+        _logger.LogInformation("Updated SLA policy {PolicyId} ({PolicyName})", policy.Id, policy.Name);
+
+        policy = await _context.SlaPolicies
+            .Include(p => p.EscalationContacts)
+            .Include(p => p.EscalationLevels)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+        return MapPolicyToDto(policy!);
+    }
+
+    private static void ValidateEscalationLevels(IEnumerable<CreateSlaEscalationLevelRequest>? levels)
+    {
+        if (levels is null) return;
+
+        var levelGroups = levels.GroupBy(level => level.Level).ToList();
+
+        if (levelGroups.Any(group => group.Key < 1 || group.Key > 3))
+            throw new ArgumentException("Escalation levels must be between 1 and 3.", nameof(levels));
+
+        if (levelGroups.Any(group => group.Count() > 1))
+            throw new ArgumentException("Duplicate escalation level definitions are not allowed.", nameof(levels));
+
+        if (levelGroups.SelectMany(group => group).Any(level => level.TriggerAtMinutes <= 0))
+            throw new ArgumentException("Escalation trigger times must be greater than zero.", nameof(levels));
+    }
+
+    private static SlaPolicyDto MapPolicyToDto(SlaPolicy policy)
+    {
         return new SlaPolicyDto(
             policy.Id,
+            policy.Name ?? string.Empty,
+            policy.Description,
             policy.Category,
             policy.Priority,
             policy.FirstResponseMins,
             policy.ResolutionMins,
+            policy.EscalationTime,
+            policy.IsActive,
+            policy.IsDeleted,
             policy.CreatedAt,
             policy.UpdatedAt,
-            policy.EscalationContacts?.Count ?? 0
+            policy.EscalationContacts?.Count ?? 0,
+            policy.EscalationLevels?.Select(level => new SlaEscalationLevelDto(
+                level.Id,
+                level.SlaPolicyId,
+                level.Level,
+                level.TriggerAtMinutes,
+                level.CreatedAt,
+                level.UpdatedAt
+            )).ToList()
         );
     }
 
-    public async Task<bool> DeletePolicyAsync(int id, CancellationToken cancellationToken = default)
+    private static SlaEscalationContactDto MapContactToDto(SlaEscalationContact contact)
     {
-        if (!Guid.TryParse(id.ToString(), out var guidId))
-            return false;
-
-        var policy = await _context.SlaPolicies.FindAsync(guidId);
-        if (policy == null) return false;
-
-        _context.SlaPolicies.Remove(policy);
-        await _context.SaveChangesAsync(cancellationToken);
-        return true;
-    }
-
-    // Escalation Contact methods
-    public async Task<IEnumerable<SlaEscalationContactDto>> GetEscalationContactsAsync(int? slaPolicyId = null, CancellationToken cancellationToken = default)
-    {
-        var query = _context.SlaEscalationContacts.AsQueryable();
-
-        if (slaPolicyId.HasValue)
-        {
-            if (Guid.TryParse(slaPolicyId.Value.ToString(), out var guidId))
-            {
-                query = query.Where(c => c.SlaPolicyId == guidId);
-            }
-        }
-
-        var contacts = await query.ToListAsync(cancellationToken);
-
-        return contacts.Select(c => new SlaEscalationContactDto(
-            c.Id,
-            c.SlaPolicyId,
-            c.Level,
-            c.Name,
-            c.Email,
-            c.NotifyByEmail,
-            c.NotifyBySystem,
-            c.IsActive,
-            c.CreatedAt,
-            c.UpdatedAt
-        ));
-    }
-
-    public async Task<SlaEscalationContactDto> CreateEscalationContactAsync(int slaPolicyId, CreateSlaEscalationContactRequest request, CancellationToken cancellationToken = default)
-    {
-        // For testing, if slaPolicyId is 1, use the first SLA policy from database
-        Guid guidId;
-        if (slaPolicyId == 1)
-        {
-            var firstPolicy = await _context.SlaPolicies.FirstOrDefaultAsync(cancellationToken);
-            if (firstPolicy == null)
-                throw new ArgumentException("No SLA policies found in database", nameof(slaPolicyId));
-            guidId = firstPolicy.Id;
-        }
-        else
-        {
-            if (!Guid.TryParse(slaPolicyId.ToString(), out guidId))
-                throw new ArgumentException("Invalid SLA Policy ID", nameof(slaPolicyId));
-        }
-
-        var policyExists = await _context.SlaPolicies.AnyAsync(p => p.Id == guidId, cancellationToken);
-        if (!policyExists)
-            throw new ArgumentException("SLA Policy not found", nameof(slaPolicyId));
-
-        var contact = new SlaEscalationContact
-        {
-            SlaPolicyId = guidId,
-            Level = request.Level,
-            Name = request.Name,
-            Email = request.Email,
-            NotifyByEmail = request.NotifyByEmail ?? true,
-            NotifyBySystem = request.NotifyBySystem ?? true,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        _context.SlaEscalationContacts.Add(contact);
-        await _context.SaveChangesAsync(cancellationToken);
-
         return new SlaEscalationContactDto(
             contact.Id,
             contact.SlaPolicyId,
@@ -218,18 +259,144 @@ public class SimpleSlaService : ISlaService
         );
     }
 
+    public async Task<bool> DeletePolicyAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var policy = await _context.SlaPolicies.FindAsync(id);
+        if (policy == null) return false;
+
+        if (policy.IsDeleted)
+        {
+            return false;
+        }
+
+        policy.IsActive = false;
+        policy.IsDeleted = true;
+        policy.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Soft deleted SLA policy {PolicyId} ({PolicyName})", policy.Id, policy.Name);
+
+        return true;
+    }
+
+    // Escalation Contact methods
+    public async Task<IEnumerable<SlaEscalationContactDto>> GetEscalationContactsAsync(Guid? slaPolicyId = null, CancellationToken cancellationToken = default)
+    {
+        var query = _context.SlaEscalationContacts.AsQueryable();
+
+        if (slaPolicyId.HasValue)
+        {
+            query = query.Where(contact => contact.SlaPolicyId == slaPolicyId.Value);
+        }
+
+        var contacts = await query
+            .OrderBy(contact => contact.SlaPolicyId)
+            .ThenBy(contact => contact.Level)
+            .ThenBy(contact => contact.Name)
+            .ToListAsync(cancellationToken);
+
+        return contacts.Select(MapContactToDto);
+    }
+
+    public async Task<SlaEscalationContactDto?> GetEscalationContactByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var contact = await _context.SlaEscalationContacts
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        return contact is null ? null : MapContactToDto(contact);
+    }
+
+    public async Task<SlaEscalationContactDto> CreateEscalationContactAsync(Guid slaPolicyId, CreateSlaEscalationContactRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new ArgumentException("Contact name is required.", nameof(request.Name));
+
+        if (string.IsNullOrWhiteSpace(request.Email))
+            throw new ArgumentException("Contact email is required.", nameof(request.Email));
+
+        if (request.Level < 1 || request.Level > 3)
+            throw new ArgumentException("Escalation level must be between 1 and 3.", nameof(request.Level));
+
+        var policyExists = await _context.SlaPolicies
+            .AnyAsync(p => p.Id == slaPolicyId && !p.IsDeleted, cancellationToken);
+
+        if (!policyExists)
+            throw new ArgumentException("SLA policy not found.", nameof(slaPolicyId));
+
+        var contact = new SlaEscalationContact
+        {
+            SlaPolicyId = slaPolicyId,
+            Level = request.Level,
+            Name = request.Name.Trim(),
+            Email = request.Email.Trim(),
+            NotifyByEmail = request.NotifyByEmail ?? true,
+            NotifyBySystem = request.NotifyBySystem ?? true,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.SlaEscalationContacts.Add(contact);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return MapContactToDto(contact);
+    }
+
+    public async Task<SlaEscalationContactDto?> UpdateEscalationContactAsync(int id, UpdateSlaEscalationContactRequest request, CancellationToken cancellationToken = default)
+    {
+        var contact = await _context.SlaEscalationContacts
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        if (contact is null)
+            return null;
+
+        if (request.Level.HasValue)
+        {
+            if (request.Level.Value < 1 || request.Level.Value > 3)
+                throw new ArgumentException("Escalation level must be between 1 and 3.", nameof(request.Level));
+
+            contact.Level = request.Level.Value;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Name))
+            contact.Name = request.Name.Trim();
+
+        if (!string.IsNullOrWhiteSpace(request.Email))
+            contact.Email = request.Email.Trim();
+
+        if (request.NotifyByEmail.HasValue)
+            contact.NotifyByEmail = request.NotifyByEmail.Value;
+
+        if (request.NotifyBySystem.HasValue)
+            contact.NotifyBySystem = request.NotifyBySystem.Value;
+
+        if (request.IsActive.HasValue)
+            contact.IsActive = request.IsActive.Value;
+
+        contact.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return MapContactToDto(contact);
+    }
+
+    public async Task<bool> DeleteEscalationContactAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var contact = await _context.SlaEscalationContacts
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        if (contact is null)
+            return false;
+
+        _context.SlaEscalationContacts.Remove(contact);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
+
     // Stub implementations for other required methods
     public Task<SlaPolicyDto?> GetPolicyByPriorityAsync(int priorityId, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<IEnumerable<SlaEscalationContactDto>> GetEscalationContactsAsync(int slaPolicyId, CancellationToken cancellationToken = default)
-    {
-        return GetEscalationContactsAsync((int?)slaPolicyId, cancellationToken);
-    }
-
-    public Task<SlaEscalationContactDto?> GetEscalationContactByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
@@ -258,29 +425,49 @@ public class SimpleSlaService : ISlaService
     {
         try
         {
-            var ticket = await _context.Tickets.FirstOrDefaultAsync(t => t.Id == ticketId, cancellationToken);
+            var ticket = await _context.Tickets
+                .Include(t => t.SlaPolicy)
+                .FirstOrDefaultAsync(t => t.Id == ticketId, cancellationToken);
+                
             if (ticket == null)
             {
                 _logger.LogWarning("Ticket {TicketId} not found for SLA escalation", ticketId);
                 return false;
             }
 
+            if (ticket.SlaPolicyId == null)
+            {
+                _logger.LogWarning("Ticket {TicketId} does not have an SLA policy assigned", ticketId);
+                return false;
+            }
+
             // Get escalation contacts for this ticket's SLA policy
-            var contacts = await GetEscalationContactsAsync(null, cancellationToken);
+            var contacts = await _context.SlaEscalationContacts
+                .Where(c => c.SlaPolicyId == ticket.SlaPolicyId && c.IsActive && c.NotifyByEmail)
+                .ToListAsync(cancellationToken);
             
-            foreach (var contact in contacts.Where(c => c.IsActive))
+            if (!contacts.Any())
+            {
+                _logger.LogWarning("No active escalation contacts found for SLA policy {SlaPolicyId} on ticket {TicketId}", 
+                    ticket.SlaPolicyId, ticketId);
+                return false;
+            }
+
+            var slaPolicyName = ticket.SlaPolicy?.Name ?? "SLA Policy";
+            
+            foreach (var contact in contacts)
             {
                 await _notificationService.SendSlaBreachEmailAsync(
                     ticket.PublicId?.ToString() ?? ticket.Id.ToString(),
                     ticket.Title,
-                    "Standard SLA Policy", // SLA policy name
+                    slaPolicyName,
                     contact.Level,
                     DateTime.UtcNow, // breach time
                     new[] { contact.Email },
                     cancellationToken);
                     
-                _logger.LogInformation("Sent SLA escalation email to {Email} for ticket #{TicketNumber}", 
-                    contact.Email, ticket.PublicId);
+                _logger.LogInformation("Sent SLA escalation email to {Email} (Level {Level}) for ticket #{TicketNumber}", 
+                    contact.Email, contact.Level, ticket.PublicId);
             }
 
             return true;
@@ -315,22 +502,12 @@ public class SimpleSlaService : ISlaService
         }
     }
 
-    public Task<object> GetSlaPolicyStatsAsync(int slaPolicyId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
+    public Task<object> GetSlaPolicyStatsAsync(Guid slaPolicyId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
     public Task<object> GetOverallSlaPerformanceAsync(DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<SlaEscalationContactDto?> UpdateEscalationContactAsync(int contactId, UpdateSlaEscalationContactRequest request, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<bool> DeleteEscalationContactAsync(int contactId, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }

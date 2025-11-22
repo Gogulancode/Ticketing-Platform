@@ -170,6 +170,26 @@ public class LocalDevAuthService : IAuthService
         };
     }
 
+    public async Task<AuthResponseDto?> RefreshTokenAsync(string userId)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return null;
+        }
+
+        var (token, userDto) = await GenerateTokenAndMapUserAsync(user);
+
+        return new AuthResponseDto
+        {
+            Token = token,
+            User = userDto,
+            Expires = DateTime.UtcNow.AddDays(1)
+        };
+    }
+
     public async Task<UserDto?> UpdateProfileAsync(string userId, UserDto userDto)
     {
         _logger.LogWarning("⚠️ LOCAL DEV AUTH - Profile update not implemented");

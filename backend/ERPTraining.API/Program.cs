@@ -15,6 +15,7 @@ using ERPTraining.Core.Ticketing.Settings.Interfaces;
 using ERPTraining.Infrastructure.Services.Ticketing.Settings;
 using ERPTraining.Infrastructure.Services.Ticketing;
 using ERPTraining.Core.Interfaces.Ticketing;
+using ERPTraining.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,16 +40,16 @@ builder.Services.AddCors(options =>
                 "http://localhost:5178",  // Default Vite port
                 "http://localhost:5179",  // Alternative frontend port
                 "http://localhost:5180",  // Alternative port when 5178 is taken
-                "http://localhost:5181",  // Current frontend port
+                "http://localhost:5181",  // Alternative frontend port
                 "http://localhost:5173",  // Vite default port
                 "http://localhost:5182",  // Alternative frontend port
                 "http://localhost:3000",  // React dev server alternative
                 "http://localhost:8080",  // Generic dev server port
-                "http://localhost",        // Production IIS frontend on port 80
-                "http://localhost:81",     // Production IIS API on port 81
-                "https://localhost",       // Production IIS on port 443
-                "https://support.solutionsnextwave.com",  // Production
-                "http://support.solutionsnextwave.com"    // Staging (HTTP and HTTPS)
+                "https://businesshub.babajishivram.com",  // Production domain (HTTPS)
+                                "http://businesshub.babajishivram.com",   // Production domain (HTTP)
+                                "http://businesshub.babajishivram.com:81", // Production API over HTTP port 81
+                                "https://businesshub.babajishivram.com:449", // Production API over HTTPS port 449
+                "http://support.solutionsnextwave.com"    // Staging
               )
               .AllowAnyMethod()
               .AllowAnyHeader()
@@ -57,8 +58,12 @@ builder.Services.AddCors(options =>
 });
 
 // Add database context
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+Console.WriteLine($"🔧 Using connection string: {connectionString}");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString)
+           .EnableSensitiveDataLogging()  // Enable detailed logging
+           .EnableDetailedErrors());
 
 // Add Identity
 builder.Services.AddIdentity<User, IdentityRole>(options =>
@@ -129,6 +134,7 @@ builder.Services.AddScoped<IModuleService, InfraServices.ModuleService>();
 builder.Services.AddScoped<ISectionService, InfraServices.SectionService>();
 builder.Services.AddScoped<IAssessmentService, InfraServices.AssessmentService>();
 builder.Services.AddScoped<IQuestionService, InfraServices.QuestionService>();
+builder.Services.AddScoped<IERPSyncService, InfraServices.ERPSyncService>();
 
 // Add timezone service for IST handling
 builder.Services.AddScoped<ERPTraining.Core.Services.ITimeZoneService, ERPTraining.Core.Services.TimeZoneService>();
@@ -153,11 +159,13 @@ builder.Services.AddScoped<ERPTraining.Core.Ticketing.Settings.Interfaces.IA_Tic
 builder.Services.AddScoped<ERPTraining.Infrastructure.Services.Ticketing.IEmailConfigurationService, ERPTraining.Infrastructure.Services.Ticketing.EmailConfigurationService>();
 
 // Microsoft Graph Email Services
+builder.Services.AddScoped<ERPTraining.Core.Interfaces.Ticketing.IEmailService, ERPTraining.Infrastructure.Services.Ticketing.MicrosoftGraphEmailService>();
 builder.Services.AddScoped<ERPTraining.Infrastructure.Services.Ticketing.MicrosoftGraphEmailService>();
 builder.Services.AddScoped<ERPTraining.Infrastructure.Services.Ticketing.GraphEmailToTicketProcessor>();
 
 // Email Processing Background Service (Graph API) - Re-enabled for production
 builder.Services.AddHostedService<ERPTraining.Infrastructure.Services.Ticketing.EmailProcessingBackgroundService>();
+builder.Services.AddHostedService<ERPSyncBackgroundService>();
 
 // Auto Assignment Service
 builder.Services.AddScoped<ERPTraining.Core.Interfaces.Ticketing.IAutoAssignmentService, ERPTraining.Infrastructure.Services.Ticketing.AutoAssignmentService>();

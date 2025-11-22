@@ -26,17 +26,23 @@ public class AuthService : IAuthService
         new User { Id = "2", UserName = "qa", Email = "qa@erptraining.com", FirstName = "QA", LastName = "User", Department = "QA", IsActive = true },
         new User { Id = "3", UserName = "manager", Email = "manager@erptraining.com", FirstName = "Manager", LastName = "User", Department = "Management", IsActive = true }
     };
-    private static readonly Dictionary<string, string> DummyPasswords = new()
+    private static readonly Dictionary<string, string> DummyPasswords = new(StringComparer.OrdinalIgnoreCase)
     {
         { "admin@erptraining.com", "admin123" },
+        { "admin", "admin123" },
         { "qa@erptraining.com", "qa123" },
-        { "manager@erptraining.com", "manager123" }
+        { "qa", "qa123" },
+        { "manager@erptraining.com", "manager123" },
+        { "manager", "manager123" }
     };
-    private static readonly Dictionary<string, List<string>> DummyRoles = new()
+    private static readonly Dictionary<string, List<string>> DummyRoles = new(StringComparer.OrdinalIgnoreCase)
     {
         { "admin@erptraining.com", new List<string> { "Admin" } },
+        { "admin", new List<string> { "Admin" } },
         { "qa@erptraining.com", new List<string> { "QA" } },
-        { "manager@erptraining.com", new List<string> { "Manager" } }
+        { "qa", new List<string> { "QA" } },
+        { "manager@erptraining.com", new List<string> { "Manager" } },
+        { "manager", new List<string> { "Manager" } }
     };
 
     public AuthService(IConfiguration config)
@@ -46,33 +52,33 @@ public class AuthService : IAuthService
 
     public Task<AuthResponseDto?> LoginAsync(LoginDto loginDto)
     {
-        var user = DummyUsers.FirstOrDefault(u => u.Email == loginDto.UserName && u.IsActive);
-        if (user == null) return Task.FromResult<AuthResponseDto?>(null);
-        if (!DummyPasswords.TryGetValue(loginDto.UserName, out var pwd) || pwd != loginDto.Password)
-            return Task.FromResult<AuthResponseDto?>(null);
+        var identifier = string.IsNullOrWhiteSpace(loginDto.UserName)
+            ? loginDto.Email
+            : loginDto.UserName;
 
-        var roles = DummyRoles.TryGetValue(loginDto.UserName, out var r) ? r : new List<string> { "User" };
-        var token = GenerateJwtToken(user, roles);
-        var userDto = new UserDto
+        identifier = identifier?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(identifier))
         {
-            Id = user.Id,
-            UserName = user.UserName ?? string.Empty,
-            Email = user.Email ?? string.Empty,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            FullName = user.FullName,
-            Department = user.Department,
-            JoinDate = user.JoinDate,
-            Avatar = user.Avatar,
-            IsActive = user.IsActive,
-            Roles = roles
-        };
-        return Task.FromResult<AuthResponseDto?>(new AuthResponseDto
+            return Task.FromResult<AuthResponseDto?>(null);
+        }
+
+        var user = DummyUsers.FirstOrDefault(u =>
+            u.IsActive && (
+                string.Equals(u.Email, identifier, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(u.UserName, identifier, StringComparison.OrdinalIgnoreCase)));
+
+        if (user == null)
         {
-            Token = token,
-            User = userDto,
-            Expires = DateTime.UtcNow.AddDays(7)
-        });
+            return Task.FromResult<AuthResponseDto?>(null);
+        }
+
+        if (!IsPasswordValid(user, identifier, loginDto.Password))
+        {
+            return Task.FromResult<AuthResponseDto?>(null);
+        }
+
+        var roles = GetRolesForUser(user, identifier);
+        return Task.FromResult<AuthResponseDto?>(BuildAuthResponse(user, roles));
     }
 
     public Task<AuthResponseDto?> RegisterAsync(RegisterDto registerDto)
@@ -90,28 +96,14 @@ public class AuthService : IAuthService
         };
         DummyUsers.Add(user);
         DummyPasswords[registerDto.UserName] = registerDto.Password;
-        DummyRoles[registerDto.UserName] = new List<string> { "User" };
-        var token = GenerateJwtToken(user, DummyRoles[registerDto.UserName]);
-        var userDto = new UserDto
+        var defaultRoles = new List<string> { "User" };
+        DummyRoles[registerDto.UserName] = new List<string>(defaultRoles);
+        if (!string.IsNullOrWhiteSpace(registerDto.Email))
         {
-            Id = user.Id,
-            UserName = user.UserName ?? string.Empty,
-            Email = user.Email ?? string.Empty,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            FullName = user.FullName,
-            Department = user.Department,
-            JoinDate = user.JoinDate,
-            Avatar = user.Avatar,
-            IsActive = user.IsActive,
-            Roles = DummyRoles[registerDto.UserName]
-        };
-        return Task.FromResult<AuthResponseDto?>(new AuthResponseDto
-        {
-            Token = token,
-            User = userDto,
-            Expires = DateTime.UtcNow.AddDays(7)
-        });
+            DummyRoles[registerDto.Email] = new List<string>(defaultRoles);
+        }
+
+        return Task.FromResult<AuthResponseDto?>(BuildAuthResponse(user, defaultRoles));
     }
 
     private string GenerateJwtToken(User user, List<string> roles)
@@ -146,21 +138,8 @@ public class AuthService : IAuthService
     {
         var user = DummyUsers.FirstOrDefault(u => u.Id == userId);
         if (user == null) return Task.FromResult<UserDto?>(null);
-        var roles = DummyRoles.TryGetValue(user.UserName ?? string.Empty, out var r) ? r : new List<string> { "User" };
-        var userDto = new UserDto
-        {
-            Id = user.Id,
-            UserName = user.UserName ?? string.Empty,
-            Email = user.Email ?? string.Empty,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            FullName = user.FullName,
-            Department = user.Department,
-            JoinDate = user.JoinDate,
-            Avatar = user.Avatar,
-            IsActive = user.IsActive,
-            Roles = roles
-        };
+        var roles = GetRolesForUser(user);
+        var userDto = CreateUserDto(user, roles);
         return Task.FromResult<UserDto?>(userDto);
     }
 
@@ -181,5 +160,82 @@ public class AuthService : IAuthService
     {
         // Always return Admin
         return Task.FromResult(new List<string> { "Admin" });
+    }
+
+    public Task<AuthResponseDto?> RefreshTokenAsync(string userId)
+    {
+        var user = DummyUsers.FirstOrDefault(u => u.Id == userId && u.IsActive);
+        if (user == null) return Task.FromResult<AuthResponseDto?>(null);
+
+        var roles = GetRolesForUser(user);
+        return Task.FromResult<AuthResponseDto?>(BuildAuthResponse(user, roles));
+    }
+
+    private static List<string> GetRolesForUser(User user, string? fallbackKey = null)
+    {
+        if (!string.IsNullOrWhiteSpace(fallbackKey) && DummyRoles.TryGetValue(fallbackKey, out var fallbackRoles))
+            return fallbackRoles;
+
+        if (!string.IsNullOrWhiteSpace(user.Email) && DummyRoles.TryGetValue(user.Email, out var emailRoles))
+            return emailRoles;
+
+        if (!string.IsNullOrWhiteSpace(user.UserName) && DummyRoles.TryGetValue(user.UserName, out var usernameRoles))
+            return usernameRoles;
+
+        return new List<string> { "User" };
+    }
+
+    private static bool IsPasswordValid(User user, string identifier, string providedPassword)
+    {
+        if (string.IsNullOrEmpty(providedPassword))
+        {
+            return false;
+        }
+
+        var possibleKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(identifier))
+            possibleKeys.Add(identifier);
+        if (!string.IsNullOrWhiteSpace(user.Email))
+            possibleKeys.Add(user.Email);
+        if (!string.IsNullOrWhiteSpace(user.UserName))
+            possibleKeys.Add(user.UserName);
+
+        foreach (var key in possibleKeys)
+        {
+            if (DummyPasswords.TryGetValue(key, out var storedPassword) && storedPassword == providedPassword)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static UserDto CreateUserDto(User user, List<string> roles)
+    {
+        return new UserDto
+        {
+            Id = user.Id,
+            UserName = user.UserName ?? string.Empty,
+            Email = user.Email ?? string.Empty,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            FullName = user.FullName,
+            Department = user.Department,
+            JoinDate = user.JoinDate,
+            Avatar = user.Avatar,
+            IsActive = user.IsActive,
+            Roles = roles
+        };
+    }
+
+    private AuthResponseDto BuildAuthResponse(User user, List<string> roles)
+    {
+        return new AuthResponseDto
+        {
+            Token = GenerateJwtToken(user, roles),
+            User = CreateUserDto(user, roles),
+            Expires = DateTime.UtcNow.AddDays(7)
+        };
     }
 }

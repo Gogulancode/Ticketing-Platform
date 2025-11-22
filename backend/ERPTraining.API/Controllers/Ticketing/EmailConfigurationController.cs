@@ -396,7 +396,7 @@ public class EmailConfigurationController_Disabled : ControllerBase
     /// </summary>
     [HttpDelete("{id}")]
     // [Authorize(Roles = "Admin")] // Temporarily disabled for testing
-    public async Task<ActionResult> DeleteEmailAccount(int id)
+    public ActionResult DeleteEmailAccount(int id)
     {
         try
         {
@@ -484,7 +484,7 @@ public class EmailConfigurationController_Disabled : ControllerBase
     /// Gets available categories for email mapping
     /// </summary>
     [HttpGet("available-categories")]
-    public async Task<ActionResult<List<string>>> GetAvailableCategories()
+    public ActionResult<List<string>> GetAvailableCategories()
     {
         try
         {

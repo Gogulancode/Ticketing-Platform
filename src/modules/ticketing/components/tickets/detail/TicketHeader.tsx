@@ -2,6 +2,7 @@ import React from 'react';
 import { Send, UserPlus, Edit3 } from 'lucide-react';
 import { Ticket } from '../../../services/ticketsApi';
 import { PriorityLevel, TicketStatusConfig } from '../../../../../shared/services/api/settingsApi';
+import { getDisplayTicketNumber } from '../../../utils/ticketNumber';
 
 interface TicketHeaderProps {
   ticket: Ticket;
@@ -20,24 +21,7 @@ const TicketHeader: React.FC<TicketHeaderProps> = ({
   onAssignClick,
   formatDate
 }) => {
-  // Generate consistent public ID from GUID hash
-  const getPublicTicketId = (ticket: Ticket) => {
-    if (ticket.publicId) {
-      return ticket.publicId.toString();
-    }
-    // Generate a consistent public ID from GUID hash
-    const guidHash = ticket.id.replace(/-/g, '');
-    let hash = 0;
-    for (let i = 0; i < guidHash.length; i++) {
-      const char = guidHash.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    // Generate a 6-digit number starting from 100000
-    const publicId = 100000 + Math.abs(hash) % 900000;
-    return publicId.toString();
-  };
-  const getStatusBadge = (status: any) => {
+  const getStatusBadge = (status: number | string) => {
     const statusConfig = statusConfigs.find(config => config.workflowOrder === status || config.name === status);
     const statusText = typeof status === 'string' ? status : statusConfig?.name || 'Unknown';
     const statusColor = statusConfig?.color || '#6b7280';
@@ -52,7 +36,7 @@ const TicketHeader: React.FC<TicketHeaderProps> = ({
     );
   };
 
-  const getPriorityBadge = (priority: any) => {
+  const getPriorityBadge = (priority: number | string) => {
     const priorityLevel = priorityLevels.find(level => level.level === priority);
     const priorityText = typeof priority === 'string' ? priority : priorityLevel?.level || 'Unknown';
     const priorityColor = priorityLevel?.color || '#6b7280';
@@ -73,7 +57,7 @@ const TicketHeader: React.FC<TicketHeaderProps> = ({
         <div className="flex-1">
           <div className="flex items-center space-x-3 mb-2">
             <h1 className="text-2xl font-bold text-gray-900">
-              #{getPublicTicketId(ticket)} - {ticket.title}
+              #{getDisplayTicketNumber(ticket)} - {ticket.title}
             </h1>
             <div className="flex items-center space-x-2">
               {getStatusBadge(ticket.status)}

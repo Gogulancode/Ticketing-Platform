@@ -13,8 +13,25 @@ import {
 } from 'lucide-react';
 import { useTicketAssignment } from '../hooks/useTicketAssignment';
 
+type TicketPriorityLevel = 'low' | 'medium' | 'high' | 'urgent';
+
+interface TicketFormState {
+  title: string;
+  description: string;
+  departmentId: string;
+  categoryId: string;
+  subcategoryId: string;
+  priority: TicketPriorityLevel;
+  assignedAgentId: string;
+}
+
+interface TicketSubmissionPayload extends TicketFormState {
+  recommendedAgentId?: string;
+  estimatedResolutionTime?: number;
+}
+
 interface EnhancedTicketFormProps {
-  onSubmit: (ticketData: any) => void;
+  onSubmit: (ticketData: TicketSubmissionPayload) => void;
   isLoading?: boolean;
 }
 
@@ -22,13 +39,13 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
   onSubmit, 
   isLoading = false 
 }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<TicketFormState>({
     title: '',
     description: '',
     departmentId: '',
     categoryId: '',
     subcategoryId: '',
-    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
+    priority: 'medium',
     assignedAgentId: ''
   });
 
@@ -40,8 +57,6 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
     availableCategories,
     availableSubcategories,
     recommendedAgents,
-    allAvailableAgents,
-    groupStats,
     loading: assignmentLoading
   } = useTicketAssignment(formData.departmentId, formData.categoryId, formData.subcategoryId);
 
@@ -236,11 +251,11 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
             Priority Level
           </label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {['low', 'medium', 'high', 'urgent'].map((priority) => (
+            {(['low', 'medium', 'high', 'urgent'] as TicketPriorityLevel[]).map((priority) => (
               <button
                 key={priority}
                 type="button"
-                onClick={() => setFormData(prev => ({ ...prev, priority: priority as any }))}
+                onClick={() => setFormData(prev => ({ ...prev, priority }))}
                 className={`p-3 border-2 rounded-lg text-center transition-all ${
                   formData.priority === priority 
                     ? 'border-blue-500 bg-blue-50' 

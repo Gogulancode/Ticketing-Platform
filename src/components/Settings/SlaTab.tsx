@@ -21,6 +21,7 @@ import {
   useDeleteEscalationContact
 } from '../../hooks/useAdvancedSettings';
 import { settingsApi } from '../../api/settingsApi';
+import type { SlaPolicyDto, SlaEscalationContactDto } from '../../api/settingsApi';
 
 // Form validation schema
 const slaPolicySchema = yup.object({
@@ -34,21 +35,6 @@ const slaPolicySchema = yup.object({
   isActive: yup.boolean().optional()
 });
 
-// Interfaces
-interface SlaPolicy {
-  id: string | number; // Support both GUID and number
-  name: string;
-  priorityId: number;
-  priorityName?: string;
-  responseTimeMinutes: number;
-  resolutionTimeMinutes: number;
-  escalationLevel1Minutes?: number | null;
-  escalationLevel2Minutes?: number | null;
-  escalationLevel3Minutes?: number | null;
-  isActive: boolean;
-  createdAt: string;
-}
-
 interface SlaFormData {
   name: string;
   priorityId: number;
@@ -58,16 +44,6 @@ interface SlaFormData {
   escalationLevel2Minutes?: number | null | undefined;
   escalationLevel3Minutes?: number | null | undefined;
   isActive?: boolean | undefined;
-}
-
-interface EscalationContact {
-  id: number;
-  slaPolicyId: number;
-  level: number;
-  name: string;
-  email: string;
-  notifyByEmail: boolean;
-  notifyBySystem: boolean;
 }
 
 // Utility
@@ -83,11 +59,12 @@ const formatDuration = (minutes: number | null | undefined) => {
 const SlaTab: React.FC = () => {
   const [priorities, setPriorities] = useState<Array<{id: number, name: string, color: string}>>([]);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
-  const [editingPolicy, setEditingPolicy] = useState<SlaPolicy | null>(null);
+  const [showInactivePolicies, setShowInactivePolicies] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState<SlaPolicyDto | null>(null);
   
   // Contact management state
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-  const [editingContact, setEditingContact] = useState<EscalationContact | null>(null);
+  const [editingContact, setEditingContact] = useState<SlaEscalationContactDto | null>(null);
   const [contactForm, setContactForm] = useState({
     slaPolicyId: '',
     escalationLevel: '',
@@ -97,7 +74,14 @@ const SlaTab: React.FC = () => {
   });
 
   // React Query hooks
-  const { data: slaPolicies = [], isLoading: loadingPolicies } = useSlaPolicies();
+  const { data: slaPolicies = [], isLoading: loadingPolicies } = useSlaPolicies(showInactivePolicies);
+  const nonDeletedPolicies = slaPolicies.filter(policy => !policy.isDeleted);
+  const visiblePolicies = showInactivePolicies
+    ? nonDeletedPolicies.filter(policy => !policy.isActive)
+    : nonDeletedPolicies.filter(policy => policy.isActive);
+  const emptyStateMessage = showInactivePolicies
+    ? 'No inactive SLA policies. Uncheck "Show inactive" to view active policies.'
+    : 'No SLA policies configured. Create your first SLA policy to get started.';
   const { data: contacts = [] } = useEscalationContacts();
   const createPolicyMutation = useCreateSlaPolicy();
   const updatePolicyMutation = useUpdateSlaPolicy();
@@ -148,7 +132,7 @@ const SlaTab: React.FC = () => {
     setIsPolicyModalOpen(true);
   };
 
-  const openEdit = (policy: SlaPolicy) => {
+  const openEdit = (policy: SlaPolicyDto) => {
     setEditingPolicy(policy);
     reset({
       name: policy.name,
@@ -185,8 +169,8 @@ const SlaTab: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete this SLA policy? This will also delete all associated escalation contacts.')) return;
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Deactivate this SLA policy? You can re-enable it later from the inactive list.')) return;
     try {
       await deletePolicyMutation.mutateAsync(id);
     } catch (err) {
@@ -195,14 +179,14 @@ const SlaTab: React.FC = () => {
   };
 
   // Contact management functions
-  const openEditContact = (contact: EscalationContact) => {
+  const openEditContact = (contact: SlaEscalationContactDto) => {
     setEditingContact(contact);
     setContactForm({
-      slaPolicyId: contact.slaPolicyId?.toString() || '',
+      slaPolicyId: contact.slaPolicyId || '',
       escalationLevel: contact.level?.toString() || '',
       contactName: contact.name || '',
       contactEmail: contact.email || '',
-      isActive: true
+      isActive: contact.isActive ?? true
     });
     setIsContactModalOpen(true);
   };
@@ -233,18 +217,28 @@ const SlaTab: React.FC = () => {
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const level = parseInt(contactForm.escalationLevel, 10);
+      if (Number.isNaN(level)) {
+        console.error('Escalation level must be a valid number');
+        return;
+      }
+
       if (editingContact) {
         const updateData = {
-          level: parseInt(contactForm.escalationLevel),
+          level,
           name: contactForm.contactName,
           email: contactForm.contactEmail,
-          notifyByEmail: true,
-          notifyBySystem: true
+          notifyByEmail: editingContact.notifyByEmail,
+          notifyBySystem: editingContact.notifyBySystem
         };
         await updateContactMutation.mutateAsync({ contactId: editingContact.id, data: updateData });
       } else {
+        if (!contactForm.slaPolicyId) {
+          console.error('SLA policy must be selected before creating a contact');
+          return;
+        }
         const createData = {
-          level: parseInt(contactForm.escalationLevel),
+          level,
           name: contactForm.contactName,
           email: contactForm.contactEmail,
           notifyByEmail: true,
@@ -300,13 +294,24 @@ const SlaTab: React.FC = () => {
       {/* Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h2 className="text-lg font-medium text-gray-900">SLA Policies</h2>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <PlusIcon className="h-4 w-4 mr-1.5" />
-          Add SLA Policy
-        </button>
+        <div className="flex items-center gap-3">
+          <label className="inline-flex items-center text-sm text-gray-600">
+            <input
+              type="checkbox"
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-2"
+              checked={showInactivePolicies}
+              onChange={(event) => setShowInactivePolicies(event.target.checked)}
+            />
+            Show inactive
+          </label>
+          <button
+            onClick={openCreate}
+            className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <PlusIcon className="h-4 w-4 mr-1.5" />
+            Add SLA Policy
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -348,7 +353,7 @@ const SlaTab: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {slaPolicies.map((p) => {
+              {visiblePolicies.map((p) => {
                 const priority = priorities.find(pr => pr.id === p.priorityId);
                 return (
                   <tr key={p.id}>
@@ -427,13 +432,13 @@ const SlaTab: React.FC = () => {
                   </tr>
                 );
               })}
-              {slaPolicies.length === 0 && (
+              {visiblePolicies.length === 0 && (
                 <tr>
                   <td
                     colSpan={7}
                     className="px-3 sm:px-6 py-8 text-center text-gray-500 text-sm"
                   >
-                    No SLA policies configured. Create your first SLA policy to get started.
+                    {emptyStateMessage}
                   </td>
                 </tr>
               )}

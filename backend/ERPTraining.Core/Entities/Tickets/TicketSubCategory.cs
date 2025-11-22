@@ -10,6 +10,7 @@ public class TicketSubCategory
     public int DisplayOrder { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; }
     
     // Navigation property
     public virtual TicketCategory Category { get; set; } = null!;

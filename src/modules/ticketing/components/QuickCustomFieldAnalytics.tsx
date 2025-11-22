@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, AlertCircle, CheckCircle, Clock, Circle } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertCircle } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
 
 interface CustomFieldAnalyticsProps {
@@ -7,11 +7,51 @@ interface CustomFieldAnalyticsProps {
   className?: string;
 }
 
+interface CustomFieldValueStats {
+  value: string;
+  totalTickets: number;
+  openCount: number;
+  inProgressCount: number;
+  resolvedCount: number;
+  closedCount: number;
+  resolutionRate: number;
+}
+
+interface CustomFieldDetail {
+  fieldName: string;
+  values: CustomFieldValueStats[];
+}
+
+interface SubcategoryAnalytics {
+  subcategoryName: string;
+  totalTickets: number;
+  customFields: CustomFieldDetail[];
+}
+
+interface CategoryAnalytics {
+  categoryName: string;
+  totalTickets: number;
+  subcategories: SubcategoryAnalytics[];
+}
+
+interface CustomFieldAnalyticsResponse {
+  dateRange: {
+    startDate: string;
+    endDate: string;
+  };
+  summary: {
+    totalCategories: number;
+    totalTickets: number;
+    totalRecords: number;
+  };
+  data: CategoryAnalytics[];
+}
+
 const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({ 
   days = 7, 
   className = '' 
 }) => {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<CustomFieldAnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +66,7 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
           throw new Error(`API Error: ${response.status}`);
         }
         
-        const result = await response.json();
+        const result = (await response.json()) as CustomFieldAnalyticsResponse;
         console.log('✅ Analytics loaded:', result);
         setData(result);
       } catch (err) {
@@ -40,8 +80,8 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
     loadData();
   }, [days]);
 
-  const getStatusBadge = (type: string, count: number) => {
-    const badges = {
+  const getStatusBadge = (type: 'open' | 'inProgress' | 'resolved' | 'closed', count: number) => {
+    const badges: Record<'open' | 'inProgress' | 'resolved' | 'closed', string> = {
       open: 'bg-blue-100 text-blue-800',
       inProgress: 'bg-yellow-100 text-yellow-800', 
       resolved: 'bg-green-100 text-green-800',
@@ -49,7 +89,7 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
     };
     
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${badges[type as keyof typeof badges]}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${badges[type]}`}>
         {count}
       </span>
     );
@@ -130,7 +170,7 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
 
       {/* Data by Category */}
       <div className="space-y-4">
-        {data.data.map((category: any, catIndex: number) => (
+        {data.data.map((category, catIndex) => (
           <div key={catIndex} className="border border-gray-200 rounded-lg overflow-hidden">
             <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
               <div className="flex justify-between items-center">
@@ -140,7 +180,7 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
             </div>
             
             <div className="p-4 space-y-3">
-              {category.subcategories.map((subcategory: any, subIndex: number) => (
+              {category.subcategories.map((subcategory, subIndex) => (
                 <div key={subIndex} className="bg-blue-50 rounded-lg p-3">
                   <div className="flex justify-between items-center mb-3">
                     <span className="font-medium text-blue-900">{subcategory.subcategoryName}</span>
@@ -148,12 +188,12 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
                   </div>
                   
                   <div className="space-y-2">
-                    {subcategory.customFields.map((field: any, fieldIndex: number) => (
+                    {subcategory.customFields.map((field, fieldIndex) => (
                       <div key={fieldIndex} className="bg-white rounded border border-blue-200 p-3">
                         <div className="font-medium text-gray-900 mb-2">{field.fieldName}</div>
                         
                         <div className="space-y-2">
-                          {field.values.map((value: any, valueIndex: number) => (
+                          {field.values.map((value, valueIndex) => (
                             <div key={valueIndex} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
                               <div className="flex items-center space-x-3">
                                 <span className="font-semibold text-gray-800">{value.value}</span>

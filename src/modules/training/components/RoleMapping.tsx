@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LoadingSpinner from '../../../components/LoadingSpinner';
 
 const API_BASE = 'http://localhost:5015/api'; // Backend API base URL
 
@@ -295,8 +296,7 @@ const RoleMapping: React.FC = () => {
 
       {loading && (
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-2"></div>
-          <span>Loading role access data...</span>
+          <LoadingSpinner size="md" message="Loading role access data..." />
         </div>
       )}
     </div>

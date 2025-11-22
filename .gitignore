@@ -22,6 +22,9 @@ dist-ssr
 
 # Generated artifacts
 artifacts/
+backend/ERPTraining.API/attachments/
+backend/ERPTraining.API/uploads/
+backend/ERPTraining.API/temp/
 
 # Editor directories and files
 .vscode/*
@@ -34,3 +37,5 @@ artifacts/
 *.sln
 *.sw?
 .env
+.env.*
+*.env

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MessageCircle, Send, Lock, User, Clock, StickyNote, Reply, Forward, Mail } from 'lucide-react';
+import { MessageCircle, Send, Lock, User, Clock, StickyNote, Reply, Forward, Mail, Paperclip, Download } from 'lucide-react';
 import { commentsApi, type Comment, type AddCommentRequest } from '../../../../../shared/services/api/commentsApi';
 import { ticketForwardService, type ForwardRequest } from '../../../../../shared/services/ticketForwardService';
 import { ticketEmailUtility } from '../../../../../shared/services/ticketEmailUtility';
@@ -8,10 +8,11 @@ import { ticketEmailUtility } from '../../../../../shared/services/ticketEmailUt
 interface TicketCommentsProps {
   ticketId: string;
   ticketTitle?: string; // Add ticket title for better context
+  ticketNumber?: string; // Public/Display ticket number for subjects
   isAgent?: boolean; // If true, can see internal comments and add internal comments
 }
 
-const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, isAgent = false }) => {
+const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, ticketNumber, isAgent = false }) => {
   const queryClient = useQueryClient();
   const [newComment, setNewComment] = useState('');
   const [isInternal, setIsInternal] = useState(false);
@@ -50,20 +51,20 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
     },
   });
 
+  const effectiveTicketNumber = ticketNumber || ticketEmailUtility.generateTicketNumber(ticketId);
+
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
     setIsSubmitting(true);
-    const ticketNumber = ticketEmailUtility.generateTicketNumber(ticketId);
-    
     addCommentMutation.mutate({
       Content: newComment.trim(),  // Changed to PascalCase
       IsInternal: isInternal       // Changed to PascalCase
     });
     
     // Log what email subject would be sent to user for tracking
-    console.log(`📧 Email notification subject: [Ticket #${ticketNumber}] ${ticketTitle || 'Support Request'} - Comment Update`);
+    console.log(`📧 Email notification subject: [Ticket #${effectiveTicketNumber}] ${ticketTitle || 'Support Request'} - Comment Update`);
     console.log(`📧 When user replies to this email, it becomes a comment (no duplicate tickets)`);
   };
 
@@ -72,7 +73,6 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
     if (!replyText.trim()) return;
 
     setIsSubmitting(true);
-    const ticketNumber = ticketEmailUtility.generateTicketNumber(ticketId);
     const replyContent = `[Reply to Comment #${commentId}] ${replyText.trim()}`;
     
     addCommentMutation.mutate({
@@ -83,7 +83,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
     setReplyText('');
     
     // If configured, send email notification with proper subject
-    console.log(`📧 Reply would have subject: Re: [Ticket #${ticketNumber}] ${ticketTitle || 'Support Request'}`);
+    console.log(`📧 Reply would have subject: Re: [Ticket #${effectiveTicketNumber}] ${ticketTitle || 'Support Request'}`);
   };
 
   // Handle forward ticket
@@ -93,15 +93,13 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
     setIsForwarding(true);
     try {
       // Generate ticket number for tracking
-      const ticketNumber = ticketEmailUtility.generateTicketNumber(ticketId);
-      
       const forwardRequest: ForwardRequest = {
         ticketId,
         toEmail: forwardEmail,
         message: forwardMessage,
         includeHistory: true,
         forwardType: 'agent', // Assume internal forwarding for now
-        ticketNumber: ticketNumber,
+        ticketNumber: effectiveTicketNumber,
         ticketTitle: ticketTitle || 'Support Request'
       };
       
@@ -114,7 +112,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
         setForwardEmail('');
         setForwardMessage('');
         
-        console.log(`✅ Ticket #${ticketNumber} forwarded successfully with subject: Fwd: [Ticket #${ticketNumber}] ${ticketTitle || 'Support Request'}`);
+        console.log(`✅ Ticket #${effectiveTicketNumber} forwarded successfully with subject: Fwd: [Ticket #${effectiveTicketNumber}] ${ticketTitle || 'Support Request'}`);
       } else {
         console.error('Failed to forward ticket:', result.message);
         alert('Failed to forward ticket: ' + result.message);
@@ -191,12 +189,18 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
             <p>No comments yet. Be the first to add one!</p>
           </div>
         ) : (
-          visibleComments.map((comment: Comment) => (
-            <div key={comment.id} className={`p-4 rounded-lg border ${
-              comment.isInternal ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'
-            }`}>
-              {/* Comment Header */}
-              <div className="flex items-start justify-between mb-2">
+          visibleComments.map((comment: Comment) => {
+            const hasAttachments = comment.attachments && comment.attachments.length > 0;
+            return (
+              <div key={comment.id} className={`p-4 rounded-lg border ${
+                comment.isInternal 
+                  ? 'bg-yellow-50 border-yellow-200' 
+                  : hasAttachments
+                    ? 'bg-blue-50 border-blue-300 shadow-sm'
+                    : 'bg-gray-50 border-gray-200'
+              }`}>
+                {/* Comment Header */}
+                <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
                   {comment.isInternal ? (
                     <StickyNote className="h-4 w-4 text-yellow-600" />
@@ -244,8 +248,48 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
               <div className="text-gray-700 whitespace-pre-wrap">
                 {comment.body}
               </div>
+
+              {/* Comment Attachments */}
+              {comment.attachments && comment.attachments.length > 0 && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2 text-sm font-medium text-blue-900">
+                    <Paperclip className="h-4 w-4" />
+                    {comment.attachments.length} Attachment{comment.attachments.length > 1 ? 's' : ''}
+                  </div>
+                  <div className="space-y-2">
+                    {comment.attachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="flex items-center justify-between p-2 bg-white rounded border border-blue-200 hover:bg-blue-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Paperclip className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">
+                              {attachment.fileName}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {(attachment.sizeBytes / 1024).toFixed(2)} KB • {new Date(attachment.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                        <a
+                          href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015'}/api/tickets-v2/attachments/${attachment.id}/download`}
+                          download={attachment.fileName}
+                          className="flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
+                          title="Download attachment"
+                        >
+                          <Download className="h-4 w-4" />
+                          Download
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          ))
+          );
+          })
         )}
       </div>
 
@@ -395,7 +439,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                 <label className="w-16 text-sm font-medium text-gray-700">Subject:</label>
                 <input
                   type="text"
-                  value={`Fwd: [Ticket #${ticketEmailUtility.generateTicketNumber(ticketId)}] ${ticketTitle || 'Support Request'}`}
+                  value={`Fwd: [Ticket #${effectiveTicketNumber}] ${ticketTitle || 'Support Request'}`}
                   readOnly
                   className="flex-1 px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-600"
                 />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MessageSquare, Send, EyeOff, User, Clock } from 'lucide-react';
 import { ticketsV2Api, TicketV2Comment, CommentRequest } from '../services/ticketsV2Api';
 
@@ -17,7 +17,7 @@ const TicketCommentsV2: React.FC<TicketCommentsV2Props> = ({ ticketId, isAgent =
   const [addingComment, setAddingComment] = useState(false);
 
   // Load comments
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     try {
       setLoading(true);
       const commentsData = await ticketsV2Api.getComments(ticketId);
@@ -30,7 +30,7 @@ const TicketCommentsV2: React.FC<TicketCommentsV2Props> = ({ ticketId, isAgent =
     } finally {
       setLoading(false);
     }
-  };
+  }, [ticketId, onCommentsCountChange]);
 
   // Add new comment
   const handleAddComment = async () => {
@@ -56,7 +56,7 @@ const TicketCommentsV2: React.FC<TicketCommentsV2Props> = ({ ticketId, isAgent =
 
   useEffect(() => {
     loadComments();
-  }, [ticketId]);
+  }, [loadComments]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

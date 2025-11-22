@@ -1,25 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { 
-  settingsApi, 
-  TicketTagDto, 
+import { settingsApi } from '../api/settingsApi';
+import type { 
   CreateTicketTagDto, 
   UpdateTicketTagDto,
-  GraphEmailConfigDto,
   CreateGraphEmailConfigDto,
   UpdateGraphEmailConfigDto,
-  TicketFieldSettingDto,
   CreateTicketFieldSettingDto,
   UpdateTicketFieldSettingDto,
-  AdvancedTicketGroupDto,
   CreateAdvancedTicketGroupDto,
   UpdateAdvancedTicketGroupDto,
   ReorderFieldsRequest,
-  TicketGroupAgentDto,
-  SlaPolicyDto,
   CreateSlaPolicyDto,
   UpdateSlaPolicyDto,
-  SlaEscalationContactDto,
   CreateSlaEscalationContactDto,
   UpdateSlaEscalationContactDto
 } from '../api/settingsApi';
@@ -258,10 +251,10 @@ export const useReorderTicketFields = () => {
 // ADVANCED TICKET GROUPS HOOKS
 // =============================================================================
 
-export const useAdvancedTicketGroups = () => {
+export const useAdvancedTicketGroups = (includeInactive: boolean = false) => {
   return useQuery({
-    queryKey: ['advanced-ticket-groups'],
-    queryFn: () => settingsApi.getAdvancedTicketGroups(),
+    queryKey: ['advanced-ticket-groups', includeInactive],
+    queryFn: () => settingsApi.getAdvancedTicketGroups(includeInactive),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
@@ -358,16 +351,16 @@ export const useRemoveAgentFromGroup = () => {
 // SLA HOOKS
 // =============================================================================
 
-export const useSlaPolicies = () => {
+export const useSlaPolicies = (includeInactive: boolean = false) => {
   return useQuery({
-    queryKey: ['sla-policies'],
-    queryFn: () => settingsApi.getSlaPolicies(),
+    queryKey: ['sla-policies', includeInactive],
+    queryFn: () => settingsApi.getSlaPolicies(includeInactive),
     staleTime: 0, // Force fresh data
     gcTime: 0, // Don't cache
   });
 };
 
-export const useEscalationContacts = (policyId?: number) => {
+export const useEscalationContacts = (policyId?: string) => {
   return useQuery({
     queryKey: policyId ? ['escalation-contacts', policyId] : ['escalation-contacts'],
     queryFn: () => settingsApi.getEscalationContacts(policyId),
@@ -395,7 +388,7 @@ export const useUpdateSlaPolicy = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: string | number; data: UpdateSlaPolicyDto }) => 
+    mutationFn: ({ id, data }: { id: string; data: UpdateSlaPolicyDto }) => 
       settingsApi.updateSlaPolicy(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sla-policies'] });
@@ -411,7 +404,7 @@ export const useDeleteSlaPolicy = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: string | number) => settingsApi.deleteSlaPolicy(id),
+    mutationFn: (id: string) => settingsApi.deleteSlaPolicy(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sla-policies'] });
       queryClient.invalidateQueries({ queryKey: ['escalation-contacts'] });
@@ -427,7 +420,7 @@ export const useCreateEscalationContact = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ policyId, data }: { policyId: string | number; data: Omit<CreateSlaEscalationContactDto, 'slaPolicyId'> }) => 
+    mutationFn: ({ policyId, data }: { policyId: string; data: Omit<CreateSlaEscalationContactDto, 'slaPolicyId'> }) => 
       settingsApi.createEscalationContact(policyId, data),
     onSuccess: (_, { policyId }) => {
       queryClient.invalidateQueries({ queryKey: ['escalation-contacts'] });

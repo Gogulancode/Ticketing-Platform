@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import LoadingSpinner from '../../../components/LoadingSpinner';
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -732,7 +733,7 @@ const ModulesPage: React.FC = () => {
                         } ${moduleToggleLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         {moduleToggleLoading ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          <LoadingSpinner size="sm" />
                         ) : module.isActive ? (
                           <ToggleRight className="w-4 h-4" />
                         ) : (
@@ -777,10 +778,7 @@ const ModulesPage: React.FC = () => {
                 <div className="border-t border-gray-200 bg-gray-50">
                   {isLoadingSections ? (
                     <div className="p-6 text-center">
-                      <div className="inline-flex items-center gap-2 text-gray-600">
-                        <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                        Loading sections...
-                      </div>
+                      <LoadingSpinner size="md" message="Loading sections..." />
                     </div>
                   ) : sections.length > 0 ? (
                     <div className="p-6">
@@ -833,7 +831,7 @@ const ModulesPage: React.FC = () => {
                                     } ${sectionToggleLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                                   >
                                     {sectionToggleLoading ? (
-                                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                      <LoadingSpinner size="sm" />
                                     ) : section.isActive ? (
                                       <ToggleRight className="w-4 h-4" />
                                     ) : (

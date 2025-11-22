@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { User, Clock, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
 
@@ -18,16 +18,31 @@ interface AgentPerformanceWidgetProps {
   department?: string | null;
 }
 
+const PLACEHOLDER_NAME_REGEX = /^agent\s+\d+$/i;
+
+const getAgentDisplayName = (agent: AgentPerformance) => {
+  const trimmedName = agent.agentName?.trim();
+  if (trimmedName && !PLACEHOLDER_NAME_REGEX.test(trimmedName)) {
+    return trimmedName;
+  }
+
+  if (agent.agentEmail) {
+    const localPart = agent.agentEmail.split('@')[0];
+    if (localPart) {
+      return localPart.replace(/\./g, ' ');
+    }
+    return agent.agentEmail;
+  }
+
+  return 'Unassigned Agent';
+};
+
 const AgentPerformanceWidget: React.FC<AgentPerformanceWidgetProps> = ({ department }) => {
   const [agents, setAgents] = useState<AgentPerformance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchAgentPerformance();
-  }, [department]);
-
-  const fetchAgentPerformance = async () => {
+  const fetchAgentPerformance = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/agent-performance?days=7`);
@@ -40,9 +55,12 @@ const AgentPerformanceWidget: React.FC<AgentPerformanceWidgetProps> = ({ departm
       // Filter by department if specified (non-admin user)
       let filteredAgents = result.data || [];
       if (department) {
-        filteredAgents = filteredAgents.filter((agent: AgentPerformance) => 
-          agent.department?.toLowerCase() === department.toLowerCase()
-        );
+        const hasDepartmentInfo = filteredAgents.some((agent: AgentPerformance) => agent.department);
+        if (hasDepartmentInfo) {
+          filteredAgents = filteredAgents.filter((agent: AgentPerformance) => 
+            agent.department?.toLowerCase() === department.toLowerCase()
+          );
+        }
       }
       
       setAgents(filteredAgents);
@@ -53,7 +71,11 @@ const AgentPerformanceWidget: React.FC<AgentPerformanceWidgetProps> = ({ departm
     } finally {
       setLoading(false);
     }
-  };
+  }, [department]);
+
+  useEffect(() => {
+    fetchAgentPerformance();
+  }, [fetchAgentPerformance]);
 
   const getPerformanceColor = (rate: number) => {
     if (rate >= 80) return 'text-green-600 bg-green-100';
@@ -108,16 +130,21 @@ const AgentPerformanceWidget: React.FC<AgentPerformanceWidgetProps> = ({ departm
         </div>
       ) : (
         <div className="space-y-4 max-h-96 overflow-y-auto">
-          {agents.map((agent, index) => (
-            <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+          {agents.map((agent, index) => {
+            const displayName = getAgentDisplayName(agent);
+            return (
+              <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                     <User className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">{agent.agentName}</h4>
-                    <p className="text-sm text-gray-600">{agent.agentEmail}</p>
+                      <h4 className="font-medium text-gray-900">{displayName}</h4>
+                      <p className="text-sm text-gray-600">{agent.agentEmail}</p>
+                      {agent.department && (
+                        <p className="text-xs text-gray-500">{agent.department}</p>
+                      )}
                   </div>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-xs font-medium ${getPerformanceColor(agent.resolutionRate)}`}>
@@ -168,8 +195,9 @@ const AgentPerformanceWidget: React.FC<AgentPerformanceWidgetProps> = ({ departm
                   ></div>
                 </div>
               </div>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

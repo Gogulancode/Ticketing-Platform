@@ -39,8 +39,10 @@ export interface TicketUpdateRequest {
   subcategoryId?: number;
   departmentId?: number;
   assignedToUserId?: string;
-  customFields?: { [key: string]: any }; // Add support for custom fields
+  customFields?: Record<string, CustomFieldValue | CustomFieldValue[]>; // Add support for custom fields
 }
+
+type CustomFieldValue = string | number | boolean | null;
 
 export interface CommentRequest {
   content: string;
@@ -64,6 +66,8 @@ export interface MergeRequest {
 
 const API_BASE = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets-v2`;
 
+type ApiJson = Record<string, unknown>;
+
 // Helper function to get auth headers
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');
@@ -75,7 +79,7 @@ function getAuthHeaders(): Record<string, string> {
 
 export const ticketsV2Api = {
   // Get single ticket
-  async getTicket(ticketId: string): Promise<any> {
+  async getTicket(ticketId: string): Promise<ApiJson> {
     const response = await fetch(`${API_BASE}/${ticketId}`, {
       headers: getAuthHeaders(),
     });
@@ -96,7 +100,7 @@ export const ticketsV2Api = {
     return response.json();
   },
 
-  async addComment(ticketId: string, comment: { content: string; isInternal: boolean }): Promise<any> {
+  async addComment(ticketId: string, comment: { content: string; isInternal: boolean }): Promise<ApiJson> {
     const response = await fetch(`${API_BASE}/${ticketId}/comments`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -142,7 +146,7 @@ export const ticketsV2Api = {
   },
 
   // Ticket Updates
-  async updateTicket(ticketId: string, update: TicketUpdateRequest): Promise<any> {
+  async updateTicket(ticketId: string, update: TicketUpdateRequest): Promise<ApiJson> {
     const response = await fetch(`${API_BASE}/${ticketId}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
@@ -155,7 +159,7 @@ export const ticketsV2Api = {
   },
 
   // Delete Ticket
-  async deleteTicket(ticketId: string, reason: string): Promise<any> {
+  async deleteTicket(ticketId: string, reason: string): Promise<ApiJson> {
     const response = await fetch(`${API_BASE}/${ticketId}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
@@ -184,7 +188,7 @@ export const ticketsV2Api = {
   },
 
   // Merge Tickets
-  async mergeTickets(primaryTicketId: string, mergeRequest: MergeRequest): Promise<any> {
+  async mergeTickets(primaryTicketId: string, mergeRequest: MergeRequest): Promise<ApiJson> {
     const response = await fetch(`${API_BASE}/${primaryTicketId}/merge`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -197,7 +201,7 @@ export const ticketsV2Api = {
   },
 
   // Get Merged Tickets Info
-  async getMergedInfo(ticketId: string): Promise<any> {
+  async getMergedInfo(ticketId: string): Promise<ApiJson> {
     const response = await fetch(`${API_BASE}/${ticketId}/merged-info`, {
       headers: getAuthHeaders(),
     });
@@ -208,7 +212,7 @@ export const ticketsV2Api = {
   },
 
   // Email Functions
-  async replyEmail(ticketId: string, replyMessage: string, sentByUserId?: string): Promise<any> {
+  async replyEmail(ticketId: string, replyMessage: string, sentByUserId?: string): Promise<ApiJson> {
     const response = await fetch(`${API_BASE}/${ticketId}/reply-email`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -220,7 +224,7 @@ export const ticketsV2Api = {
     return response.json();
   },
 
-  async forwardEmail(ticketId: string, recipientEmail: string, forwardMessage: string, recipientName?: string, sentByUserId?: string): Promise<any> {
+  async forwardEmail(ticketId: string, recipientEmail: string, forwardMessage: string, recipientName?: string, sentByUserId?: string): Promise<ApiJson> {
     const response = await fetch(`${API_BASE}/${ticketId}/forward-email`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -232,7 +236,7 @@ export const ticketsV2Api = {
     return response.json();
   },
 
-  async processEmail(fromEmail: string, subject: string, body: string): Promise<any> {
+  async processEmail(fromEmail: string, subject: string, body: string): Promise<ApiJson> {
     const response = await fetch(`${API_BASE}/process-email`, {
       method: 'POST',
       headers: getAuthHeaders(),

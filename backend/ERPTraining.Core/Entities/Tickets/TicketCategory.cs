@@ -11,6 +11,7 @@ public class TicketCategory
     public string? IconName { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; }
     
     // Navigation properties
     public virtual ICollection<TicketSubCategory> SubCategories { get; set; } = new List<TicketSubCategory>();

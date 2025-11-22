@@ -79,12 +79,14 @@ public class TicketComment
     // Navigation properties for Infrastructure compatibility
     public virtual Ticket? Ticket { get; set; }
     public virtual User? AuthorUser { get; set; }
+    public virtual ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
 }
 
 public class Attachment
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid TicketId { get; set; }
+    public Guid? CommentId { get; set; } // Link attachment to specific comment (nullable for ticket-level attachments)
     public string FileName { get; set; } = string.Empty;
     public string ContentType { get; set; } = string.Empty;
     public long SizeBytes { get; set; }
@@ -94,6 +96,7 @@ public class Attachment
     
     // Navigation properties for Infrastructure compatibility
     public virtual Ticket? Ticket { get; set; }
+    public virtual TicketComment? Comment { get; set; }
     public virtual User? UploadedByUser { get; set; }
 }
 

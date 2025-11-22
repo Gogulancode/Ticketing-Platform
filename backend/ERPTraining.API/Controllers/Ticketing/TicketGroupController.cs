@@ -9,26 +9,26 @@ namespace ERPTraining.API.Controllers.Ticketing;
 [Route("api/tickets/settings/groups")]
 [Route("api/tickets/settings/agent-groups")] // Alias for frontend compatibility
 // Temporarily disabled for testing: [Authorize]
-public class TicketGroupController_Disabled : ControllerBase
+public class TicketGroupController : ControllerBase
 {
     private readonly ITicketGroupService _groupService;
-    private readonly ILogger<TicketGroupController_Disabled> _logger;
+    private readonly ILogger<TicketGroupController> _logger;
 
-    public TicketGroupController_Disabled(ITicketGroupService groupService, ILogger<TicketGroupController_Disabled> logger)
+    public TicketGroupController(ITicketGroupService groupService, ILogger<TicketGroupController> logger)
     {
         _groupService = groupService;
         _logger = logger;
     }
 
     /// <summary>
-    /// Get all active ticket groups
+    /// Get all ticket groups with optional filters
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TicketGroupDto>>> GetAll()
+    public async Task<ActionResult<IEnumerable<TicketGroupDto>>> GetAll([FromQuery] bool includeInactive = false)
     {
         try
         {
-            var groups = await _groupService.GetAllAsync();
+            var groups = await _groupService.GetAllAsync(includeInactive);
             return Ok(groups);
         }
         catch (Exception ex)
@@ -149,11 +149,11 @@ public class TicketGroupController_Disabled : ControllerBase
     /// Get all groups for a specific category
     /// </summary>
     [HttpGet("category/{categoryId}")]
-    public async Task<ActionResult<IEnumerable<TicketGroupDto>>> GetByCategory(int categoryId)
+    public async Task<ActionResult<IEnumerable<TicketGroupDto>>> GetByCategory(int categoryId, [FromQuery] bool includeInactive = false)
     {
         try
         {
-            var groups = await _groupService.GetByCategoryIdAsync(categoryId);
+            var groups = await _groupService.GetByCategoryIdAsync(categoryId, includeInactive);
             return Ok(groups);
         }
         catch (Exception ex)
@@ -167,11 +167,11 @@ public class TicketGroupController_Disabled : ControllerBase
     /// Get all groups for a specific subcategory
     /// </summary>
     [HttpGet("subcategory/{subCategoryId}")]
-    public async Task<ActionResult<IEnumerable<TicketGroupDto>>> GetBySubCategory(int subCategoryId)
+    public async Task<ActionResult<IEnumerable<TicketGroupDto>>> GetBySubCategory(int subCategoryId, [FromQuery] bool includeInactive = false)
     {
         try
         {
-            var groups = await _groupService.GetBySubCategoryIdAsync(subCategoryId);
+            var groups = await _groupService.GetBySubCategoryIdAsync(subCategoryId, includeInactive);
             return Ok(groups);
         }
         catch (Exception ex)

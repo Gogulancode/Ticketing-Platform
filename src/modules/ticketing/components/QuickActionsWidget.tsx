@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Search, Settings } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 
 const QuickActionsWidget: React.FC = () => {
   const quickActions = [
@@ -19,14 +19,6 @@ const QuickActionsWidget: React.FC = () => {
           searchInput.focus();
         }
       }
-    },
-    {
-      icon: Settings,
-      label: 'Settings',
-      color: 'bg-slate-600 hover:bg-slate-700',
-      onClick: () => {
-        window.location.href = '/tickets/settings';
-      }
     }
   ];
 
@@ -37,7 +29,7 @@ const QuickActionsWidget: React.FC = () => {
         <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
         {quickActions.map((action, index) => {
           const IconComponent = action.icon;
           return (

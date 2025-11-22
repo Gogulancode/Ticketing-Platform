@@ -1,6 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using ERPTraining.Core.Interfaces.Ticketing;
 using ERPTraining.Infrastructure.Services.Ticketing;
 
 namespace ERPTraining.API.Controllers.Ticketing;
@@ -77,6 +84,62 @@ public class TicketsV2Controller : ControllerBase
     }
 
     // GET SINGLE TICKET
+    [HttpGet]
+    public async Task<ActionResult> GetTickets([FromQuery] int limit = 50, [FromQuery] string? excludeTicketId = null)
+    {
+        try
+        {
+            var cappedLimit = Math.Clamp(limit, 1, 100);
+
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var sql = @"
+                SELECT TOP (@Limit)
+                       t.Id, t.PublicId, t.Title, t.Description, t.Category, t.Priority, t.Status,
+                       t.CreatedAt, t.CategoryId, t.SubcategoryId,
+                       cu.FirstName + ' ' + cu.LastName as CreatedByName
+                FROM Tickets t
+                LEFT JOIN AspNetUsers cu ON t.CreatedByUserId = cu.Id
+                WHERE t.Status != 99
+                  AND (@ExcludeTicketId IS NULL OR t.Id != @ExcludeTicketId)
+                ORDER BY t.CreatedAt DESC";
+
+            using var command = new SqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@Limit", cappedLimit);
+            command.Parameters.AddWithValue("@ExcludeTicketId",
+                string.IsNullOrEmpty(excludeTicketId) ? DBNull.Value : Guid.Parse(excludeTicketId));
+
+            var tickets = new List<object>();
+            using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                tickets.Add(new
+                {
+                    id = reader["Id"].ToString(),
+                    publicId = reader["PublicId"] != DBNull.Value ? (int)reader["PublicId"] : (int?)null,
+                    title = reader["Title"].ToString(),
+                    description = reader["Description"] != DBNull.Value ? reader["Description"].ToString() : string.Empty,
+                    category = reader["Category"] != DBNull.Value ? (int)reader["Category"] : (int?)null,
+                    priority = (int)reader["Priority"],
+                    status = (int)reader["Status"],
+                    createdAt = ((DateTime)reader["CreatedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    categoryId = reader["CategoryId"] != DBNull.Value ? (int)reader["CategoryId"] : (int?)null,
+                    subcategoryId = reader["SubcategoryId"] != DBNull.Value ? (int)reader["SubcategoryId"] : (int?)null,
+                    createdByName = reader["CreatedByName"]?.ToString() ?? "Unknown User"
+                });
+            }
+
+            return Ok(tickets);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching tickets list");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
     [HttpGet("{ticketId:guid}")]
     public async Task<ActionResult> GetTicket(Guid ticketId)
     {
@@ -223,11 +286,12 @@ public class TicketsV2Controller : ControllerBase
                 // Get custom field values for this ticket
                 mergedReader.Close();
                 
-                var customFieldSql = @"
-                    SELECT tcfv.CustomFieldId, tcfv.Value, cf.Name as FieldName, cf.Label as FieldLabel
-                    FROM TicketCustomFieldValues tcfv
-                    INNER JOIN CustomFields cf ON tcfv.CustomFieldId = cf.Id
-                    WHERE tcfv.TicketId = @TicketId";
+                                var customFieldSql = @"
+                                        SELECT tcfv.CustomFieldId, tcfv.Value, cf.Name as FieldName, cf.Label as FieldLabel
+                                        FROM TicketCustomFieldValues tcfv
+                                        INNER JOIN CustomFields cf ON tcfv.CustomFieldId = cf.Id
+                                        WHERE tcfv.TicketId = @TicketId
+                                            AND cf.IsDeleted = 0";
                 
                 using var customFieldCommand = new SqlCommand(customFieldSql, connection);
                 customFieldCommand.Parameters.AddWithValue("@TicketId", ticketId);
@@ -302,7 +366,8 @@ public class TicketsV2Controller : ControllerBase
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync();
             
-            var sql = @"
+            // Get comments
+            var commentSql = @"
                 SELECT c.Id, c.Body, c.AuthorUserId, c.IsInternal, c.CreatedAt,
                        u.FirstName + ' ' + u.LastName as AuthorName
                 FROM TicketComments c
@@ -310,26 +375,84 @@ public class TicketsV2Controller : ControllerBase
                 WHERE c.TicketId = @TicketId
                 ORDER BY c.CreatedAt ASC";
                 
-            using var command = new SqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@TicketId", ticketId);
+            using var commentCommand = new SqlCommand(commentSql, connection);
+            commentCommand.Parameters.AddWithValue("@TicketId", ticketId);
             
-            var comments = new List<object>();
-            using var reader = await command.ExecuteReaderAsync();
+            var commentsList = new List<Dictionary<string, object>>();
+            using var commentReader = await commentCommand.ExecuteReaderAsync();
             
-            while (await reader.ReadAsync())
+            while (await commentReader.ReadAsync())
             {
-                comments.Add(new
+                var commentId = (Guid)commentReader["Id"];
+                commentsList.Add(new Dictionary<string, object>
                 {
-                    id = reader["Id"],
-                    body = reader["Body"],
-                    authorUserId = reader["AuthorUserId"],
-                    authorName = reader["AuthorName"] ?? "Unknown User",
-                    isInternal = reader["IsInternal"],
-                    createdAt = ((DateTime)reader["CreatedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ")
+                    ["id"] = commentId,
+                    ["body"] = commentReader["Body"],
+                    ["authorUserId"] = commentReader["AuthorUserId"],
+                    ["authorName"] = commentReader["AuthorName"] ?? "Unknown User",
+                    ["isInternal"] = commentReader["IsInternal"],
+                    ["createdAt"] = ((DateTime)commentReader["CreatedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    ["attachments"] = new List<object>() // Will be populated below
                 });
             }
+            commentReader.Close();
             
-            return Ok(comments);
+            // Get attachments for each comment (only if CommentId column exists)
+            var attachmentsByComment = new Dictionary<Guid, List<object>>();
+            
+            try
+            {
+                var attachmentSql = @"
+                    SELECT Id, CommentId, FileName, ContentType, SizeBytes, CreatedAt
+                    FROM Attachments
+                    WHERE TicketId = @TicketId AND CommentId IS NOT NULL
+                    ORDER BY CreatedAt ASC";
+                    
+                using var attachmentCommand = new SqlCommand(attachmentSql, connection);
+                attachmentCommand.Parameters.AddWithValue("@TicketId", ticketId);
+                
+                using var attachmentReader = await attachmentCommand.ExecuteReaderAsync();
+                
+                while (await attachmentReader.ReadAsync())
+                {
+                    // Handle potential NULL CommentId (shouldn't happen with IS NOT NULL filter, but be safe)
+                    if (attachmentReader["CommentId"] == DBNull.Value)
+                        continue;
+                        
+                    var commentId = (Guid)attachmentReader["CommentId"];
+                    if (!attachmentsByComment.ContainsKey(commentId))
+                    {
+                        attachmentsByComment[commentId] = new List<object>();
+                    }
+                    
+                    attachmentsByComment[commentId].Add(new
+                    {
+                        id = attachmentReader["Id"],
+                        fileName = attachmentReader["FileName"],
+                        contentType = attachmentReader["ContentType"],
+                        sizeBytes = attachmentReader["SizeBytes"],
+                        createdAt = ((DateTime)attachmentReader["CreatedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ")
+                    });
+                }
+            }
+            catch (SqlException ex) when (ex.Message.Contains("Invalid column name 'CommentId'"))
+            {
+                // CommentId column doesn't exist yet - migration not applied
+                // This is fine, just return comments without attachments
+                _logger.LogWarning("CommentId column not found in Attachments table - migration may not be applied");
+            }
+            
+            // Attach attachments to comments
+            foreach (var comment in commentsList)
+            {
+                var commentId = (Guid)comment["id"];
+                if (attachmentsByComment.ContainsKey(commentId))
+                {
+                    comment["attachments"] = attachmentsByComment[commentId];
+                }
+            }
+            
+            return Ok(commentsList);
         }
         catch (Exception ex)
         {
@@ -346,6 +469,22 @@ public class TicketsV2Controller : ControllerBase
         {
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync();
+            
+            // Get current ticket details before update (to check if assignment or status changed)
+            string? oldAssignedToUserId = null;
+            int? oldStatus = null;
+            string? createdByUserId = null;
+            using (var checkCmd = new SqlCommand("SELECT AssignedToUserId, Status, CreatedByUserId FROM Tickets WHERE Id = @TicketId", connection))
+            {
+                checkCmd.Parameters.AddWithValue("@TicketId", ticketId);
+                using var reader = await checkCmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    oldAssignedToUserId = reader["AssignedToUserId"] != DBNull.Value ? reader["AssignedToUserId"].ToString() : null;
+                    oldStatus = reader["Status"] != DBNull.Value ? (int?)reader["Status"] : null;
+                    createdByUserId = reader["CreatedByUserId"] != DBNull.Value ? reader["CreatedByUserId"].ToString() : null;
+                }
+            }
             
             // Start transaction for atomicity
             using var transaction = connection.BeginTransaction();
@@ -444,6 +583,138 @@ public class TicketsV2Controller : ControllerBase
                 
                 // Commit the transaction
                 transaction.Commit();
+                
+                // Send email notification if agent was assigned
+                if (request.AssignedToUserId != null && request.AssignedToUserId != oldAssignedToUserId)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            using var notifConnection = new SqlConnection(_connectionString);
+                            await notifConnection.OpenAsync();
+                            
+                            // Get ticket details
+                            var ticketSql = @"SELECT t.Id, t.PublicId, t.Title, t.Description, t.Priority, t.Status, t.CreatedAt 
+                                            FROM Tickets t WHERE t.Id = @TicketId";
+                            using var ticketCmd = new SqlCommand(ticketSql, notifConnection);
+                            ticketCmd.Parameters.AddWithValue("@TicketId", ticketId);
+                            using var ticketReader = await ticketCmd.ExecuteReaderAsync();
+                            
+                            if (await ticketReader.ReadAsync())
+                            {
+                                var ticket = new ERPTraining.Core.Entities.Ticketing.Ticket
+                                {
+                                    Id = (Guid)ticketReader["Id"],
+                                    PublicId = ticketReader["PublicId"] != DBNull.Value ? (int?)ticketReader["PublicId"] : null,
+                                    Title = ticketReader["Title"]?.ToString() ?? "",
+                                    Description = ticketReader["Description"]?.ToString() ?? string.Empty,
+                                    Priority = (ERPTraining.Core.Entities.Ticketing.TicketPriority)(int)ticketReader["Priority"],
+                                    Status = (int)ticketReader["Status"],
+                                    CreatedAt = (DateTime)ticketReader["CreatedAt"]
+                                };
+                                ticketReader.Close();
+                                
+                                // Get agent details
+                                var agentSql = @"SELECT Id, FirstName, LastName, Email FROM AspNetUsers WHERE Id = @UserId";
+                                using var agentCmd = new SqlCommand(agentSql, notifConnection);
+                                agentCmd.Parameters.AddWithValue("@UserId", request.AssignedToUserId);
+                                using var agentReader = await agentCmd.ExecuteReaderAsync();
+                                
+                                if (await agentReader.ReadAsync())
+                                {
+                                    var agent = new ERPTraining.Core.Entities.User
+                                    {
+                                        Id = agentReader["Id"]?.ToString() ?? string.Empty,
+                                        FirstName = agentReader["FirstName"]?.ToString() ?? string.Empty,
+                                        LastName = agentReader["LastName"]?.ToString() ?? string.Empty,
+                                        Email = agentReader["Email"]?.ToString() ?? string.Empty
+                                    };
+
+                                    await _emailService.SendTicketAssignmentNotificationAsync(ticket, agent);
+                                    _logger.LogInformation("Sent assignment notification for ticket {TicketId} to agent {AgentEmail}", ticketId, agent.Email);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error sending assignment notification for ticket {TicketId}", ticketId);
+                        }
+                    });
+                }
+                
+                // Send email notification if ticket was resolved
+                if (request.Status != null && request.Status != oldStatus && request.Status == 4) // 4 = Resolved status
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            using var notifConnection = new SqlConnection(_connectionString);
+                            await notifConnection.OpenAsync();
+                            
+                            // Get ticket details
+                            var ticketSql = @"SELECT t.Id, t.PublicId, t.Title, t.Description, t.Priority, t.Status, t.CreatedAt, t.ResolvedAt 
+                                            FROM Tickets t WHERE t.Id = @TicketId";
+                            using var ticketCmd = new SqlCommand(ticketSql, notifConnection);
+                            ticketCmd.Parameters.AddWithValue("@TicketId", ticketId);
+                            using var ticketReader = await ticketCmd.ExecuteReaderAsync();
+                            
+                            if (await ticketReader.ReadAsync())
+                            {
+                                var ticket = new ERPTraining.Core.Entities.Ticketing.Ticket
+                                {
+                                    Id = (Guid)ticketReader["Id"],
+                                    PublicId = ticketReader["PublicId"] != DBNull.Value ? (int?)ticketReader["PublicId"] : null,
+                                    Title = ticketReader["Title"]?.ToString() ?? "",
+                                    Description = ticketReader["Description"]?.ToString() ?? string.Empty,
+                                    Priority = (ERPTraining.Core.Entities.Ticketing.TicketPriority)(int)ticketReader["Priority"],
+                                    Status = (int)ticketReader["Status"],
+                                    CreatedAt = (DateTime)ticketReader["CreatedAt"],
+                                    ResolvedAt = ticketReader["ResolvedAt"] != DBNull.Value ? (DateTime?)ticketReader["ResolvedAt"] : null
+                                };
+                                ticketReader.Close();
+                                
+                                // Get creator details
+                                if (!string.IsNullOrEmpty(createdByUserId))
+                                {
+                                    var creatorSql = @"SELECT Id, FirstName, LastName, Email FROM AspNetUsers WHERE Id = @UserId";
+                                    using var creatorCmd = new SqlCommand(creatorSql, notifConnection);
+                                    creatorCmd.Parameters.AddWithValue("@UserId", createdByUserId);
+                                    using var creatorReader = await creatorCmd.ExecuteReaderAsync();
+                                    
+                                    if (await creatorReader.ReadAsync())
+                                    {
+                                        var creator = new ERPTraining.Core.Entities.User
+                                        {
+                                            Id = creatorReader["Id"]?.ToString() ?? string.Empty,
+                                            FirstName = creatorReader["FirstName"]?.ToString() ?? string.Empty,
+                                            LastName = creatorReader["LastName"]?.ToString() ?? string.Empty,
+                                            Email = creatorReader["Email"]?.ToString() ?? string.Empty
+                                        };
+                                        creatorReader.Close();
+                                        
+                                        // Get resolution notes from latest comment if exists
+                                        string? resolutionNotes = null;
+                                        var notesSql = @"SELECT TOP 1 Body FROM TicketComments 
+                                                       WHERE TicketId = @TicketId AND IsInternal = 0 
+                                                       ORDER BY CreatedAt DESC";
+                                        using var notesCmd = new SqlCommand(notesSql, notifConnection);
+                                        notesCmd.Parameters.AddWithValue("@TicketId", ticketId);
+                                        resolutionNotes = (await notesCmd.ExecuteScalarAsync())?.ToString();
+                                        
+                                        await _emailService.SendTicketResolvedNotificationAsync(ticket, creator, resolutionNotes);
+                                        _logger.LogInformation("Sent resolution notification for ticket {TicketId} to creator {CreatorEmail}", ticketId, creator.Email);
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error sending resolution notification for ticket {TicketId}", ticketId);
+                        }
+                    });
+                }
                 
                 _logger.LogInformation("Ticket {TicketId} updated successfully with custom fields", ticketId);
                 return Ok(new { message = "Ticket updated successfully" });
@@ -836,6 +1107,30 @@ public class TicketsV2Controller : ControllerBase
                 return Ok(new List<object>());
             }
 
+            var trimmedQuery = query.Trim();
+            var numericQuery = string.Empty;
+
+            // Allow searches like "#12345" or "Ticket #12345" to match PublicId values
+            if (trimmedQuery.StartsWith("#"))
+            {
+                numericQuery = new string(trimmedQuery.Skip(1).Where(char.IsDigit).ToArray());
+            }
+            else if (trimmedQuery.All(char.IsDigit))
+            {
+                numericQuery = trimmedQuery;
+            }
+            else
+            {
+                var hashIndex = trimmedQuery.IndexOf('#');
+                if (hashIndex >= 0 && hashIndex + 1 < trimmedQuery.Length)
+                {
+                    var afterHash = trimmedQuery[(hashIndex + 1)..];
+                    numericQuery = new string(afterHash.Where(char.IsDigit).ToArray());
+                }
+            }
+
+            var hasNumericQuery = !string.IsNullOrEmpty(numericQuery);
+
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync();
             
@@ -848,23 +1143,28 @@ public class TicketsV2Controller : ControllerBase
                     t.Title LIKE @Query 
                     OR CAST(t.PublicId AS NVARCHAR) LIKE @Query
                     OR t.Description LIKE @Query
+                    OR (@PublicIdLikeQuery IS NOT NULL AND CAST(t.PublicId AS NVARCHAR) LIKE @PublicIdLikeQuery)
                 ) 
                 AND t.Status != 99 -- Exclude deleted tickets
                 AND (@ExcludeTicketId IS NULL OR t.Id != @ExcludeTicketId)
                 ORDER BY 
                     CASE 
+                        WHEN @PublicIdExactQuery IS NOT NULL AND CAST(t.PublicId AS NVARCHAR) = @PublicIdExactQuery THEN 0
                         WHEN t.Title LIKE @ExactQuery THEN 1
                         WHEN CAST(t.PublicId AS NVARCHAR) = @PlainQuery THEN 2
-                        WHEN t.Title LIKE @StartQuery THEN 3
-                        ELSE 4
+                        WHEN @PublicIdLikeQuery IS NOT NULL AND CAST(t.PublicId AS NVARCHAR) LIKE @PublicIdLikeQuery THEN 3
+                        WHEN t.Title LIKE @StartQuery THEN 4
+                        ELSE 5
                     END,
                     t.CreatedAt DESC";
                 
             using var command = new SqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@Query", $"%{query}%");
-            command.Parameters.AddWithValue("@ExactQuery", query);
-            command.Parameters.AddWithValue("@StartQuery", $"{query}%");
-            command.Parameters.AddWithValue("@PlainQuery", query);
+            command.Parameters.AddWithValue("@Query", $"%{trimmedQuery}%");
+            command.Parameters.AddWithValue("@ExactQuery", trimmedQuery);
+            command.Parameters.AddWithValue("@StartQuery", $"{trimmedQuery}%");
+            command.Parameters.AddWithValue("@PlainQuery", trimmedQuery);
+            command.Parameters.AddWithValue("@PublicIdLikeQuery", hasNumericQuery ? $"%{numericQuery}%" : DBNull.Value);
+            command.Parameters.AddWithValue("@PublicIdExactQuery", hasNumericQuery ? numericQuery : DBNull.Value);
             command.Parameters.AddWithValue("@ExcludeTicketId", 
                 string.IsNullOrEmpty(excludeTicketId) ? DBNull.Value : Guid.Parse(excludeTicketId));
             
@@ -908,21 +1208,30 @@ public class TicketsV2Controller : ControllerBase
             try
             {
                 // Validate primary ticket exists and is not deleted
-                var checkPrimarySql = "SELECT Id, Title FROM Tickets WHERE Id = @PrimaryTicketId AND Status != 99";
+                var checkPrimarySql = "SELECT Id, Title, PublicId FROM Tickets WHERE Id = @PrimaryTicketId AND Status != 99";
                 using var checkCommand = new SqlCommand(checkPrimarySql, connection, transaction);
                 checkCommand.Parameters.AddWithValue("@PrimaryTicketId", primaryTicketId);
                 
                 var primaryTicketTitle = "";
+                var primaryTicketPublicId = 0;
                 using var checkReader = await checkCommand.ExecuteReaderAsync();
                 if (await checkReader.ReadAsync())
                 {
                     primaryTicketTitle = checkReader["Title"].ToString() ?? "";
+                    primaryTicketPublicId = checkReader["PublicId"] != DBNull.Value
+                        ? (int)checkReader["PublicId"]
+                        : 0;
                 }
                 else
                 {
                     return NotFound(new { message = "Primary ticket not found or is deleted" });
                 }
                 checkReader.Close();
+
+                if (primaryTicketPublicId <= 0)
+                {
+                    primaryTicketPublicId = await EnsureTicketPublicIdAsync(primaryTicketId, connection, transaction);
+                }
 
                 // Validate all tickets to merge exist and are not deleted
                 var mergeTicketIds = request.TicketIds.Where(id => id != primaryTicketId).ToList();
@@ -931,24 +1240,38 @@ public class TicketsV2Controller : ControllerBase
                     return BadRequest(new { message = "No valid tickets selected for merging" });
                 }
 
-                var mergeTicketTitles = new List<string>();
+                var mergeTicketDetails = new List<(Guid TicketId, string Title, int PublicId)>();
                 foreach (var ticketId in mergeTicketIds)
                 {
-                    var validateSql = "SELECT Id, Title FROM Tickets WHERE Id = @TicketId AND Status != 99";
+                    var validateSql = "SELECT Id, Title, PublicId FROM Tickets WHERE Id = @TicketId AND Status != 99";
                     using var validateCommand = new SqlCommand(validateSql, connection, transaction);
                     validateCommand.Parameters.AddWithValue("@TicketId", ticketId);
                     
                     using var validateReader = await validateCommand.ExecuteReaderAsync();
                     if (await validateReader.ReadAsync())
                     {
-                        mergeTicketTitles.Add(validateReader["Title"].ToString() ?? "");
+                        var title = validateReader["Title"].ToString() ?? "";
+                        var publicId = validateReader["PublicId"] != DBNull.Value
+                            ? (int)validateReader["PublicId"]
+                            : 0;
+                        mergeTicketDetails.Add((ticketId, title, publicId));
                     }
                     else
                     {
                         return BadRequest(new { message = $"Ticket {ticketId} not found or is deleted" });
                     }
                     validateReader.Close();
+
+                    var lastIndex = mergeTicketDetails.Count - 1;
+                    if (mergeTicketDetails[lastIndex].PublicId <= 0)
+                    {
+                        var ensured = await EnsureTicketPublicIdAsync(ticketId, connection, transaction);
+                        var lastEntry = mergeTicketDetails[lastIndex];
+                        mergeTicketDetails[lastIndex] = (ticketId, lastEntry.Title, ensured);
+                    }
                 }
+
+                mergeTicketIds = mergeTicketDetails.Select(d => d.TicketId).ToList();
 
                 // Create merge record in a MergedTickets table (we'll need to create this table)
                 var mergeId = Guid.NewGuid();
@@ -996,31 +1319,31 @@ public class TicketsV2Controller : ControllerBase
                 }
 
                 // Update merged tickets status to "Merged" (status 98) and add merge info to description
-                foreach (var ticketId in mergeTicketIds)
+                foreach (var ticket in mergeTicketDetails)
                 {
                     var updateMergedSql = @"
                         UPDATE Tickets 
                         SET Status = 98,
                             UpdatedAt = @UpdatedAt,
                             Description = CONCAT(Description, CHAR(13) + CHAR(10) + CHAR(13) + CHAR(10) + 
-                                                '--- MERGED INTO TICKET #' + CAST((SELECT PublicId FROM Tickets WHERE Id = @PrimaryTicketId) AS NVARCHAR) + ' ---' + CHAR(13) + CHAR(10) + 
+                                                '--- MERGED INTO TICKET #' + CAST(@PrimaryTicketPublicId AS NVARCHAR) + ' ---' + CHAR(13) + CHAR(10) + 
                                                 'Merge Reason: ' + @MergeReason + CHAR(13) + CHAR(10) + 
                                                 'Merged At: ' + FORMAT(@UpdatedAt, 'yyyy-MM-dd HH:mm:ss'))
                         WHERE Id = @MergedTicketId";
                     
                     using var updateCommand = new SqlCommand(updateMergedSql, connection, transaction);
-                    updateCommand.Parameters.AddWithValue("@MergedTicketId", ticketId);
-                    updateCommand.Parameters.AddWithValue("@PrimaryTicketId", primaryTicketId);
+                    updateCommand.Parameters.AddWithValue("@MergedTicketId", ticket.TicketId);
                     updateCommand.Parameters.AddWithValue("@MergeReason", request.Reason);
                     updateCommand.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
+                    updateCommand.Parameters.AddWithValue("@PrimaryTicketPublicId", primaryTicketPublicId);
                     
                     await updateCommand.ExecuteNonQueryAsync();
                 }
 
                 // Add a comment to the primary ticket about the merge
                 var mergeCommentId = Guid.NewGuid();
-                var mergeComment = $"Merged {mergeTicketIds.Count} ticket(s) into this ticket:\n" +
-                                 $"{string.Join("\n", mergeTicketTitles.Select((title, i) => $"• {title}"))}\n\n" +
+                var mergeComment = $"Merged {mergeTicketDetails.Count} ticket(s) into this ticket:\n" +
+                                 $"{string.Join("\n", mergeTicketDetails.Select(details => $"• #{details.PublicId} {details.Title}"))}\n\n" +
                                  $"Merge Reason: {request.Reason}";
                 
                 var addMergeCommentSql = @"
@@ -1052,6 +1375,7 @@ public class TicketsV2Controller : ControllerBase
                     message = $"Successfully merged {mergeTicketIds.Count} ticket(s) into primary ticket",
                     mergeId = mergeId,
                     primaryTicketId = primaryTicketId,
+                    primaryTicketPublicId,
                     mergedTicketIds = mergeTicketIds
                 });
             }
@@ -1148,7 +1472,7 @@ public class TicketsV2Controller : ControllerBase
 
     // REPLY TO EMAIL FUNCTIONALITY
     [HttpPost("{ticketId:guid}/reply-email")]
-    public async Task<ActionResult> ReplyToEmail(Guid ticketId, [FromBody] ReplyEmailRequest request)
+    public async Task<ActionResult> ReplyToEmail(Guid ticketId, [FromForm] string replyMessage, [FromForm] List<IFormFile>? attachments = null)
     {
         try
         {
@@ -1173,12 +1497,20 @@ public class TicketsV2Controller : ControllerBase
                 return NotFound(new { message = "Ticket not found" });
             }
             
-            var publicId = ticketReader["PublicId"] != DBNull.Value ? (int)ticketReader["PublicId"] : 0;
+            var publicIdRaw = ticketReader["PublicId"] != DBNull.Value ? (int?)ticketReader["PublicId"] : null;
             var title = ticketReader["Title"]?.ToString() ?? "";
             var createdByEmail = ticketReader["CreatedByEmail"]?.ToString();
             var createdByName = ticketReader["CreatedByName"]?.ToString() ?? "User";
             
             ticketReader.Close();
+            var ticketPublicId = publicIdRaw.HasValue && publicIdRaw.Value > 0
+                ? publicIdRaw.Value
+                : await EnsureTicketPublicIdAsync(ticketId, connection);
+
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                title = $"Ticket #{ticketPublicId}";
+            }
             
             if (string.IsNullOrEmpty(createdByEmail))
             {
@@ -1186,26 +1518,32 @@ public class TicketsV2Controller : ControllerBase
             }
 
             // Create email subject with Public Ticket ID
-            var subject = $"Re: [Ticket #{publicId}] {title}";
+            var subject = $"Re: [Ticket #{ticketPublicId}] {title}";
             
             // Create reply email body
             var emailBody = $@"Dear {createdByName},
 
-{request.ReplyMessage}
+{replyMessage}
 
 ---
-This is a reply to your support ticket #{publicId}: {title}
+This is a reply to your support ticket #{ticketPublicId}: {title}
 
 Best regards,
 Support Team
 
 Please do not remove the ticket number from the subject line to ensure proper tracking.";
 
-            // Send the email
-            await SendEmail(createdByEmail, subject, emailBody);
+            var preparedAttachments = await PrepareAttachmentsAsync(attachments);
+            var outgoingAttachments = preparedAttachments
+                .Select(a => new OutgoingEmailAttachment(a.FileName, a.ContentType, a.Data))
+                .ToList();
+
+            // Send the email (with attachments if provided)
+            await SendEmail(createdByEmail, subject, emailBody, outgoingAttachments);
             
-            // Add the reply as a comment to the ticket
+            // Add the reply as a comment to the ticket FIRST (so we have a commentId for attachments)
             var commentId = Guid.NewGuid();
+            var attachmentNote = preparedAttachments.Any() ? "\n📎 Includes attachments" : "";
             var addCommentSql = @"
                 INSERT INTO TicketComments (Id, TicketId, Body, AuthorUserId, IsInternal, CreatedAt)
                 VALUES (@Id, @TicketId, @Body, @AuthorUserId, @IsInternal, @CreatedAt)";
@@ -1213,12 +1551,46 @@ Please do not remove the ticket number from the subject line to ensure proper tr
             using var commentCommand = new SqlCommand(addCommentSql, connection);
             commentCommand.Parameters.AddWithValue("@Id", commentId);
             commentCommand.Parameters.AddWithValue("@TicketId", ticketId);
-            commentCommand.Parameters.AddWithValue("@Body", $"[EMAIL REPLY SENT]\n\n{request.ReplyMessage}");
-            commentCommand.Parameters.AddWithValue("@AuthorUserId", request.SentByUserId ?? "0016f2fc-c4da-42d7-a635-236b4b95c6f1");
+            commentCommand.Parameters.AddWithValue("@Body", $"[EMAIL REPLY SENT]{attachmentNote}\n\n{replyMessage}");
+            commentCommand.Parameters.AddWithValue("@AuthorUserId", "0016f2fc-c4da-42d7-a635-236b4b95c6f1"); // Default user ID
             commentCommand.Parameters.AddWithValue("@IsInternal", false);
             commentCommand.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
             
             await commentCommand.ExecuteNonQueryAsync();
+            
+            // Save attachments if provided - link them to the comment
+            if (preparedAttachments.Any())
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "tickets");
+                Directory.CreateDirectory(uploadsFolder);
+
+                foreach (var attachment in preparedAttachments)
+                {
+                    var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(attachment.FileName)}";
+                    var filePath = Path.Combine(uploadsFolder, fileName);
+
+                    await System.IO.File.WriteAllBytesAsync(filePath, attachment.Data);
+
+                    // Save attachment record to database with CommentId
+                    var attachmentId = Guid.NewGuid();
+                    var attachmentSql = @"
+                        INSERT INTO Attachments (Id, TicketId, CommentId, FileName, StoragePath, SizeBytes, ContentType, CreatedAt, UploadedByUserId)
+                        VALUES (@Id, @TicketId, @CommentId, @FileName, @StoragePath, @SizeBytes, @ContentType, @CreatedAt, @UploadedByUserId)";
+                    
+                    using var attachmentCommand = new SqlCommand(attachmentSql, connection);
+                    attachmentCommand.Parameters.AddWithValue("@Id", attachmentId);
+                    attachmentCommand.Parameters.AddWithValue("@TicketId", ticketId);
+                    attachmentCommand.Parameters.AddWithValue("@CommentId", commentId); // Link to comment
+                    attachmentCommand.Parameters.AddWithValue("@FileName", attachment.FileName);
+                    attachmentCommand.Parameters.AddWithValue("@StoragePath", filePath);
+                    attachmentCommand.Parameters.AddWithValue("@SizeBytes", attachment.Data.LongLength);
+                    attachmentCommand.Parameters.AddWithValue("@ContentType", attachment.ContentType);
+                    attachmentCommand.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+                    attachmentCommand.Parameters.AddWithValue("@UploadedByUserId", "0016f2fc-c4da-42d7-a635-236b4b95c6f1"); // Default user ID
+                    
+                    await attachmentCommand.ExecuteNonQueryAsync();
+                }
+            }
             
             // Update ticket's UpdatedAt timestamp
             var updateTicketSql = "UPDATE Tickets SET UpdatedAt = @UpdatedAt WHERE Id = @TicketId";
@@ -1243,7 +1615,7 @@ Please do not remove the ticket number from the subject line to ensure proper tr
 
     // FORWARD EMAIL FUNCTIONALITY
     [HttpPost("{ticketId:guid}/forward-email")]
-    public async Task<ActionResult> ForwardEmail(Guid ticketId, [FromBody] ForwardEmailRequest request)
+    public async Task<ActionResult> ForwardEmail(Guid ticketId, [FromForm] string recipientEmail, [FromForm] string forwardMessage, [FromForm] string? recipientName = null, [FromForm] List<IFormFile>? attachments = null)
     {
         try
         {
@@ -1268,13 +1640,22 @@ Please do not remove the ticket number from the subject line to ensure proper tr
                 return NotFound(new { message = "Ticket not found" });
             }
             
-            var publicId = ticketReader["PublicId"] != DBNull.Value ? (int)ticketReader["PublicId"] : 0;
+            var publicIdRaw = ticketReader["PublicId"] != DBNull.Value ? (int?)ticketReader["PublicId"] : null;
             var title = ticketReader["Title"]?.ToString() ?? "";
             var description = ticketReader["Description"]?.ToString() ?? "";
             var createdAt = ((DateTime)ticketReader["CreatedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ");
             var createdByName = ticketReader["CreatedByName"]?.ToString() ?? "User";
             
             ticketReader.Close();
+
+            var ticketPublicId = publicIdRaw.HasValue && publicIdRaw.Value > 0
+                ? publicIdRaw.Value
+                : await EnsureTicketPublicIdAsync(ticketId, connection);
+
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                title = $"Ticket #{ticketPublicId}";
+            }
 
             // Get all comments for the ticket (for context)
             var commentsSql = @"
@@ -1306,17 +1687,17 @@ Please do not remove the ticket number from the subject line to ensure proper tr
             commentsReader.Close();
 
             // Create forward email subject with Public Ticket ID
-            var subject = $"Fwd: [Ticket #{publicId}] {title}";
+            var subject = $"Fwd: [Ticket #{ticketPublicId}] {title}";
             
             // Create forward email body
-            var emailBody = $@"Dear {request.RecipientName ?? "Colleague"},
+            var emailBody = $@"Dear {recipientName ?? "Colleague"},
 
-{request.ForwardMessage}
+{forwardMessage}
 
 ------- Forwarded Ticket Information -------
 
-Ticket #{publicId}: {title}
-Created: {createdAt:yyyy-MM-dd HH:mm:ss}
+Ticket #{ticketPublicId}: {title}
+Created: {createdAt}
 Created by: {createdByName}
 
 Original Description:
@@ -1326,16 +1707,22 @@ Comments:
 {commentsText}
 
 ---
-Please include the ticket number [Ticket #{publicId}] in any replies to maintain proper tracking.
+Please include the ticket number [Ticket #{ticketPublicId}] in any replies to maintain proper tracking.
 
 Best regards,
 Support Team";
 
             // Send the forward email
-            await SendEmail(request.RecipientEmail, subject, emailBody);
+            var preparedAttachments = await PrepareAttachmentsAsync(attachments);
+            var outgoingAttachments = preparedAttachments
+                .Select(a => new OutgoingEmailAttachment(a.FileName, a.ContentType, a.Data))
+                .ToList();
+
+            await SendEmail(recipientEmail, subject, emailBody, outgoingAttachments);
             
-            // Add the forward action as a comment to the ticket
+            // Add the forward action as a comment to the ticket FIRST (so we have a commentId for attachments)
             var commentId = Guid.NewGuid();
+            var attachmentNote = preparedAttachments.Any() ? "\n📎 Includes attachments" : "";
             var addCommentSql = @"
                 INSERT INTO TicketComments (Id, TicketId, Body, AuthorUserId, IsInternal, CreatedAt)
                 VALUES (@Id, @TicketId, @Body, @AuthorUserId, @IsInternal, @CreatedAt)";
@@ -1343,12 +1730,46 @@ Support Team";
             using var commentCommand = new SqlCommand(addCommentSql, connection);
             commentCommand.Parameters.AddWithValue("@Id", commentId);
             commentCommand.Parameters.AddWithValue("@TicketId", ticketId);
-            commentCommand.Parameters.AddWithValue("@Body", $"[EMAIL FORWARDED TO: {request.RecipientEmail}]\n\nForward message:\n{request.ForwardMessage}");
-            commentCommand.Parameters.AddWithValue("@AuthorUserId", request.SentByUserId ?? "0016f2fc-c4da-42d7-a635-236b4b95c6f1");
+            commentCommand.Parameters.AddWithValue("@Body", $"[EMAIL FORWARDED TO: {recipientEmail}]{attachmentNote}\n\nForward message:\n{forwardMessage}");
+            commentCommand.Parameters.AddWithValue("@AuthorUserId", "0016f2fc-c4da-42d7-a635-236b4b95c6f1"); // Default user ID
             commentCommand.Parameters.AddWithValue("@IsInternal", true); // Forward actions are internal
             commentCommand.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
             
             await commentCommand.ExecuteNonQueryAsync();
+            
+            // Save attachments if provided - link them to the comment
+            if (preparedAttachments.Any())
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "tickets");
+                Directory.CreateDirectory(uploadsFolder);
+
+                foreach (var attachment in preparedAttachments)
+                {
+                    var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(attachment.FileName)}";
+                    var filePath = Path.Combine(uploadsFolder, fileName);
+
+                    await System.IO.File.WriteAllBytesAsync(filePath, attachment.Data);
+
+                    // Save attachment record to database with CommentId
+                    var attachmentId = Guid.NewGuid();
+                    var attachmentSql = @"
+                        INSERT INTO Attachments (Id, TicketId, CommentId, FileName, StoragePath, SizeBytes, ContentType, CreatedAt, UploadedByUserId)
+                        VALUES (@Id, @TicketId, @CommentId, @FileName, @StoragePath, @SizeBytes, @ContentType, @CreatedAt, @UploadedByUserId)";
+                    
+                    using var attachmentCommand = new SqlCommand(attachmentSql, connection);
+                    attachmentCommand.Parameters.AddWithValue("@Id", attachmentId);
+                    attachmentCommand.Parameters.AddWithValue("@TicketId", ticketId);
+                    attachmentCommand.Parameters.AddWithValue("@CommentId", commentId); // Link to comment
+                    attachmentCommand.Parameters.AddWithValue("@FileName", attachment.FileName);
+                    attachmentCommand.Parameters.AddWithValue("@StoragePath", filePath);
+                    attachmentCommand.Parameters.AddWithValue("@SizeBytes", attachment.Data.LongLength);
+                    attachmentCommand.Parameters.AddWithValue("@ContentType", attachment.ContentType);
+                    attachmentCommand.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+                    attachmentCommand.Parameters.AddWithValue("@UploadedByUserId", "0016f2fc-c4da-42d7-a635-236b4b95c6f1"); // Default user ID
+                    
+                    await attachmentCommand.ExecuteNonQueryAsync();
+                }
+            }
             
             // Update ticket's UpdatedAt timestamp
             var updateTicketSql = "UPDATE Tickets SET UpdatedAt = @UpdatedAt WHERE Id = @TicketId";
@@ -1360,7 +1781,7 @@ Support Team";
 
             return Ok(new { 
                 message = "Email forwarded successfully",
-                sentTo = request.RecipientEmail,
+                sentTo = recipientEmail,
                 subject = subject
             });
         }
@@ -1488,7 +1909,7 @@ Support Team";
         {
             // Get ticket and user details
             var ticketSql = @"
-                SELECT t.Title, t.Description, u.Email as UserEmail, u.FirstName + ' ' + u.LastName as UserName
+                SELECT t.PublicId, t.Title, t.Description, u.Email as UserEmail, u.FirstName + ' ' + u.LastName as UserName
                 FROM Tickets t
                 LEFT JOIN AspNetUsers u ON t.CreatedByUserId = u.Id
                 WHERE t.Id = @TicketId";
@@ -1499,16 +1920,31 @@ Support Team";
             using var reader = await command.ExecuteReaderAsync();
             if (reader.Read())
             {
+                var publicIdRaw = reader["PublicId"] != DBNull.Value ? (int?)reader["PublicId"] : null;
                 var title = reader["Title"]?.ToString() ?? "Unknown Ticket";
                 var userEmail = reader["UserEmail"]?.ToString();
                 var userName = reader["UserName"]?.ToString() ?? "User";
                 
                 if (!string.IsNullOrEmpty(userEmail))
                 {
+                    var ticketPublicId = publicIdRaw ?? await EnsureTicketPublicIdAsync(ticketId, connection);
+                    var ticketNumber = ticketPublicId > 0
+                        ? ticketPublicId.ToString()
+                        : ticketId.ToString().Substring(0, 8);
+
+                    var subject = $"[Ticket #{ticketNumber}] {title} - New Comment";
+                    var body = $"Hello {userName},\n\n" +
+                               "A new comment has been added to your ticket.\n\n" +
+                               $"Ticket #{ticketNumber}: {title}\n" +
+                               "------------------------------\n" +
+                               commentContent + "\n\n" +
+                               "Please keep the ticket number in the subject when replying so we can track everything.\n\n" +
+                               "Best regards,\nSupport Team";
+
                     await SendEmail(
                         userEmail, 
-                        $"New Comment on Ticket: {title}",
-                        $"Hello {userName},\n\nA new comment has been added to your ticket:\n\n{commentContent}\n\nTicket: {title}\n\nBest regards,\nSupport Team"
+                        subject,
+                        body
                     );
                 }
             }
@@ -1519,18 +1955,120 @@ Support Team";
         }
     }
 
-    private async Task SendEmail(string toEmail, string subject, string body)
+    private static async Task<int> EnsureTicketPublicIdAsync(
+        Guid ticketId,
+        SqlConnection connection,
+        SqlTransaction? transaction = null)
+    {
+        var ownsTransaction = transaction is null;
+        var effectiveTransaction = transaction ?? connection.BeginTransaction(IsolationLevel.Serializable);
+
+        try
+        {
+            using var currentCommand = new SqlCommand(
+                "SELECT PublicId FROM Tickets WITH (UPDLOCK, HOLDLOCK) WHERE Id = @TicketId",
+                connection,
+                effectiveTransaction);
+            currentCommand.Parameters.AddWithValue("@TicketId", ticketId);
+
+            var currentValue = await currentCommand.ExecuteScalarAsync();
+            if (currentValue is int existing && existing > 0)
+            {
+                if (ownsTransaction)
+                {
+                    effectiveTransaction.Commit();
+                }
+
+                return existing;
+            }
+
+            using var nextCommand = new SqlCommand(
+                "SELECT ISNULL(MAX(PublicId), 0) + 1 FROM Tickets WITH (UPDLOCK, HOLDLOCK)",
+                connection,
+                effectiveTransaction);
+            var nextValue = (int)(await nextCommand.ExecuteScalarAsync() ?? 1);
+
+            using var updateCommand = new SqlCommand(
+                "UPDATE Tickets SET PublicId = @PublicId WHERE Id = @TicketId",
+                connection,
+                effectiveTransaction);
+            updateCommand.Parameters.AddWithValue("@PublicId", nextValue);
+            updateCommand.Parameters.AddWithValue("@TicketId", ticketId);
+            await updateCommand.ExecuteNonQueryAsync();
+
+            if (ownsTransaction)
+            {
+                effectiveTransaction.Commit();
+            }
+
+            return nextValue;
+        }
+        catch
+        {
+            if (ownsTransaction)
+            {
+                effectiveTransaction.Rollback();
+            }
+
+            throw;
+        }
+    }
+
+    private sealed record PreparedAttachment(string FileName, string ContentType, byte[] Data);
+
+    private static async Task<List<PreparedAttachment>> PrepareAttachmentsAsync(List<IFormFile>? attachments)
+    {
+        var prepared = new List<PreparedAttachment>();
+
+        if (attachments == null || attachments.Count == 0)
+        {
+            return prepared;
+        }
+
+        foreach (var file in attachments)
+        {
+            if (file.Length <= 0)
+            {
+                continue;
+            }
+
+            await using var stream = file.OpenReadStream();
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+
+            var contentType = string.IsNullOrWhiteSpace(file.ContentType)
+                ? "application/octet-stream"
+                : file.ContentType;
+
+            prepared.Add(new PreparedAttachment(
+                file.FileName,
+                contentType,
+                memoryStream.ToArray()));
+        }
+
+        return prepared;
+    }
+
+    private async Task SendEmail(string toEmail, string subject, string body, List<OutgoingEmailAttachment>? attachments = null)
     {
         try
         {
-            _logger.LogInformation("📧 Attempting to send email via Microsoft Graph to: {Email}, Subject: {Subject}", toEmail, subject);
+            _logger.LogInformation("📧 Attempting to send email via Microsoft Graph to: {Email}, Subject: {Subject}, Attachments: {AttachmentCount}",
+                toEmail,
+                subject,
+                attachments?.Count ?? 0);
             
             // Use Microsoft Graph API for sending emails (more reliable than SMTP)
             if (_emailService != null)
             {
                 try
                 {
-                    await _emailService.SendEmailAsync(toEmail, subject, body, isHtml: false);
+                    await _emailService.SendEmailAsync(
+                        toEmail,
+                        subject,
+                        body,
+                        isHtml: false,
+                        attachments: attachments);
                     _logger.LogInformation("✅ Email sent successfully via Microsoft Graph to: {Email}", toEmail);
                 }
                 catch (Exception graphEx)
@@ -1586,6 +2124,7 @@ Support Team";
                 WHERE t.CreatedAt >= @StartDate 
                     AND t.CreatedAt <= @EndDate
                     AND cf.IsActive = 1
+                    AND cf.IsDeleted = 0
                     AND tcfv.Value IS NOT NULL 
                     AND tcfv.Value != ''
                 GROUP BY cf.Label, tcfv.Value, cat.Name, subcat.Name
@@ -1771,25 +2310,55 @@ Support Team";
             _logger.LogInformation($"Getting agent performance for date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
 
             var sql = @"
+                WITH AgentStats AS (
+                    SELECT 
+                        t.AssignedToUserId,
+                        COUNT(*) as TotalTickets,
+                        SUM(CASE WHEN t.Status = 0 THEN 1 ELSE 0 END) as OpenCount,
+                        SUM(CASE WHEN t.Status = 1 THEN 1 ELSE 0 END) as InProgressCount,
+                        SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as ResolvedCount,
+                        SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ClosedCount,
+                        AVG(CASE 
+                            WHEN t.ResolvedAt IS NOT NULL AND t.CreatedAt IS NOT NULL 
+                            THEN DATEDIFF(hour, t.CreatedAt, t.ResolvedAt) 
+                            ELSE NULL 
+                        END) as AvgResolutionHours
+                    FROM Tickets t
+                    WHERE t.CreatedAt >= @StartDate 
+                        AND t.CreatedAt <= @EndDate
+                        AND t.AssignedToUserId IS NOT NULL
+                    GROUP BY t.AssignedToUserId
+                )
+                , OrderedAgentStats AS (
+                    SELECT 
+                        AssignedToUserId,
+                        TotalTickets,
+                        OpenCount,
+                        InProgressCount,
+                        ResolvedCount,
+                        ClosedCount,
+                        AvgResolutionHours,
+                        ROW_NUMBER() OVER (ORDER BY TotalTickets DESC) AS RowNum
+                    FROM AgentStats
+                )
                 SELECT 
-                    'Agent ' + CAST(ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS VARCHAR) as AgentName,
-                    'agent' + CAST(ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS VARCHAR) + '@company.com' as AgentEmail,
-                    COUNT(*) as TotalTickets,
-                    SUM(CASE WHEN t.Status = 0 THEN 1 ELSE 0 END) as OpenCount,
-                    SUM(CASE WHEN t.Status = 1 THEN 1 ELSE 0 END) as InProgressCount,
-                    SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as ResolvedCount,
-                    SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ClosedCount,
-                    AVG(CASE 
-                        WHEN t.ResolvedAt IS NOT NULL AND t.CreatedAt IS NOT NULL 
-                        THEN DATEDIFF(hour, t.CreatedAt, t.ResolvedAt) 
-                        ELSE NULL 
-                    END) as AvgResolutionHours
-                FROM Tickets t
-                WHERE t.CreatedAt >= @StartDate 
-                    AND t.CreatedAt <= @EndDate
-                    AND t.AssignedToUserId IS NOT NULL
-                GROUP BY t.AssignedToUserId
-                ORDER BY TotalTickets DESC";
+                    COALESCE(
+                        NULLIF(ag.Name, ''),
+                        NULLIF(LTRIM(RTRIM(CONCAT(u.FirstName, ' ', u.LastName))), ''),
+                        CONCAT('Agent ', oas.RowNum)
+                    ) as AgentName,
+                    COALESCE(NULLIF(ag.Email, ''), u.Email, CONCAT('agent', oas.RowNum, '@company.com')) as AgentEmail,
+                    COALESCE(NULLIF(ag.Department, ''), NULLIF(u.Department, ''), 'Unassigned') as Department,
+                    oas.TotalTickets,
+                    oas.OpenCount,
+                    oas.InProgressCount,
+                    oas.ResolvedCount,
+                    oas.ClosedCount,
+                    oas.AvgResolutionHours
+                FROM OrderedAgentStats oas
+                LEFT JOIN Agents ag ON ag.UserId = oas.AssignedToUserId
+                LEFT JOIN AspNetUsers u ON u.Id = oas.AssignedToUserId
+                ORDER BY oas.TotalTickets DESC";
 
             using var command = new SqlCommand(sql, connection);
             command.Parameters.AddWithValue("@StartDate", startDate);
@@ -1814,6 +2383,7 @@ Support Team";
                 {
                     agentName = reader["AgentName"].ToString(),
                     agentEmail = reader["AgentEmail"].ToString(),
+                    department = reader["Department"].ToString(),
                     totalTickets = agentTotalTickets,
                     openCount = (int)reader["OpenCount"],
                     inProgressCount = (int)reader["InProgressCount"],
@@ -1848,6 +2418,154 @@ Support Team";
             _logger.LogError(ex, "Error getting agent performance");
             return StatusCode(500, new { message = "Failed to get agent performance", error = ex.Message });
         }
+    }
+    
+    // REOPEN TICKET - For users who are not satisfied with resolution
+    [HttpGet("{ticketId:guid}/reopen")]
+    [AllowAnonymous] // Allow anonymous access from email links
+    public async Task<IActionResult> ReopenTicket(Guid ticketId)
+    {
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+            
+            // Check if ticket exists and is resolved
+            var checkSql = @"SELECT Id, PublicId, Title, Status, CreatedByUserId 
+                           FROM Tickets WHERE Id = @TicketId";
+            
+            using var checkCmd = new SqlCommand(checkSql, connection);
+            checkCmd.Parameters.AddWithValue("@TicketId", ticketId);
+            
+            using var reader = await checkCmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+            {
+                return NotFound(new { error = "Ticket not found" });
+            }
+            
+            var ticketNumber = reader["PublicId"] != DBNull.Value ? reader["PublicId"].ToString() : ticketId.ToString().Substring(0, 8);
+            var status = (int)reader["Status"];
+            var createdByUserId = reader["CreatedByUserId"].ToString();
+            reader.Close();
+            
+            // Check if ticket is in resolved state (only resolved tickets can be reopened, not closed)
+            if (status != 4) // 4 = Resolved (Closed tickets cannot be reopened)
+            {
+                var statusMessage = status == 5 ? "closed and cannot be reopened" : "not in a resolved status and cannot be reopened";
+                // Redirect to a friendly message page or return HTML
+                return Content($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ticket Reopen</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }}
+        .info {{ background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }}
+    </style>
+</head>
+<body>
+    <h2>ℹ️ Ticket Status</h2>
+    <div class='info'>
+        <p><strong>Ticket #{ticketNumber}</strong> is {statusMessage}.</p>
+        <p>Only resolved tickets can be reopened. Please contact support if you need assistance.</p>
+    </div>
+    <p>If you need assistance, please contact support directly.</p>
+</body>
+</html>", "text/html");
+            }
+            
+            // Get the "Reopen" status ID from database (status names are configurable)
+            var getStatusSql = "SELECT Id FROM TicketStatuses WHERE Name = 'Reopen' AND IsActive = 1";
+            int? reopenStatusId = null;
+            
+            using (var statusCmd = new SqlCommand(getStatusSql, connection))
+            {
+                var result = await statusCmd.ExecuteScalarAsync();
+                if (result != null)
+                {
+                    reopenStatusId = Convert.ToInt32(result);
+                }
+            }
+            
+            if (!reopenStatusId.HasValue)
+            {
+                _logger.LogWarning("Reopen status not found in database, falling back to 'In Progress' status");
+                reopenStatusId = 2; // Fallback to In Progress if Reopen status doesn't exist
+            }
+            
+            // Reopen the ticket by setting status to "Reopen" - ticket was resolved but customer not satisfied
+            var reopenSql = @"UPDATE Tickets 
+                            SET Status = @Status, 
+                                ResolvedAt = NULL,
+                                UpdatedAt = @UpdatedAt
+                            WHERE Id = @TicketId";
+            
+            using var reopenCmd = new SqlCommand(reopenSql, connection);
+            reopenCmd.Parameters.AddWithValue("@Status", reopenStatusId.Value);
+            reopenCmd.Parameters.AddWithValue("@TicketId", ticketId);
+            reopenCmd.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
+            
+            var rowsAffected = await reopenCmd.ExecuteNonQueryAsync();
+            
+            if (rowsAffected > 0)
+            {
+                // Add a system comment indicating the ticket was reopened
+                var commentSql = @"INSERT INTO TicketComments (TicketId, Body, AuthorUserId, IsInternal, CreatedAt)
+                                 VALUES (@TicketId, @Body, @AuthorUserId, 0, @CreatedAt)";
+                
+                using var commentCmd = new SqlCommand(commentSql, connection);
+                commentCmd.Parameters.AddWithValue("@TicketId", ticketId);
+                commentCmd.Parameters.AddWithValue("@Body", "Ticket reopened by customer - issue not fully resolved");
+                commentCmd.Parameters.AddWithValue("@AuthorUserId", createdByUserId);
+                commentCmd.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+                
+                await commentCmd.ExecuteNonQueryAsync();
+                
+                _logger.LogInformation("Ticket {TicketId} (#{TicketNumber}) reopened by user", ticketId, ticketNumber);
+                
+                // Return a friendly HTML response
+                return Content($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ticket Reopened</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }}
+        .success {{ background-color: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; }}
+        .button {{ background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }}
+    </style>
+</head>
+<body>
+    <h2>✅ Ticket Successfully Reopened</h2>
+    <div class='success'>
+        <p><strong>Ticket #{ticketNumber}</strong> has been reopened.</p>
+        <p>Our support team will review your case and get back to you shortly.</p>
+    </div>
+    <p>Thank you for your patience!</p>
+</body>
+</html>", "text/html");
+            }
+            
+            return StatusCode(500, new { error = "Failed to reopen ticket" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reopening ticket {TicketId}", ticketId);
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+    
+    private string GetStatusName(int status)
+    {
+        return status switch
+        {
+            1 => "Open",
+            2 => "In Progress",
+            3 => "On Hold",
+            4 => "Resolved",
+            5 => "Closed",
+            _ => "Unknown"
+        };
     }
 }
 

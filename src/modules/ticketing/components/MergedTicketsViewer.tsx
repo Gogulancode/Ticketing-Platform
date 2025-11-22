@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { X, ArrowLeft, ArrowRight, GitMerge, Calendar, User, MessageSquare, ExternalLink, Eye } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, ArrowLeft, ArrowRight, GitMerge, Calendar, User, MessageSquare, ExternalLink } from 'lucide-react';
 import { settingsApi, TicketStatusConfig, PriorityLevel } from '../../../shared/services/api/settingsApi';
 import { API_CONFIG } from '../../../config/api';
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import { formatTicketDateTime } from '../../../shared/utils/dateUtils';
 
 interface MergedTicket {
   id: string;
@@ -39,22 +41,7 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
   const [statuses, setStatuses] = useState<TicketStatusConfig[]>([]);
   const [priorities, setPriorities] = useState<PriorityLevel[]>([]);
 
-  useEffect(() => {
-    if (isOpen && mergedTickets.length > 0) {
-      loadTicketDetails();
-      loadSettingsData();
-    }
-  }, [isOpen, mergedTickets]);
-
-  useEffect(() => {
-    // Set current index based on current ticket
-    const index = tickets.findIndex(t => t.id === currentTicketId);
-    if (index >= 0) {
-      setCurrentIndex(index);
-    }
-  }, [tickets, currentTicketId]);
-
-  const loadSettingsData = async () => {
+  const loadSettingsData = useCallback(async () => {
     try {
       const [statusesData, prioritiesData] = await Promise.all([
         settingsApi.getTicketStatuses(),
@@ -78,17 +65,18 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
         { id: 3, name: "Critical", color: "#dc2626", level: 4, isActive: true, order: 4 }
       ]);
     }
-  };
+  }, []);
 
-  const loadTicketDetails = async () => {
+  const loadTicketDetails = useCallback(async () => {
     setLoading(true);
     try {
       const ticketDetails = await Promise.all(
-        mergedTickets.map(async (ticketId) => {
+        mergedTickets.map(async (ticketId): Promise<MergedTicket | null> => {
           try {
             const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${ticketId}`);
             if (response.ok) {
-              return await response.json();
+              const data = (await response.json()) as MergedTicket;
+              return data;
             }
             return null;
           } catch (error) {
@@ -97,14 +85,30 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
           }
         })
       );
-      
-      setTickets(ticketDetails.filter(ticket => ticket !== null));
+
+      const validTickets = ticketDetails.filter((ticket): ticket is MergedTicket => ticket !== null);
+      setTickets(validTickets);
     } catch (error) {
       console.error('Failed to load merged tickets:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [mergedTickets]);
+
+  useEffect(() => {
+    if (isOpen && mergedTickets.length > 0) {
+      loadTicketDetails();
+      loadSettingsData();
+    }
+  }, [isOpen, mergedTickets, loadTicketDetails, loadSettingsData]);
+
+  useEffect(() => {
+    // Set current index based on current ticket
+    const index = tickets.findIndex(t => t.id === currentTicketId);
+    if (index >= 0) {
+      setCurrentIndex(index);
+    }
+  }, [tickets, currentTicketId]);
 
   const currentTicket = tickets[currentIndex];
   const canGoPrevious = currentIndex > 0;
@@ -200,10 +204,7 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center p-8">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading merged tickets...</p>
-            </div>
+            <LoadingSpinner size="lg" message="Loading merged tickets..." />
           </div>
         ) : currentTicket ? (
           <>
@@ -281,14 +282,7 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
                       <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4 text-gray-400" />
                         <span className="text-gray-600">
-                          {new Date(currentTicket.createdAt).toLocaleDateString('en-IN', {
-                            timeZone: 'Asia/Kolkata',
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                          {formatTicketDateTime(currentTicket.createdAt)}
                         </span>
                       </div>
                     </div>

@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useForm } from 'react-hook-form';
 import { settingsApi, PriorityLevel } from '@api/settingsApi';
+import { toast } from 'react-hot-toast';
 
 interface PriorityFormData {
   name: string;
@@ -60,21 +61,21 @@ const PriorityModal: React.FC<PriorityModalProps> = ({ isOpen, onClose, priority
           ...data,
           order: priority.order
         });
-        console.log('✅ Priority updated successfully');
+        toast.success('Priority updated successfully!');
       } else {
         // Create new priority
         await settingsApi.createPriority({
           ...data,
           order: 0 // Will be set by backend
         });
-        console.log('✅ Priority created successfully');
+        toast.success('Priority created successfully!');
       }
       onSave(); // Refresh the list
       onClose();
       reset();
     } catch (error) {
-      console.error('❌ Error saving priority:', error);
-      alert('Error saving priority. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Error saving priority. Please try again.';
+      toast.error(errorMessage);
     }
   };
 
@@ -211,15 +212,17 @@ const PrioritiesTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [priorities, setPriorities] = useState<PriorityLevel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showInactive, setShowInactive] = useState(false);
 
   // Load priorities from API
   const loadPriorities = async () => {
     try {
       setLoading(true);
-      const data = await settingsApi.getPriorityLevels();
-      setPriorities(data);
+      const data = await settingsApi.getPriorityLevels(true);
+      const sanitizedPriorities = data.filter((priority: PriorityLevel) => !priority.isDeleted);
+      setPriorities(sanitizedPriorities);
     } catch (error) {
-      console.error('Error loading priorities:', error);
+      toast.error('Error loading priorities');
     } finally {
       setLoading(false);
     }
@@ -229,13 +232,21 @@ const PrioritiesTab: React.FC = () => {
     loadPriorities();
   }, []);
 
-  // Filter priorities by search term
-  const filteredPriorities = priorities.filter((priority: PriorityLevel) =>
-    priority.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter priorities by search term and active status
+  const filteredPriorities = priorities.filter((priority: PriorityLevel) => {
+    const matchesSearch = priority.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesActiveFilter = showInactive ? !priority.isActive : priority.isActive;
+    return matchesSearch && matchesActiveFilter;
+  });
 
   // Sort priorities by level (ascending - so highest priority first)
-  const sortedPriorities = filteredPriorities.sort((a: PriorityLevel, b: PriorityLevel) => a.level - b.level);
+  const sortedPriorities = [...filteredPriorities].sort((a: PriorityLevel, b: PriorityLevel) => {
+    const getSortValue = (priority: PriorityLevel) => priority.order ?? priority.displayOrder ?? priority.level;
+    const sortComparison = getSortValue(a) - getSortValue(b);
+    if (sortComparison !== 0) return sortComparison;
+    if (a.level !== b.level) return a.level - b.level;
+    return a.name.localeCompare(b.name);
+  });
 
   const handleEdit = (priority: PriorityLevel) => {
     setEditingPriority(priority);
@@ -246,11 +257,11 @@ const PrioritiesTab: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this priority? This action cannot be undone.')) {
       try {
         await settingsApi.deletePriority(priorityId);
-        console.log('✅ Priority deleted successfully');
+        toast.success('Priority deleted successfully!');
         loadPriorities(); // Refresh the list
       } catch (error) {
-        console.error('❌ Error deleting priority:', error);
-        alert('Error deleting priority. Please try again.');
+        const errorMessage = error instanceof Error ? error.message : 'Error deleting priority. Please try again.';
+        toast.error(errorMessage);
       }
     }
   };
@@ -284,6 +295,15 @@ const PrioritiesTab: React.FC = () => {
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Add Priority
           </button>
+          <label className="flex items-center space-x-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <span>Show inactive only</span>
+          </label>
         </div>
 
         {/* Search */}

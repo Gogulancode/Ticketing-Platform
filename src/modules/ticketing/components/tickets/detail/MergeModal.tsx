@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { X, Search, GitMerge, Check, Calendar, User, AlertCircle } from 'lucide-react';
 import { apiFetch } from '../../../../../utils/apiFetch';
+import { formatTicketDateTime } from '../../../../../shared/utils/dateUtils';
+import { getDisplayTicketNumber } from '../../../utils/ticketNumber';
 
 interface Ticket {
   id: string;
@@ -17,7 +19,7 @@ interface Ticket {
 }
 
 interface MergeModalProps {
-  ticket: any;
+  ticket: Ticket;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -38,7 +40,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
   }, [searchQuery]);
 
   // Fetch all tickets initially (for browsing)
-  const { data: allTickets = [], isLoading: isLoadingAll } = useQuery({
+  const { data: allTickets = [] } = useQuery({
     queryKey: ['all-tickets-for-merge', ticket?.id],
     queryFn: async () => {
       const token = localStorage.getItem('token');
@@ -176,7 +178,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
             <GitMerge className="h-6 w-6 text-blue-600" />
             <div>
               <h2 className="text-lg font-semibold text-gray-900">
-                Merge Tickets into #{ticket?.publicId}
+                Merge Tickets into #{getDisplayTicketNumber(ticket)}
               </h2>
               <p className="text-sm text-gray-600 mt-1">
                 Search and select tickets to merge. All selected tickets will be closed and merged into this ticket.
@@ -251,7 +253,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-sm">#{searchTicket.publicId}</span>
+                            <span className="font-medium text-sm">#{getDisplayTicketNumber(searchTicket)}</span>
                             <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(searchTicket.priority)}`}>
                               {getPriorityName(searchTicket.priority)}
                             </span>
@@ -265,7 +267,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
                           <div className="flex items-center gap-4 text-xs text-gray-500">
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {new Date(searchTicket.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                              {formatTicketDateTime(searchTicket.createdAt)}
                             </div>
                             <div className="flex items-center gap-1">
                               <User className="h-3 w-3" />

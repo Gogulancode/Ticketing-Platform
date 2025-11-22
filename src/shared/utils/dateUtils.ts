@@ -16,6 +16,7 @@ export const toIST = (utcDate: Date | string): Date => {
 
 /**
  * Format date in IST with various options
+ * Manually converts UTC to IST by adding +5:30 offset
  */
 export const formatIST = (
   date: Date | string,
@@ -32,7 +33,20 @@ export const formatIST = (
       format = 'medium'
     } = options;
 
-    const d = typeof date === 'string' ? new Date(date) : date;
+    // Parse date string, ensuring it's treated as UTC
+    let d: Date;
+    if (typeof date === 'string') {
+      // If the string doesn't end with 'Z', it might not be parsed as UTC
+      // Force UTC parsing by ensuring the string has 'Z' or using Date.UTC
+      if (!date.endsWith('Z') && !date.includes('+') && !date.includes('GMT')) {
+        // Append 'Z' to force UTC interpretation
+        d = new Date(date + (date.includes('T') ? 'Z' : 'T00:00:00Z'));
+      } else {
+        d = new Date(date);
+      }
+    } else {
+      d = date;
+    }
     
     // Check if date is valid
     if (isNaN(d.getTime())) {
@@ -40,23 +54,50 @@ export const formatIST = (
       return 'Invalid Date';
     }
     
-    const dateOptions: Intl.DateTimeFormatOptions = {
-      timeZone: IST_TIMEZONE,
-      year: 'numeric',
-      month: format === 'short' ? 'numeric' : format === 'medium' ? 'short' : 'long',
-      day: 'numeric',
+    // Manually convert UTC to IST by adding 5 hours 30 minutes offset
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
+    const utcTime = d.getTime();
+    const istDate = new Date(utcTime + IST_OFFSET_MS);
+    
+    // Format using UTC methods to avoid browser timezone interference
+    const year = istDate.getUTCFullYear();
+    const month = istDate.getUTCMonth();
+    const day = istDate.getUTCDate();
+    const hours = istDate.getUTCHours();
+    const minutes = istDate.getUTCMinutes();
+    const seconds = istDate.getUTCSeconds();
+    
+    // Month names
+    const monthNames = {
+      short: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      long: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
     };
-
-    if (includeTime) {
-      dateOptions.hour = '2-digit';
-      dateOptions.minute = '2-digit';
-      if (includeSeconds) {
-        dateOptions.second = '2-digit';
-      }
-      dateOptions.hour12 = true;
+    
+    // Format date part
+    let dateStr = '';
+    if (format === 'short') {
+      dateStr = `${day}/${month + 1}/${year}`;
+    } else if (format === 'medium') {
+      dateStr = `${day} ${monthNames.short[month]} ${year}`;
+    } else {
+      dateStr = `${day} ${monthNames.long[month]} ${year}`;
     }
-
-    return d.toLocaleString('en-IN', dateOptions);
+    
+    // Format time part if needed
+    if (includeTime) {
+      const hour12 = hours % 12 || 12;
+      const ampm = hours >= 12 ? 'pm' : 'am';
+      const minuteStr = minutes.toString().padStart(2, '0');
+      
+      if (includeSeconds) {
+        const secondStr = seconds.toString().padStart(2, '0');
+        dateStr += `, ${hour12.toString().padStart(2, '0')}:${minuteStr}:${secondStr} ${ampm}`;
+      } else {
+        dateStr += `, ${hour12.toString().padStart(2, '0')}:${minuteStr} ${ampm}`;
+      }
+    }
+    
+    return dateStr;
   } catch (error) {
     console.error('Error formatting date to IST:', error, 'Date:', date);
     return 'Invalid Date';

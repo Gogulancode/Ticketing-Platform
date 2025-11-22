@@ -9,6 +9,8 @@ using ERPTraining.Core.Models.Ticketing;
 using ERPTraining.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ERPTraining.Infrastructure.Services.Ticketing;
 
@@ -154,6 +156,12 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
         // Determine category and priority
         var category = await DetermineCategoryAsync(email, dbContext, cancellationToken);
         var subcategory = await DetermineSubcategoryAsync(email, dbContext, cancellationToken);
+        var categoryId = category?.Id;
+
+        if (subcategory != null)
+        {
+            categoryId = subcategory.CategoryId;
+        }
         var priority = DeterminePriorityFromEmail(email);
 
         // Generate ticket number
@@ -172,7 +180,7 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
             Title = CleanSubject(email.Subject),
             Description = formattedDescription,
             CreatedByUserId = user.Id,
-            CategoryId = category?.Id,
+            CategoryId = categoryId,
             SubcategoryId = subcategory?.Id,
             Priority = (ERPTraining.Core.Entities.Ticketing.TicketPriority)priority,
             Status = 1, // New status ID
@@ -205,8 +213,9 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
 
         // Create a well-formatted comment with sender info and clean content
         var cleanBody = CleanEmailBody(email.Body);
+        var attachmentNote = email.HasAttachments ? "\n📎 This email includes attachments" : "";
         var formattedComment = $"📧 Email reply from: {email.FromEmail}\n" +
-                              $"📅 Received: {email.ReceivedDate:yyyy-MM-dd HH:mm}\n\n" +
+                              $"📅 Received: {email.ReceivedDate:yyyy-MM-dd HH:mm}{attachmentNote}\n\n" +
                               $"{cleanBody}";
 
         var comment = new TicketComment
@@ -223,20 +232,35 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
         // Update ticket's last activity
         ticket.UpdatedAt = DateTime.UtcNow;
         
-        // If ticket was resolved/closed, reopen it
-        if (ticket.Status == 4 || ticket.Status == 5) // Resolved or Closed
+        // If ticket was resolved (not closed), reopen it when customer replies via email
+        if (ticket.Status == 4) // Only Resolved tickets can be auto-reopened (not Closed)
         {
-            ticket.Status = 1; // New status ID
-            _logger.LogInformation("Reopened ticket #{TicketNumber} due to new email", ticket.PublicId?.ToString() ?? ticket.Id.ToString().Substring(0, 8));
+            // Look up the "Reopen" status ID dynamically (status IDs may vary across environments)
+            var reopenStatus = await dbContext.TicketStatuses
+                .Where(s => s.Name == "Reopen" && s.IsActive)
+                .Select(s => s.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            
+            ticket.Status = reopenStatus != 0 ? reopenStatus : 2; // Fallback to In Progress (2) if Reopen status not found
+            _logger.LogInformation("Reopened ticket #{TicketNumber} due to new email with status {StatusId}", 
+                ticket.PublicId?.ToString() ?? ticket.Id.ToString().Substring(0, 8), ticket.Status);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Process attachments from email reply if any - link them to the comment
+        if (email.HasAttachments)
+        {
+            _logger.LogInformation("Processing attachments from email reply for ticket {TicketId} and comment {CommentId}", ticket.Id, comment.Id);
+            await ProcessEmailAttachmentsAsync(email.Id, ticket.Id, dbContext, cancellationToken, comment.Id);
+        }
     }
 
     /// <summary>
     /// Processes attachments from an email and saves them to the ticket
     /// </summary>
-    private async Task ProcessEmailAttachmentsAsync(string emailId, Guid ticketId, ApplicationDbContext dbContext, CancellationToken cancellationToken)
+    /// <param name="commentId">Optional comment ID to link attachments to a specific comment</param>
+    private async Task ProcessEmailAttachmentsAsync(string emailId, Guid ticketId, ApplicationDbContext dbContext, CancellationToken cancellationToken, Guid? commentId = null)
     {
         try
         {
@@ -281,6 +305,7 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
                         {
                             Id = Guid.NewGuid(),
                             TicketId = ticketId,
+                            CommentId = commentId, // Link to comment if provided
                             FileName = emailAttachment.FileName,
                             ContentType = emailAttachment.ContentType,
                             SizeBytes = emailAttachment.Size,
@@ -291,8 +316,8 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
 
                         dbContext.Attachments.Add(attachment);
                         
-                        _logger.LogInformation("Processed attachment {FileName} for ticket {TicketId}", 
-                            emailAttachment.FileName, ticketId);
+                        _logger.LogInformation("Processed attachment {FileName} for ticket {TicketId}{CommentInfo}", 
+                            emailAttachment.FileName, ticketId, commentId.HasValue ? $" and comment {commentId.Value}" : "");
                     }
                 }
                 catch (Exception ex)
@@ -382,38 +407,72 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
     /// </summary>
     private async Task<ERPTraining.Core.Entities.Tickets.TicketSubCategory?> DetermineSubcategoryAsync(EmailMessage email, ApplicationDbContext dbContext, CancellationToken cancellationToken)
     {
-        var emailContent = $"{email.Subject} {email.Body}".ToLower();
+        var content = $"{email.Subject} {email.Body}";
 
-        // Get all active ticket tags
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return null;
+        }
+
+        var emailContent = content.ToLowerInvariant();
+
         var ticketTags = await dbContext.TicketTags
-            .Where(t => t.IsActive)
+            .AsNoTracking()
+            .Where(t => t.IsActive && !t.IsDeleted)
+            .Select(t => new { t.Id, t.Name, t.SubCategoryId })
             .ToListAsync(cancellationToken);
 
-        // Find the best matching tag based on keywords
-        foreach (var tag in ticketTags)
+        if (ticketTags.Count > 0)
         {
-            if (string.IsNullOrEmpty(tag.Name)) continue;
+            var subcategoryIds = ticketTags.Select(t => t.SubCategoryId).Distinct().ToList();
+            var subcategoryLookup = subcategoryIds.Count > 0
+                ? await dbContext.TicketSubCategories
+                    .AsNoTracking()
+                    .Where(sc => subcategoryIds.Contains(sc.Id))
+                    .ToDictionaryAsync(sc => sc.Id, sc => sc, cancellationToken)
+                : new Dictionary<int, TicketSubCategory>();
 
-            // Split tag name by commas to get individual keywords
-            var keywords = tag.Name.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(k => k.Trim().ToLower())
-                .Where(k => !string.IsNullOrEmpty(k));
+            var matchedTag = ticketTags
+                .SelectMany(tag => ExtractKeywords(tag.Name)
+                    .Select(keyword => new { Tag = tag, Keyword = keyword }))
+                .Where(candidate => ContainsKeyword(emailContent, candidate.Keyword))
+                .OrderByDescending(candidate => candidate.Keyword.Length)
+                .FirstOrDefault();
 
-            // Check if any keyword matches the email content
-            foreach (var keyword in keywords)
+            if (matchedTag != null && subcategoryLookup.TryGetValue(matchedTag.Tag.SubCategoryId, out var matchedSubcategory))
             {
-                if (emailContent.Contains(keyword))
+                _logger.LogInformation(
+                    "Found keyword match: '{Keyword}' -> subcategory '{SubcategoryName}' (ID: {SubcategoryId}) via tag '{TagName}'",
+                    matchedTag.Keyword,
+                    matchedSubcategory.Name,
+                    matchedSubcategory.Id,
+                    matchedTag.Tag.Name);
+                return matchedSubcategory;
+            }
+        }
+
+        var keywordMappings = await dbContext.SubcategoryKeywords
+            .AsNoTracking()
+            .Where(sk => sk.IsActive)
+            .OrderByDescending(sk => sk.Weight)
+            .ToListAsync(cancellationToken);
+
+        foreach (var mapping in keywordMappings)
+        {
+            if (!string.IsNullOrWhiteSpace(mapping.Keyword) && ContainsKeyword(emailContent, mapping.Keyword))
+            {
+                var keywordSubcategory = await dbContext.TicketSubCategories
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(sc => sc.Id == mapping.SubcategoryId, cancellationToken);
+
+                if (keywordSubcategory != null)
                 {
-                    // Get the subcategory for this tag
-                    var subcategory = await dbContext.TicketSubCategories
-                        .FirstOrDefaultAsync(sc => sc.Id == tag.SubCategoryId, cancellationToken);
-                    
-                    if (subcategory != null)
-                    {
-                        _logger.LogInformation("Found keyword match: '{Keyword}' in email content, assigning to subcategory '{SubCategory}'", 
-                            keyword, subcategory.Name);
-                        return subcategory;
-                    }
+                    _logger.LogInformation(
+                        "Matched subcategory keyword '{Keyword}' -> subcategory '{SubcategoryName}' (ID: {SubcategoryId})",
+                        mapping.Keyword,
+                        keywordSubcategory.Name,
+                        keywordSubcategory.Id);
+                    return keywordSubcategory;
                 }
             }
         }
@@ -648,4 +707,32 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
 
         return similarity >= 0.7;
     }
+
+    private static IEnumerable<string> ExtractKeywords(string? rawValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            yield break;
+        }
+
+        foreach (var keyword in rawValue.Split(KeywordSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                yield return keyword;
+            }
+        }
+    }
+
+    private static bool ContainsKeyword(string content, string keyword)
+    {
+        if (string.IsNullOrWhiteSpace(content) || string.IsNullOrWhiteSpace(keyword))
+        {
+            return false;
+        }
+
+        return content.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static readonly char[] KeywordSeparators = new[] { ',', ';', '|', '/', '\\', '\n', '\r' };
 }

@@ -818,6 +818,9 @@ namespace ERPTraining.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("CommentId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -844,6 +847,8 @@ namespace ERPTraining.Infrastructure.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CommentId");
 
                     b.HasIndex("TicketId");
 
@@ -1021,6 +1026,9 @@ namespace ERPTraining.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsRequired")
                         .HasColumnType("bit");
 
@@ -1170,6 +1178,37 @@ namespace ERPTraining.Infrastructure.Migrations
                     b.ToTable("SlaEscalationContacts");
                 });
 
+            modelBuilder.Entity("ERPTraining.Core.Entities.Ticketing.SlaEscalationLevel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SlaPolicyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("TriggerAtMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SlaPolicyId", "Level")
+                        .IsUnique();
+
+                    b.ToTable("SlaEscalationLevels");
+                });
+
             modelBuilder.Entity("ERPTraining.Core.Entities.Ticketing.SlaPolicy", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1185,10 +1224,16 @@ namespace ERPTraining.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("EscalationTime")
+                        .HasColumnType("int");
+
                     b.Property<int>("FirstResponseMins")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<string>("Name")
@@ -1555,6 +1600,9 @@ namespace ERPTraining.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AutoAssignmentEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
@@ -1567,6 +1615,12 @@ namespace ERPTraining.Infrastructure.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MaxTicketsPerAgent")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1655,6 +1709,9 @@ namespace ERPTraining.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<string>("Name")
@@ -1842,6 +1899,9 @@ namespace ERPTraining.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1925,6 +1985,9 @@ namespace ERPTraining.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Level")
                         .HasColumnType("int");
 
@@ -1970,6 +2033,9 @@ namespace ERPTraining.Infrastructure.Migrations
                     b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -2006,6 +2072,9 @@ namespace ERPTraining.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<string>("Name")
@@ -2064,6 +2133,9 @@ namespace ERPTraining.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsAgent")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsERPUser")
                         .HasColumnType("bit");
 
@@ -2099,6 +2171,9 @@ namespace ERPTraining.Infrastructure.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("Position")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
@@ -3352,6 +3427,11 @@ namespace ERPTraining.Infrastructure.Migrations
 
             modelBuilder.Entity("ERPTraining.Core.Entities.Ticketing.Attachment", b =>
                 {
+                    b.HasOne("ERPTraining.Core.Entities.Ticketing.TicketComment", "Comment")
+                        .WithMany("Attachments")
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("ERPTraining.Core.Entities.Ticketing.Ticket", "Ticket")
                         .WithMany("Attachments")
                         .HasForeignKey("TicketId")
@@ -3363,6 +3443,8 @@ namespace ERPTraining.Infrastructure.Migrations
                         .HasForeignKey("UploadedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Comment");
 
                     b.Navigation("Ticket");
 
@@ -3446,6 +3528,17 @@ namespace ERPTraining.Infrastructure.Migrations
                 {
                     b.HasOne("ERPTraining.Core.Entities.Ticketing.SlaPolicy", "SlaPolicy")
                         .WithMany("EscalationContacts")
+                        .HasForeignKey("SlaPolicyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SlaPolicy");
+                });
+
+            modelBuilder.Entity("ERPTraining.Core.Entities.Ticketing.SlaEscalationLevel", b =>
+                {
+                    b.HasOne("ERPTraining.Core.Entities.Ticketing.SlaPolicy", "SlaPolicy")
+                        .WithMany("EscalationLevels")
                         .HasForeignKey("SlaPolicyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -4056,6 +4149,8 @@ namespace ERPTraining.Infrastructure.Migrations
                 {
                     b.Navigation("EscalationContacts");
 
+                    b.Navigation("EscalationLevels");
+
                     b.Navigation("Tickets");
                 });
 
@@ -4070,6 +4165,11 @@ namespace ERPTraining.Infrastructure.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("Links");
+                });
+
+            modelBuilder.Entity("ERPTraining.Core.Entities.Ticketing.TicketComment", b =>
+                {
+                    b.Navigation("Attachments");
                 });
 
             modelBuilder.Entity("ERPTraining.Core.Entities.Ticketing.TicketGroup", b =>

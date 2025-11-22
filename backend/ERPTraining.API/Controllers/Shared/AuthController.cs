@@ -254,6 +254,33 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
+    /// <summary>
+    /// Generates a new JWT token for the currently authenticated user
+    /// </summary>
+    /// <returns>New authentication token with updated expiration</returns>
+    /// <response code="200">Token successfully refreshed</response>
+    /// <response code="401">Unauthorized - Invalid or missing token</response>
+    [HttpPost("refresh")]
+    [Authorize]
+    [ProducesResponseType(typeof(AuthResponseDto), 200)]
+    [ProducesResponseType(401)]
+    public async Task<ActionResult<AuthResponseDto>> RefreshToken()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(new { error = "Missing user identifier" });
+        }
+
+        var refreshed = await _authService.RefreshTokenAsync(userId);
+        if (refreshed == null)
+        {
+            return Unauthorized(new { error = "Unable to refresh token" });
+        }
+
+        return Ok(refreshed);
+    }
+
     [HttpPost("assign-role")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> AssignRole([FromBody] AssignRoleDto assignRoleDto)

@@ -1,5 +1,7 @@
 // Client-side API functions
-const API_BASE = 'http://localhost:5015/api';
+import { API_CONFIG } from '../../config/api';
+
+const API_BASE = API_CONFIG.BASE_URL;
 
 function getToken(): string | null {
   return localStorage.getItem('token');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Users, Search, Edit, UserPlus, CheckCircle, XCircle, Eye, X, 
   UserCheck, RefreshCw 
@@ -82,62 +82,54 @@ const UserManagementPage: React.FC = () => {
     isAgent: false,
   });
 
-  // View user modal
-  const [viewingUser, setViewingUser] = useState<User | null>(null);
+  // View user modal - store ID only and compute user from users array
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+  
+  // Compute the actual viewing user from users array
+  const viewingUser = viewingUserId ? users.find(u => u.id === viewingUserId) || null : null;
 
-  const availableRoles = ['Admin', 'Agent', 'User', 'Manager', 'Supervisor'];
+  const availableRoles = ['Admin', 'User', 'Manager', 'Supervisor'];
   const availableDepartments = ['IT', 'Support', 'Sales', 'Operations', 'HR', 'Finance'];
 
-  // Load data
-  useEffect(() => {
-    loadUsers(1, searchTerm);
-    if (activeTab === 'agents') {
-      loadAgents();
-    }
-  }, [activeTab]);
-
-  // Debounced search effect
-  useEffect(() => {
-    if (activeTab !== 'users') return;
-    
-    const timeoutId = setTimeout(() => {
-      setCurrentPage(1); // Reset to page 1 when searching
-      loadUsers(1, searchTerm);
-    }, 500); // 500ms delay
-
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, selectedRole, statusFilter, departmentFilter, activeTab]);
-
-  const loadUsers = async (page: number = 1, search: string = '') => {
+  const loadUsers = useCallback(async (page: number = 1, search: string = searchTerm) => {
     setLoading(true);
     try {
-      // Build query parameters
       const params = new URLSearchParams({
         page: page.toString(),
         pageSize: pageSize.toString(),
+        _t: Date.now().toString(),
       });
-      
-      if (search.trim()) {
-        params.append('search', search.trim());
+
+      const trimmedSearch = search.trim();
+      if (trimmedSearch) {
+        params.append('search', trimmedSearch);
       }
-      
+
       if (selectedRole) {
         params.append('role', selectedRole);
       }
-      
+
       if (statusFilter !== 'all') {
         params.append('status', statusFilter);
       }
-      
+
       if (departmentFilter) {
         params.append('department', departmentFilter);
       }
 
-      // API call via proxy to backend server with pagination and search
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users?${params.toString()}`);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users?${params.toString()}`,
+        {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache'
+          }
+        }
+      );
+
       if (response.ok) {
         const userData = await response.json();
-        // Backend returns {users: [...], pagination: {...}} structure
+        console.log('📥 Loaded users from server:', userData.users);
         setUsers(userData.users || []);
         if (userData.pagination) {
           setCurrentPage(userData.pagination.currentPage);
@@ -145,7 +137,6 @@ const UserManagementPage: React.FC = () => {
           setTotalUsers(userData.pagination.totalCount);
         }
       } else {
-        // Mock data for development when backend is not available
         setUsers([
           {
             id: '1',
@@ -197,24 +188,20 @@ const UserManagementPage: React.FC = () => {
     } catch (err) {
       setError('Failed to load users');
       console.error('Error loading users:', err);
-      // Ensure users remains an empty array on error
       setUsers([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [departmentFilter, pageSize, searchTerm, selectedRole, statusFilter]);
 
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async () => {
     setLoading(true);
     try {
-      // API call via proxy to backend server
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets/settings/agents`);
       if (response.ok) {
         const agentData = await response.json();
-        // Backend returns array directly for agents
         setAgents(Array.isArray(agentData) ? agentData : []);
       } else {
-        // Mock data for development when backend is not available
         setAgents([
           {
             id: 1,
@@ -241,12 +228,32 @@ const UserManagementPage: React.FC = () => {
     } catch (err) {
       setError('Failed to load agents');
       console.error('Error loading agents:', err);
-      // Ensure agents remains an empty array on error
       setAgents([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Load data
+  useEffect(() => {
+    loadUsers(1);
+    if (activeTab === 'agents') {
+      loadAgents();
+    }
+  }, [activeTab, loadAgents, loadUsers]);
+
+  // Debounced search effect
+  useEffect(() => {
+    if (activeTab !== 'users') return;
+    
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1); // Reset to page 1 when searching
+      loadUsers(1);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timeoutId);
+  }, [activeTab, departmentFilter, loadUsers, searchTerm, selectedRole, statusFilter]);
+
 
   const handleCreateUser = async () => {
     if (!newUser.email || !newUser.firstName || !newUser.lastName) {
@@ -281,6 +288,7 @@ const UserManagementPage: React.FC = () => {
 
       if (response.ok) {
         setSuccess('User created successfully!');
+        setTimeout(() => setSuccess(null), 3000);
         setNewUser({
           username: '',
           email: '',
@@ -343,6 +351,7 @@ const UserManagementPage: React.FC = () => {
 
       if (response.ok) {
         setSuccess(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
+        setTimeout(() => setSuccess(null), 3000);
         loadUsers(currentPage, searchTerm);
       } else {
         setError('Failed to update user status');
@@ -388,7 +397,11 @@ const UserManagementPage: React.FC = () => {
 
       const response = await fetch(apiUrl, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
         body: JSON.stringify(editUserForm),
       });
 
@@ -397,21 +410,42 @@ const UserManagementPage: React.FC = () => {
       if (response.ok) {
         const responseData = await response.json();
         console.log('✅ Update successful:', responseData);
+        
+        // Extract user data from response (backend returns {success, message, user})
+        const updatedUserData = responseData.user || responseData;
+        console.log('📦 Updated user data from server:', updatedUserData);
+        console.log('📋 Fields in response:', Object.keys(updatedUserData));
+        console.log('🔍 Position:', updatedUserData.position);
+        console.log('🔍 IsAgent:', updatedUserData.isAgent);
+        console.log('🔍 Roles:', updatedUserData.roles);
+        console.log('🔍 IsActive:', updatedUserData.isActive);
+        
         setSuccess('User updated successfully');
-        setEditingUser(null);
-        setEditUserForm({
-          username: '',
-          email: '',
-          firstName: '',
-          lastName: '',
-          phone: '',
-          roles: [],
-          department: '',
-          position: '',
-          isActive: true,
-          isAgent: false,
-        });
-        await loadUsers(currentPage);
+        
+        // Reload users immediately from server to get fresh data
+        console.log('🔃 Reloading users from server...');
+        await loadUsers(currentPage, searchTerm);
+        console.log('✅ Users reloaded');
+        
+        // Close modal after reload
+        setTimeout(() => {
+          setEditingUser(null);
+          setEditUserForm({
+            username: '',
+            email: '',
+            firstName: '',
+            lastName: '',
+            phone: '',
+            roles: [],
+            department: '',
+            position: '',
+            isActive: true,
+            isAgent: false,
+          });
+        }, 800);
+        
+        // Auto-dismiss success message
+        setTimeout(() => setSuccess(null), 3000);
       } else {
         const errorData = await response.json();
         console.error('❌ Update failed:', errorData);
@@ -425,13 +459,14 @@ const UserManagementPage: React.FC = () => {
     }
   };
 
-  const toggleAgentStatus = async (agentId: number) => {
+  const toggleAgentStatus = async (agentId: number, currentStatus: boolean) => {
     setLoading(true);
     try {
       // API call via proxy to backend server for agent status toggle
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets/settings/agents/${agentId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !currentStatus }),
       });
 
       if (response.ok) {
@@ -717,7 +752,10 @@ const UserManagementPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <button
-                            onClick={() => setViewingUser(user)}
+                            onClick={() => {
+                              console.log('👁️ Opening view modal for user:', user.id, user);
+                              setViewingUserId(user.id);
+                            }}
                             className="text-blue-600 hover:text-blue-900"
                           >
                             <Eye className="h-4 w-4" />
@@ -932,7 +970,7 @@ const UserManagementPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <button
-                            onClick={() => toggleAgentStatus(agent.id)}
+                            onClick={() => toggleAgentStatus(agent.id, agent.isActive)}
                             className={`text-sm px-3 py-1 rounded-md font-medium ${
                               agent.isActive
                                 ? 'text-red-700 bg-red-50 hover:bg-red-100'
@@ -1163,12 +1201,25 @@ const UserManagementPage: React.FC = () => {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">User Details</h2>
                 <button
-                  onClick={() => setViewingUser(null)}
+                  onClick={() => {
+                    console.log('❌ Closing view modal');
+                    setViewingUserId(null);
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="h-6 w-6" />
                 </button>
               </div>
+
+              {(() => {
+                console.log('📺 Rendering modal with viewingUser:', {
+                  id: viewingUser.id,
+                  position: viewingUser.position,
+                  isAgent: viewingUser.isAgent,
+                  roles: viewingUser.roles
+                });
+                return null;
+              })()}
 
               <div className="space-y-4">
                 <div className="flex items-center space-x-4">
@@ -1258,15 +1309,15 @@ const UserManagementPage: React.FC = () => {
 
               <div className="flex justify-end space-x-3 pt-6 border-t mt-6">
                 <button
-                  onClick={() => setViewingUser(null)}
+                  onClick={() => setViewingUserId(null)}
                   className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
                   Close
                 </button>
                 <button
                   onClick={() => {
-                    console.log('Edit user:', viewingUser.id);
-                    setViewingUser(null);
+                    console.log('Edit user:', viewingUser?.id);
+                    setViewingUserId(null);
                   }}
                   className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700"
                 >

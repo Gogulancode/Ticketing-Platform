@@ -270,7 +270,7 @@
             Get all SLA policies
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.SlaController.GetSlaPolicy(System.Int32,System.Threading.CancellationToken)">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.SlaController.GetSlaPolicy(System.String,System.Threading.CancellationToken)">
             <summary>
             Get SLA policy by ID
             </summary>
@@ -285,12 +285,12 @@
             Create a new SLA policy
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.SlaController.UpdateSlaPolicy(System.Int32,ERPTraining.Core.DTOs.Ticketing.Sla.UpdateSlaPolicyRequest,System.Threading.CancellationToken)">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.SlaController.UpdateSlaPolicy(System.String,ERPTraining.Core.DTOs.Ticketing.Sla.UpdateSlaPolicyRequest,System.Threading.CancellationToken)">
             <summary>
             Update an existing SLA policy
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.SlaController.DeleteSlaPolicy(System.Int32,System.Threading.CancellationToken)">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.SlaController.DeleteSlaPolicy(System.String,System.Threading.CancellationToken)">
             <summary>
             Delete (deactivate) an SLA policy
             </summary>
@@ -395,52 +395,52 @@
             Reorder field settings for a category
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController_Disabled.GetAll">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController.GetAll(System.Boolean)">
             <summary>
-            Get all active ticket groups
+            Get all ticket groups with optional filters
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController_Disabled.GetById(System.Int32)">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController.GetById(System.Int32)">
             <summary>
             Get ticket group by ID
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController_Disabled.Create(ERPTraining.Core.DTOs.Ticketing.TicketGroupDto)">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController.Create(ERPTraining.Core.DTOs.Ticketing.TicketGroupDto)">
             <summary>
             Create a new ticket group
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController_Disabled.Update(System.Int32,ERPTraining.Core.DTOs.Ticketing.TicketGroupDto)">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController.Update(System.Int32,ERPTraining.Core.DTOs.Ticketing.TicketGroupDto)">
             <summary>
             Update an existing ticket group
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController_Disabled.Delete(System.Int32)">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController.Delete(System.Int32)">
             <summary>
             Delete a ticket group (soft delete)
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController_Disabled.GetByCategory(System.Int32)">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController.GetByCategory(System.Int32,System.Boolean)">
             <summary>
             Get all groups for a specific category
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController_Disabled.GetBySubCategory(System.Int32)">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController.GetBySubCategory(System.Int32,System.Boolean)">
             <summary>
             Get all groups for a specific subcategory
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController_Disabled.AssignAgentToGroup(System.Int32,System.Int32)">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController.AssignAgentToGroup(System.Int32,System.Int32)">
             <summary>
             Assign an agent to a group
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController_Disabled.RemoveAgentFromGroup(System.Int32,System.Int32)">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController.RemoveAgentFromGroup(System.Int32,System.Int32)">
             <summary>
             Remove an agent from a group
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController_Disabled.GetGroupAgents(System.Int32)">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketGroupController.GetGroupAgents(System.Int32)">
             <summary>
             Get all agents assigned to a specific group
             </summary>
@@ -480,9 +480,9 @@
             Get user's role status in ticketing system
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketTagController.GetAll">
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketTagController.GetAll(System.Boolean)">
             <summary>
-            Get all active ticket tags
+            Get all ticket tags (with optional inactive tags)
             </summary>
         </member>
         <member name="M:ERPTraining.API.Controllers.Ticketing.TicketTagController.GetById(System.Int32)">

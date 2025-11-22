@@ -1,12 +1,9 @@
-using ERPTraining.Core.Entities;
-using ERPTraining.Core.DTOs;
-using ERPTraining.Infrastructure.Data;
 using ERPTraining.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
-using System.Text.Json;
+using System;
 
 namespace ERPTraining.API.Services
 {
@@ -16,6 +13,7 @@ namespace ERPTraining.API.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly IConfiguration _configuration;
         private readonly TimeSpan _syncInterval;
+        private readonly TimeZoneInfo _syncTimeZone;
 
         public ERPSyncBackgroundService(
             ILogger<ERPSyncBackgroundService> logger,
@@ -27,8 +25,23 @@ namespace ERPTraining.API.Services
             _configuration = configuration;
             
             // Default to sync once a day (24 hours)
-            var syncHour = _configuration.GetValue<int>("ERPSync:SyncHour", 2);
             _syncInterval = TimeSpan.FromHours(24);
+
+            var timeZoneId = _configuration.GetValue<string>("ERPSync:TimeZoneId", "India Standard Time");
+            try
+            {
+                _syncTimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                _logger.LogWarning("Configured ERP sync timezone '{TimeZoneId}' not found. Falling back to local timezone {LocalZone}.", timeZoneId, TimeZoneInfo.Local.Id);
+                _syncTimeZone = TimeZoneInfo.Local;
+            }
+            catch (InvalidTimeZoneException)
+            {
+                _logger.LogWarning("Configured ERP sync timezone '{TimeZoneId}' is invalid. Falling back to local timezone {LocalZone}.", timeZoneId, TimeZoneInfo.Local.Id);
+                _syncTimeZone = TimeZoneInfo.Local;
+            }
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -64,17 +77,36 @@ namespace ERPTraining.API.Services
         private async Task WaitForNextSyncTime(CancellationToken cancellationToken)
         {
             var syncHour = _configuration.GetValue<int>("ERPSync:SyncHour", 2);
-            var now = DateTime.Now;
-            var nextSync = DateTime.Today.AddHours(syncHour);
+            var syncMinute = _configuration.GetValue<int>("ERPSync:SyncMinute", 0);
+            var utcNow = DateTime.UtcNow;
+            var targetZoneNow = TimeZoneInfo.ConvertTimeFromUtc(utcNow, _syncTimeZone);
 
-            // If sync time has passed today, schedule for tomorrow
-            if (now >= nextSync)
+            var nextSyncLocal = new DateTime(
+                targetZoneNow.Year,
+                targetZoneNow.Month,
+                targetZoneNow.Day,
+                syncHour,
+                syncMinute,
+                0,
+                DateTimeKind.Unspecified);
+
+            if (targetZoneNow >= nextSyncLocal)
             {
-                nextSync = nextSync.AddDays(1);
+                nextSyncLocal = nextSyncLocal.AddDays(1);
             }
 
-            var delay = nextSync - now;
-            _logger.LogInformation($"Next ERP sync scheduled for: {nextSync:yyyy-MM-dd HH:mm:ss}");
+            var nextSyncUtc = TimeZoneInfo.ConvertTimeToUtc(nextSyncLocal, _syncTimeZone);
+            var delay = nextSyncUtc - utcNow;
+            if (delay < TimeSpan.Zero)
+            {
+                delay = TimeSpan.Zero;
+            }
+
+            var nextSyncDisplay = TimeZoneInfo.ConvertTimeFromUtc(nextSyncUtc, _syncTimeZone);
+            _logger.LogInformation(
+                "Next ERP sync scheduled for {LocalTime} ({TimeZoneId})",
+                nextSyncDisplay.ToString("yyyy-MM-dd HH:mm:ss"),
+                _syncTimeZone.Id);
 
             if (delay.TotalMilliseconds > 0)
             {

@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { ChevronDown, ChevronUp, FileText, Save, X } from 'lucide-react';
-import { QueryClient } from '@tanstack/react-query';
 import { Ticket } from '../../../services/ticketsApi';
 
 interface CustomFieldsSectionProps {
@@ -21,7 +19,7 @@ const CustomFieldsSection: React.FC<CustomFieldsSectionProps> = ({
 
   const hasCustomFields = ticket.customFields && Object.keys(ticket.customFields).length > 0;
 
-  const handleEditField = (fieldKey: string, currentValue: any) => {
+  const handleEditField = (fieldKey: string, currentValue: unknown) => {
     setEditingField(fieldKey);
     setEditValue(String(currentValue || ''));
   };
@@ -43,8 +41,9 @@ const CustomFieldsSection: React.FC<CustomFieldsSectionProps> = ({
       toast.success('Custom field updated successfully');
       setEditingField(null);
       setEditValue('');
-    } catch (error: any) {
-      toast.error(`Failed to update field: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to update field';
+      toast.error(`Failed to update field: ${message}`);
     }
   };
 

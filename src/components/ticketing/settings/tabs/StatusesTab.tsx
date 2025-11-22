@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useForm } from 'react-hook-form';
 import { settingsApi, TicketStatusConfig } from '@api/settingsApi';
+import { toast } from 'react-hot-toast';
 
 interface StatusFormData {
   name: string;
@@ -68,18 +69,18 @@ const StatusModal: React.FC<StatusModalProps> = ({ isOpen, onClose, status, onSa
       if (status) {
         // Update existing status
         await settingsApi.updateStatus(status.id, statusData);
-        console.log('✅ Status updated successfully');
+        toast.success('Status updated successfully!');
       } else {
         // Create new status
         await settingsApi.createStatus(statusData);
-        console.log('✅ Status created successfully');
+        toast.success('Status created successfully!');
       }
       onSave(); // Refresh the list
       onClose();
       reset();
     } catch (error) {
-      console.error('❌ Error saving status:', error);
-      alert('Error saving status. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Error saving status. Please try again.';
+      toast.error(errorMessage);
     }
   };
 
@@ -232,15 +233,16 @@ const StatusesTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statuses, setStatuses] = useState<TicketStatusConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showInactive, setShowInactive] = useState(false);
 
   // Load statuses from API
   const loadStatuses = async () => {
     try {
       setLoading(true);
-      const data = await settingsApi.getTicketStatuses();
+      const data = await settingsApi.getTicketStatuses(true);
       setStatuses(data);
     } catch (error) {
-      console.error('Error loading statuses:', error);
+      toast.error('Error loading statuses');
     } finally {
       setLoading(false);
     }
@@ -250,10 +252,14 @@ const StatusesTab: React.FC = () => {
     loadStatuses();
   }, []);
 
-  // Filter statuses by search term
-  const filteredStatuses = statuses.filter((status: TicketStatusConfig) =>
-    status.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter statuses by search term and active status
+  const filteredStatuses = statuses.filter((status: TicketStatusConfig) => {
+    const matchesSearch = status.name.toLowerCase().includes(searchTerm.toLowerCase());
+    // When showInactive is true, show ONLY inactive items
+    // When showInactive is false, show ONLY active items
+    const matchesActiveFilter = showInactive ? !status.isActive : status.isActive;
+    return matchesSearch && matchesActiveFilter;
+  });
 
   // Sort statuses by workflow order
   const sortedStatuses = filteredStatuses.sort((a: TicketStatusConfig, b: TicketStatusConfig) => a.workflowOrder - b.workflowOrder);
@@ -264,14 +270,19 @@ const StatusesTab: React.FC = () => {
   };
 
   const handleDelete = async (statusId: number) => {
-    if (window.confirm('Are you sure you want to delete this status? This action cannot be undone.')) {
+    const status = statuses.find(s => s.id === statusId);
+    const message = status?.isActive 
+      ? 'Are you sure you want to deactivate this status? It will be marked as inactive and hidden from active workflows.'
+      : 'This status is already inactive. Do you want to permanently delete it?';
+    
+    if (window.confirm(message)) {
       try {
         await settingsApi.deleteStatus(statusId);
-        console.log('✅ Status deleted successfully');
+        toast.success(status?.isActive ? 'Status deactivated successfully!' : 'Status deleted successfully!');
         loadStatuses(); // Refresh the list
       } catch (error) {
-        console.error('❌ Error deleting status:', error);
-        alert('Error deleting status. Please try again.');
+        const errorMessage = error instanceof Error ? error.message : 'Error deleting status. Please try again.';
+        toast.error(errorMessage);
       }
     }
   };
@@ -297,6 +308,15 @@ const StatusesTab: React.FC = () => {
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Add Status
           </button>
+          <label className="flex items-center space-x-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <span>Show inactive only</span>
+          </label>
         </div>
 
         {/* Search */}
@@ -330,16 +350,20 @@ const StatusesTab: React.FC = () => {
             <h3 className="mt-2 text-sm font-medium text-gray-900">No statuses found</h3>
             <p className="mt-1 text-sm text-gray-500">
               {searchTerm 
-                ? 'No statuses match your search criteria.' 
-                : 'Get started by creating your first status.'}
+                ? `No ${showInactive ? 'inactive' : 'active'} statuses match your search criteria.` 
+                : showInactive 
+                  ? 'No inactive statuses found.'
+                  : 'Get started by creating your first status.'}
             </p>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-              Add Status
-            </button>
+            {!showInactive && (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+                Add Status
+              </button>
+            )}
           </div>
         ) : (
           <ul className="divide-y divide-gray-200">
@@ -380,6 +404,11 @@ const StatusesTab: React.FC = () => {
                         }`}>
                           {status.isActive ? 'Active' : 'Inactive'}
                         </span>
+                        {status.isActive && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                            ✓ In Workflow
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center space-x-4 mt-2">
                         <span className="text-sm text-gray-500">
@@ -422,9 +451,16 @@ const StatusesTab: React.FC = () => {
 
       {/* Status Workflow Visualization */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Workflow Visualization</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Workflow Visualization</h3>
+          <span className="text-sm text-gray-500 italic">
+            ✅ Active statuses only
+          </span>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
-          {sortedStatuses.map((status, index) => (
+          {sortedStatuses
+            .filter(status => status.isActive)
+            .map((status, index, activeStatuses) => (
             <div key={status.id} className="flex items-center">
               <div className="flex items-center space-x-2">
                 <div 
@@ -434,12 +470,18 @@ const StatusesTab: React.FC = () => {
                   {status.name}
                 </div>
               </div>
-              {index < sortedStatuses.length - 1 && (
+              {index < activeStatuses.length - 1 && (
                 <div className="mx-2 text-gray-400">→</div>
               )}
             </div>
           ))}
         </div>
+        {sortedStatuses.filter(s => s.isActive).length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <p>No active statuses to display in workflow.</p>
+            <p className="text-sm mt-2">Create and activate statuses to build your ticket workflow.</p>
+          </div>
+        )}
       </div>
 
       {/* Statistics */}

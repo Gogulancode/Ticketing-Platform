@@ -1,4 +1,12 @@
 // Comments API service for ticket comments functionality
+export interface CommentAttachment {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
 export interface Comment {
   id: string;
   body: string;
@@ -6,6 +14,7 @@ export interface Comment {
   authorName: string;
   isInternal: boolean;  // Backend response uses camelCase
   createdAt: string;
+  attachments: CommentAttachment[]; // Attachments linked to this comment
 }
 
 export interface AddCommentRequest {

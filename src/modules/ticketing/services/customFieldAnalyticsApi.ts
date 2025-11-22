@@ -47,7 +47,7 @@ export interface CustomFieldAnalytics {
     totalTicketsWithCustomFields: number;
   };
   categorizedResults: Category[];
-  rawData: any[];
+  rawData: Record<string, unknown>[];
 }
 
 export const customFieldAnalyticsApi = {
@@ -63,7 +63,8 @@ export const customFieldAnalyticsApi = {
       throw new Error(`Failed to fetch custom field analytics: ${response.statusText}`);
     }
     
-    return response.json();
+    const analytics = (await response.json()) as CustomFieldAnalytics;
+    return analytics;
   },
 
   /**

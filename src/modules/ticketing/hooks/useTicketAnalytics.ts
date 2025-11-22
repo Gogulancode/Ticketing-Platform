@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { ticketsApi } from '../api/ticketsApi';
 
 export interface DepartmentAnalytics {
   department: string;

@@ -58,6 +58,7 @@ public interface IA_TicketSettingsService
     Task<IReadOnlyList<ERPTraining.Core.Entities.Ticketing.Agent>> GetUnassignedAgentsAsync(bool includeInactive = false);
     Task<ERPTraining.Core.Entities.Ticketing.Agent?> GetAgentAsync(int id);
     Task<IReadOnlyList<ERPTraining.Core.Entities.Ticketing.TicketGroup>> GetGroupsForAgentAsync(int agentId, bool includeInactive = false);
+    Task<bool> UpdateAgentStatusAsync(int agentId, bool isActive, CancellationToken ct = default);
     Task<IReadOnlyList<ERPTraining.Core.Entities.Ticketing.TicketGroupAgent>> GetGroupMembershipsForAgentsAsync(IEnumerable<int> agentIds, bool includeInactive = false);
 
     // Group membership (TicketGroupAgents)

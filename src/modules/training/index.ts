@@ -1,6 +1,7 @@
 // Training Module System Exports
 
 // Core Training Views (Pages)
+export { default as TrainingDashboard } from './views/TrainingDashboard';
 export { default as Modules } from './views/Modules';
 export { default as ModuleSections } from './views/ModuleSections';
 export { default as SectionView } from './views/SectionView';

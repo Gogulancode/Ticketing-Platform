@@ -1,18 +1,22 @@
 // Auto Assignment API service
-const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5015/api';
+const API_BASE = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:5015/api';
 const API_ENDPOINT = API_BASE;
 
 function getToken(): string | null {
   return localStorage.getItem('token');
 }
 
-async function apiFetch(path: string, options: { [key: string]: any } = {}): Promise<any> {
+async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
-  const headers: Record<string, string> = {
+  const headers = new Headers({
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options.headers || {}),
-  };
+  });
+
+  if (options.headers) {
+    const customHeaders = new Headers(options.headers);
+    customHeaders.forEach((value, key) => headers.set(key, value));
+  }
   
   const url = path.startsWith('http') ? path : `${API_ENDPOINT}${path}`;
   const res = await fetch(url, { ...options, headers });
@@ -22,12 +26,22 @@ async function apiFetch(path: string, options: { [key: string]: any } = {}): Pro
     throw new Error(errorText || `HTTP ${res.status}`);
   }
   
-  const contentType = res.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
-    return res.json();
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return res.json() as Promise<T>;
   }
-  return res.text();
+  return res.text() as Promise<T>;
 }
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (error && typeof error === 'object' && 'toString' in error) {
+    return String(error);
+  }
+  return 'Unknown error';
+};
 
 export interface EmailTicketRequest {
   subject: string;
@@ -113,16 +127,16 @@ export class AutoAssignmentApiService {
    */
   async autoAssignTicket(ticketId: string): Promise<AutoAssignmentResult> {
     try {
-      const response = await apiFetch(
+      const response = await apiFetch<AutoAssignmentResult | string>(
         `/tickets/auto-assignment/assign/${ticketId}`,
         { method: 'POST' }
       );
       return typeof response === 'string' ? { success: true, assignmentReason: response } : response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Auto assignment failed:', error);
       return {
         success: false,
-        error: error.message || 'Auto assignment failed'
+        error: getErrorMessage(error) || 'Auto assignment failed'
       };
     }
   }
@@ -132,7 +146,7 @@ export class AutoAssignmentApiService {
    */
   async autoAssignFromEmail(emailData: EmailTicketRequest): Promise<AutoAssignmentResult> {
     try {
-      const response = await apiFetch(
+      const response = await apiFetch<AutoAssignmentResult | string>(
         '/tickets/auto-assignment/assign-from-email',
         {
           method: 'POST',
@@ -140,11 +154,11 @@ export class AutoAssignmentApiService {
         }
       );
       return typeof response === 'string' ? { success: true, assignmentReason: response } : response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Email auto assignment failed:', error);
       return {
         success: false,
-        error: error.message || 'Email auto assignment failed'
+        error: getErrorMessage(error) || 'Email auto assignment failed'
       };
     }
   }
@@ -154,11 +168,11 @@ export class AutoAssignmentApiService {
    */
   async getRecommendations(ticketId: string): Promise<AssignmentRecommendation[]> {
     try {
-      const response = await apiFetch(
+      const response = await apiFetch<AssignmentRecommendation[] | AssignmentRecommendation>(
         `/tickets/auto-assignment/recommendations/${ticketId}`
       );
       return Array.isArray(response) ? response : [];
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to get recommendations:', error);
       return [];
     }
@@ -169,11 +183,11 @@ export class AutoAssignmentApiService {
    */
   async getAgentWorkloads(): Promise<AgentWorkload[]> {
     try {
-      const response = await apiFetch(
+      const response = await apiFetch<AgentWorkload[] | AgentWorkload>(
         '/tickets/auto-assignment/workloads'
       );
       return Array.isArray(response) ? response : [];
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to get agent workloads:', error);
       return [];
     }
@@ -188,7 +202,7 @@ export class AutoAssignmentApiService {
       
       // Test each keyword individually using our flexible system
       for (const keyword of keywords) {
-        const response = await apiFetch(
+        const response = await apiFetch<CategoryDeterminationResult | null>(
           '/autoassignment/determine-category',
           {
             method: 'POST',
@@ -220,7 +234,7 @@ export class AutoAssignmentApiService {
       }
       
       return results;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to test keywords:', error);
       return [];
     }
@@ -231,7 +245,7 @@ export class AutoAssignmentApiService {
    */
   async determineCategoryFromContent(request: CategoryDeterminationRequest): Promise<CategoryDeterminationResult | null> {
     try {
-      const response = await apiFetch(
+      const response = await apiFetch<CategoryDeterminationResult | null>(
         '/autoassignment/determine-category',
         {
           method: 'POST',
@@ -239,7 +253,7 @@ export class AutoAssignmentApiService {
         }
       );
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to determine category:', error);
       return null;
     }
@@ -250,9 +264,9 @@ export class AutoAssignmentApiService {
    */
   async getSubcategoryKeywords(subcategoryId: number): Promise<SubcategoryKeyword[]> {
     try {
-      const response = await apiFetch(`/autoassignment/subcategory-keywords/${subcategoryId}`);
+      const response = await apiFetch<SubcategoryKeyword[] | SubcategoryKeyword>(`/autoassignment/subcategory-keywords/${subcategoryId}`);
       return Array.isArray(response) ? response : [];
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to get subcategory keywords:', error);
       return [];
     }
@@ -263,12 +277,12 @@ export class AutoAssignmentApiService {
    */
   async addSubcategoryKeyword(keyword: Omit<SubcategoryKeyword, 'id'>): Promise<SubcategoryKeyword | null> {
     try {
-      const response = await apiFetch('/autoassignment/subcategory-keywords', {
+      const response = await apiFetch<SubcategoryKeyword>('/autoassignment/subcategory-keywords', {
         method: 'POST',
         body: JSON.stringify(keyword)
       });
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to add keyword:', error);
       return null;
     }
@@ -279,12 +293,12 @@ export class AutoAssignmentApiService {
    */
   async updateSubcategoryKeyword(id: number, keyword: Partial<SubcategoryKeyword>): Promise<SubcategoryKeyword | null> {
     try {
-      const response = await apiFetch(`/autoassignment/subcategory-keywords/${id}`, {
+      const response = await apiFetch<SubcategoryKeyword>(`/autoassignment/subcategory-keywords/${id}`, {
         method: 'PUT',
         body: JSON.stringify(keyword)
       });
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update keyword:', error);
       return null;
     }
@@ -295,11 +309,11 @@ export class AutoAssignmentApiService {
    */
   async deleteSubcategoryKeyword(id: number): Promise<boolean> {
     try {
-      await apiFetch(`/autoassignment/subcategory-keywords/${id}`, {
+      await apiFetch<void>(`/autoassignment/subcategory-keywords/${id}`, {
         method: 'DELETE'
       });
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to delete keyword:', error);
       return false;
     }

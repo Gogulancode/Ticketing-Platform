@@ -56,39 +56,46 @@ const ReportFiltersComponent: React.FC<ReportFiltersProps> = ({
         dates.startDate = today.toISOString().split('T')[0];
         dates.endDate = today.toISOString().split('T')[0];
         break;
-      case 'yesterday':
+      case 'yesterday': {
         const yesterday = new Date(today);
         yesterday.setDate(today.getDate() - 1);
         dates.startDate = yesterday.toISOString().split('T')[0];
         dates.endDate = yesterday.toISOString().split('T')[0];
         break;
-      case 'last7days':
+      }
+      case 'last7days': {
         const week = new Date(today);
         week.setDate(today.getDate() - 7);
         dates.startDate = week.toISOString().split('T')[0];
         dates.endDate = today.toISOString().split('T')[0];
         break;
-      case 'last30days':
+      }
+      case 'last30days': {
         const month = new Date(today);
         month.setDate(today.getDate() - 30);
         dates.startDate = month.toISOString().split('T')[0];
         dates.endDate = today.toISOString().split('T')[0];
         break;
+      }
       case 'thismonth':
         dates.startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
         dates.endDate = today.toISOString().split('T')[0];
         break;
-      case 'lastmonth':
+      case 'lastmonth': {
         const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
         dates.startDate = lastMonth.toISOString().split('T')[0];
         dates.endDate = lastMonthEnd.toISOString().split('T')[0];
         break;
-      case 'last90days':
+      }
+      case 'last90days': {
         const quarter = new Date(today);
         quarter.setDate(today.getDate() - 90);
         dates.startDate = quarter.toISOString().split('T')[0];
         dates.endDate = today.toISOString().split('T')[0];
+        break;
+      }
+      default:
         break;
     }
 
@@ -106,7 +113,7 @@ const ReportFiltersComponent: React.FC<ReportFiltersProps> = ({
   };
 
   const clearFilters = () => {
-    const clearedFilters = {};
+    const clearedFilters: ReportFilters = {};
     setLocalFilters(clearedFilters);
     onFiltersChange(clearedFilters);
   };

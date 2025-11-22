@@ -8,6 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { settingsApi } from "@api/settingsApi";
 import TagModal from "./TagModal";
+import { toast } from 'react-hot-toast';
 
 interface TicketTag {
   id: number;
@@ -34,18 +35,20 @@ const TagsTab: React.FC = () => {
   const [tags, setTags] = useState<TicketTag[]>([]);
   const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showInactive, setShowInactive] = useState(false);
 
   // Load data
   const loadData = async () => {
     try {
       setLoading(true);
-      const subs = await settingsApi.getSubCategories();
+      // Only fetch active subcategories for the dropdown
+      const subs = await settingsApi.getSubCategories(false);
       setSubcategories(subs);
 
-      const tagsData = await settingsApi.getTicketTags();
+      const tagsData = await settingsApi.getTicketTags(true);
       setTags(tagsData || []);
     } catch (error) {
-      console.error("❌ Error loading data:", error);
+      toast.error('Error loading tags');
     } finally {
       setLoading(false);
     }
@@ -55,10 +58,16 @@ const TagsTab: React.FC = () => {
     loadData();
   }, []);
 
+  useEffect(() => {
+    setSelectedTags([]);
+  }, [showInactive]);
+
   // Filter
-  const filteredTags = tags.filter((tag) =>
-    tag.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTags = tags.filter((tag) => {
+    const matchesSearch = tag.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = showInactive ? !tag.isActive : tag.isActive;
+    return matchesSearch && matchesStatus;
+  });
 
   const handleEdit = (tag: TicketTag) => {
     setEditingTag(tag);
@@ -73,11 +82,12 @@ const TagsTab: React.FC = () => {
     ) {
       try {
         await settingsApi.deleteTicketTag(tagId);
-        console.log("✅ Tag deleted:", tagId);
+        toast.success('Tag deleted successfully!');
         loadData();
       } catch (error) {
-        console.error("❌ Error deleting tag:", error);
-        alert("Error deleting tag. Please try again.");
+        const errorMessage =
+          error instanceof Error ? error.message : "Error deleting tag";
+        toast.error(errorMessage);
       }
     }
   };
@@ -92,12 +102,13 @@ const TagsTab: React.FC = () => {
     ) {
       try {
         await Promise.all(selectedTags.map((id) => settingsApi.deleteTicketTag(id)));
-        console.log("✅ Tags deleted:", selectedTags);
+        toast.success(`${selectedTags.length} tags deleted successfully!`);
         setSelectedTags([]);
         loadData();
       } catch (error) {
-        console.error("❌ Error deleting tags:", error);
-        alert("Error deleting tags. Please try again.");
+        const errorMessage =
+          error instanceof Error ? error.message : "Error deleting tags";
+        toast.error(errorMessage);
       }
     }
   };
@@ -119,8 +130,12 @@ const TagsTab: React.FC = () => {
     loadData();
   };
 
-  const getSubcategoryName = (subCategoryId: number) => {
-    const subcategory = subcategories.find((sub) => sub.id === subCategoryId);
+  const getSubcategoryName = (tag: TicketTag) => {
+    if (tag.subCategoryName) {
+      return tag.subCategoryName;
+    }
+
+    const subcategory = subcategories.find((sub) => sub.id === tag.subCategoryId);
     return subcategory?.name || "Unknown";
   };
 
@@ -162,6 +177,16 @@ const TagsTab: React.FC = () => {
               Delete Selected ({selectedTags.length})
             </button>
           )}
+
+          <label className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <span>Show inactive only</span>
+          </label>
         </div>
 
         {/* Search */}
@@ -244,8 +269,12 @@ const TagsTab: React.FC = () => {
                           className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                         />
                       </td>
-                      <td className="px-6 py-4">{tag.name}</td>
-                      <td className="px-6 py-4">{getSubcategoryName(tag.subCategoryId)}</td>
+                      <td className={`px-6 py-4 ${!tag.isActive ? 'text-gray-400' : ''}`}>
+                        {tag.name}
+                      </td>
+                      <td className={`px-6 py-4 ${!tag.isActive ? 'text-gray-400' : ''}`}>
+                        {getSubcategoryName(tag)}
+                      </td>
                       <td className="px-6 py-4">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -257,7 +286,7 @@ const TagsTab: React.FC = () => {
                           {tag.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className={`px-6 py-4 ${!tag.isActive ? 'text-gray-400' : ''}`}>
                         {new Date(tag.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right">

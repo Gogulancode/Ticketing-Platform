@@ -5,6 +5,7 @@ using System.Data.Common;
 using ERPTraining.Core.Entities.Ticketing;
 using ERPTraining.Core.Entities; // Add this for User
 using ERPTraining.Core.Services;
+using ERPTraining.Core.Interfaces.Ticketing;
 using ERPTraining.Infrastructure.Data;
 
 namespace ERPTraining.Infrastructure.Services;
@@ -13,39 +14,59 @@ public class TicketService : ITicketService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<TicketService> _logger;
+    private readonly IEmailService _emailService;
 
-    public TicketService(ApplicationDbContext context, ILogger<TicketService> logger)
+    public TicketService(ApplicationDbContext context, ILogger<TicketService> logger, IEmailService emailService)
     {
         _context = context;
         _logger = logger;
+        _emailService = emailService;
     }
 
     public async Task<Ticket> CreateTicketAsync(Ticket ticket)
     {
-        ticket.Id = Guid.NewGuid();
-        ticket.CreatedAt = DateTime.UtcNow;
-        ticket.UpdatedAt = DateTime.UtcNow;
-        ticket.Status = 1; // New status ID
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var nextPublicId = await _context.Database
+                .SqlQueryRaw<int>("SELECT ISNULL(MAX(PublicId), 0) + 1 AS Value FROM Tickets WITH (UPDLOCK, HOLDLOCK)")
+                .SingleAsync();
 
-        _context.Tickets.Add(ticket);
-        await _context.SaveChangesAsync();
-        
-        // Return the ticket directly to avoid the problematic query for now
-        return ticket;
+            ticket.Id = Guid.NewGuid();
+            ticket.PublicId = nextPublicId;
+            ticket.CreatedAt = DateTime.UtcNow;
+            ticket.UpdatedAt = DateTime.UtcNow;
+            ticket.Status = 1; // New status ID
+
+            _context.Tickets.Add(ticket);
+            await _context.SaveChangesAsync();
+
+            await transaction.CommitAsync();
+
+            return ticket;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<Ticket?> GetTicketByIdAsync(Guid id)
     {
-        // Avoid including navigation properties to prevent circular references
-        // Controller will manually build the response DTO with needed data
-        return await _context.Tickets.AsNoTracking()
+        // Include navigation properties for controllers to shape lightweight DTOs without extra queries
+        return await _context.Tickets
             .AsNoTracking()
+            .Include(t => t.CreatedByUser)
+            .Include(t => t.AssignedToUser)
             .FirstOrDefaultAsync(t => t.Id == id);
     }
 
     public async Task<IEnumerable<Ticket>> GetAllTicketsAsync()
     {
         return await _context.Tickets.AsNoTracking()
+            .Include(t => t.CreatedByUser)
+            .Include(t => t.AssignedToUser)
             
             
             
@@ -76,9 +97,10 @@ public class TicketService : ITicketService
 
     public async Task<IEnumerable<Ticket>> GetTicketsByUserAsync(string userId)
     {
-        // Avoid including navigation properties to prevent circular references
-        return await _context.Tickets.AsNoTracking()
+        return await _context.Tickets
             .AsNoTracking()
+            .Include(t => t.CreatedByUser)
+            .Include(t => t.AssignedToUser)
             .Where(t => t.CreatedByUserId == userId || t.AssignedToUserId == userId)
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
@@ -119,10 +141,11 @@ public class TicketService : ITicketService
 
     public async Task<IEnumerable<Ticket>> GetFilteredTicketsAsync(TicketStatus? status = null, TicketPriority? priority = null, TicketCategory? category = null)
     {
-        // For list views, avoid eager-loading navigation properties to reduce payload
-        // and prevent potential serialization cycles.
+        // Include lightweight user navigation data so controllers avoid N+1 lookups
         var query = _context.Tickets
             .AsNoTracking()
+            .Include(t => t.CreatedByUser)
+            .Include(t => t.AssignedToUser)
             .Where(t => t.Status != 99) // Exclude deleted tickets (status 99)
             .AsQueryable();
 
@@ -561,6 +584,27 @@ public class TicketService : ITicketService
 
         _context.TicketCollaborators.Add(collaborator);
         await _context.SaveChangesAsync();
+
+        // Send notification email to the new collaborator
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var ticket = await _context.Tickets.FindAsync(ticketId);
+                var collaboratorUser = await _context.Users.FindAsync(userId);
+                var addedByUser = await _context.Users.FindAsync(addedByUserId);
+
+                if (ticket != null && collaboratorUser != null && addedByUser != null)
+                {
+                    await _emailService.SendCollaboratorAddedNotificationAsync(ticket, collaboratorUser, addedByUser);
+                    _logger.LogInformation("Sent collaborator notification to {Email} for ticket {TicketId}", collaboratorUser.Email, ticketId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send collaborator notification for ticket {TicketId}", ticketId);
+            }
+        });
 
         return collaborator;
     }

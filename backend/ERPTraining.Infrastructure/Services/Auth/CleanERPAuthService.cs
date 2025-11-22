@@ -213,6 +213,33 @@ public class CleanERPAuthService : IAuthService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    public async Task<AuthResponseDto?> RefreshTokenAsync(string userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return null;
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var roleList = roles.ToList();
+
+        return new AuthResponseDto
+        {
+            Token = GenerateJwtToken(user, roleList),
+            User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email ?? string.Empty,
+                UserName = user.UserName ?? string.Empty,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                FullName = $"{user.FirstName} {user.LastName}".Trim(),
+                Department = user.Department,
+                IsActive = user.IsActive,
+                Roles = roleList
+            },
+            Expires = DateTime.UtcNow.AddHours(24)
+        };
+    }
+
     // Simple implementations for other interface methods
     public Task<AuthResponseDto?> RegisterAsync(RegisterDto registerDto)
     {

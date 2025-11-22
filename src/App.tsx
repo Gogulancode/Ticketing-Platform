@@ -1,18 +1,20 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'react-hot-toast';
 
 import { AuthProvider } from './contexts/AuthContext';
 
 // Shared components
 import { Layout } from '@/shared';
-import { Dashboard, LandingPage, Profile, Notifications } from '@/shared';
+import { LandingPage, Profile, Notifications } from '@/shared';
 
 // Auth pages - Use the correct JWT-based login
 import Login from './pages/Login';
 
 // Training module components
 import { 
+  TrainingDashboard,
   Modules,
   ModuleSections,
   SectionView,
@@ -24,7 +26,11 @@ import {
   TakeAssessment,
   UserManagement,
   UploadContent,
-  StatusCheck
+  StatusCheck,
+  Settings,
+  ModuleMaster,
+  SectionMaster,
+  RoleMaster
 } from '@/modules/training';
 
 // Ticketing module components
@@ -63,6 +69,30 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#fff',
+                color: '#363636',
+              },
+              success: {
+                duration: 3000,
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                duration: 5000,
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
           <Routes>
             <Route path="/login" element={<Login />} />
             
@@ -94,21 +124,11 @@ function App() {
               <Route path="analytics" element={<TicketAnalyticsPage />} />
               <Route path="settings" element={<TicketSettingsPage />} />
               <Route path="users" element={<UserManagementPage />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="notifications" element={<Notifications />} />
               <Route path=":ticketId" element={<TicketDetailPage />} />
               <Route path=":ticketId/edit" element={<TicketEditPage />} />
             </Route>
-
-            {/* Profile and Notifications - accessible from both modules, standalone pages */}
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            <Route path="/notifications" element={
-              <ProtectedRoute>
-                <Notifications />
-              </ProtectedRoute>
-            } />
 
             {/* Training routes with training layout */}
             <Route path="/training/*" element={
@@ -116,8 +136,8 @@ function App() {
                 <Layout />
               </ProtectedRoute>
             }>
-              <Route index element={<Dashboard />} />
-              <Route path="dashboard" element={<Dashboard />} />
+              <Route index element={<TrainingDashboard />} />
+              <Route path="dashboard" element={<TrainingDashboard />} />
               
               {/* Training module routes */}
               <Route path="modules" element={<Modules />} />
@@ -135,15 +155,16 @@ function App() {
               <Route path="assessments/:id/take" element={<TakeAssessment />} />
               
               {/* Settings and administration */}
-              <Route path="settings" element={<div className="p-8"><h1 className="text-2xl font-bold">Settings</h1><p className="text-gray-600 mt-2">Settings page coming soon...</p></div>} />
-              <Route path="settings/modules" element={<div className="p-8"><h1 className="text-2xl font-bold">Module Master</h1><p className="text-gray-600 mt-2">Module management coming soon...</p></div>} />
-              <Route path="settings/sections" element={<div className="p-8"><h1 className="text-2xl font-bold">Section Master</h1><p className="text-gray-600 mt-2">Section management coming soon...</p></div>} />
-              <Route path="settings/roles" element={<div className="p-8"><h1 className="text-2xl font-bold">Role Master</h1><p className="text-gray-600 mt-2">Role management coming soon...</p></div>} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="settings/modules" element={<ModuleMaster />} />
+              <Route path="settings/sections" element={<SectionMaster />} />
+              <Route path="settings/roles" element={<RoleMaster />} />
               <Route path="settings/users" element={<UserManagement />} />
               <Route path="settings/system" element={<div className="p-8"><h1 className="text-2xl font-bold">System Settings</h1><p className="text-gray-600 mt-2">System settings page coming soon...</p></div>} />
               <Route path="settings/data" element={<div className="p-8"><h1 className="text-2xl font-bold">Data Management</h1><p className="text-gray-600 mt-2">Data management page coming soon...</p></div>} />
               <Route path="users" element={<UserManagement />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="notifications" element={<Notifications />} />
               <Route path="status" element={<StatusCheck />} />
             </Route>
           </Routes>

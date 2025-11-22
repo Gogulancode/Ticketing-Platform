@@ -91,6 +91,23 @@ public class AgentsController : ControllerBase
         return Ok(Map(a));
     }
 
+    [HttpPatch("{id:int}/status")]
+    public async Task<IActionResult> UpdateAgentStatus(int id, [FromBody] AgentStatusUpdateRequest? request)
+    {
+        if (request is null)
+        {
+            return BadRequest(new { message = "Request body is required" });
+        }
+
+        var updated = await _service.UpdateAgentStatusAsync(id, request.IsActive);
+        if (!updated)
+        {
+            return NotFound(new { message = $"Agent {id} not found" });
+        }
+
+        return Ok(new { success = true, isActive = request.IsActive });
+    }
+
     // GET: api/tickets/settings/agents/{id}/groups
     [HttpGet("{id:int}/groups")]
     public async Task<ActionResult<IEnumerable<TicketGroupDto>>> GetAgentGroups(int id, [FromQuery] bool includeInactive = false)

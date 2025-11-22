@@ -8,6 +8,7 @@ import { uploadContent, UploadedContent } from '../../../shared/services/api/upl
 import { getRoles as fetchCoreRoles } from '../../../shared/lib/api';
 import { Module, Section } from '../types';
 import RecentUploads from '../components/RecentUploads';
+import LoadingSpinner from '../../../components/LoadingSpinner';
 
 const UploadContent: React.FC = () => {
   const navigate = useNavigate();
@@ -393,10 +394,7 @@ const UploadContent: React.FC = () => {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="text-gray-600 mt-4">Loading modules and sections...</p>
-          </div>
+          <LoadingSpinner size="lg" message="Loading modules and sections..." />
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-8">

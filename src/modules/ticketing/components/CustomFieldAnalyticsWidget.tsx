@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Clock, CheckCircle, AlertCircle, Circle, Folder, FolderOpen, ChevronDown, ChevronRight } from 'lucide-react';
-import { customFieldAnalyticsApi, CustomFieldAnalytics, Category, Subcategory, CustomField } from '../services/customFieldAnalyticsApi';
+import { customFieldAnalyticsApi, CustomFieldAnalytics, Category, Subcategory, CustomField, CustomFieldValue } from '../services/customFieldAnalyticsApi';
 
 interface CustomFieldAnalyticsWidgetProps {
   days?: number;
@@ -98,7 +98,7 @@ const CustomFieldAnalyticsWidget: React.FC<CustomFieldAnalyticsWidgetProps> = ({
     }
   };
 
-  const renderCustomFieldValue = (value: any, fieldName: string) => (
+  const renderCustomFieldValue = (value: CustomFieldValue, fieldName: string) => (
     <div key={`${fieldName}-${value.value}`} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
       <div className="flex items-center justify-between mb-2">
         <span className="font-semibold text-gray-800">{value.value}</span>
@@ -169,7 +169,7 @@ const CustomFieldAnalyticsWidget: React.FC<CustomFieldAnalyticsWidgetProps> = ({
       </div>
 
       <div className="space-y-3">
-        {field.values.map(value => renderCustomFieldValue(value, field.customFieldName))}
+        {field.values.map((value) => renderCustomFieldValue(value, field.customFieldName))}
       </div>
     </div>
   );

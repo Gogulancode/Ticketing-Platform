@@ -20,16 +20,16 @@ public class TicketTagController : ControllerBase
     }
 
     /// <summary>
-    /// Get all active ticket tags
+    /// Get all ticket tags (with optional inactive tags)
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TicketTagDto>>> GetAll()
+    public async Task<ActionResult<IEnumerable<TicketTagDto>>> GetAll([FromQuery] bool includeInactive = false)
     {
         try
         {
             // Use real service to get tags from database
-            var tags = await _tagService.GetAllAsync();
-            _logger.LogInformation("Returning {Count} real tags from database", tags.Count());
+            var tags = await _tagService.GetAllAsync(includeInactive);
+            _logger.LogInformation("Returning {Count} tags from database (includeInactive: {IncludeInactive})", tags.Count(), includeInactive);
             return Ok(tags);
         }
         catch (Exception ex)

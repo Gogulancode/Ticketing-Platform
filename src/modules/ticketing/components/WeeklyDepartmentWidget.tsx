@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Building, TrendingUp } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
 
@@ -12,18 +12,15 @@ interface DepartmentData {
 
 interface WeeklyDepartmentWidgetProps {
   department?: string | null;
+  showAllDepartments?: boolean;
 }
 
-const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ department }) => {
+const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ department, showAllDepartments = false }) => {
   const [data, setData] = useState<DepartmentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchDepartmentData();
-  }, [department]);
-
-  const fetchDepartmentData = async () => {
+  const fetchDepartmentData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/department-analytics?days=7`);
@@ -32,7 +29,7 @@ const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ departm
       
       // Filter by department if specified (non-admin user)
       let filteredData = result.data || [];
-      if (department) {
+      if (!showAllDepartments && department) {
         filteredData = filteredData.filter((dept: DepartmentData) => 
           dept.departmentName.toLowerCase() === department.toLowerCase()
         );
@@ -44,7 +41,11 @@ const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ departm
     } finally {
       setLoading(false);
     }
-  };
+  }, [department, showAllDepartments]);
+
+  useEffect(() => {
+    fetchDepartmentData();
+  }, [fetchDepartmentData]);
 
   if (loading) {
     return (

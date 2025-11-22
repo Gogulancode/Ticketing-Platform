@@ -111,7 +111,7 @@ namespace ERPTraining.API.Controllers
         }
 
         [HttpGet("users")]
-        public async Task<ActionResult> GetAllUsers()
+        public ActionResult GetAllUsers()
         {
             try
             {

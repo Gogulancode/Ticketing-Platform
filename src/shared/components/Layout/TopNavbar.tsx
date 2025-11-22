@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Bell, Settings, ChevronDown, User, LogOut, Menu } from 'lucide-react';
+import { Bell, Settings, ChevronDown, User, LogOut, Menu, BookOpen, Ticket } from 'lucide-react';
 import { currentUser } from '../../data/mockData';
+import { useNavigate } from 'react-router-dom';
 
 interface TopNavbarProps {
   onToggleSidebar?: () => void;
@@ -9,6 +10,7 @@ interface TopNavbarProps {
 const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     // Remove auth token from localStorage (adjust key if needed)
@@ -39,7 +41,16 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar }) => {
           <Menu className="h-5 w-5" />
         </button>
         <div className="flex items-center space-x-3">
-          <h1 className="text-xl font-semibold text-gray-900">ERP Training Portal</h1>
+          {/* Logo and Branding */}
+          <div className="flex items-center space-x-3">
+            <div className="h-8 w-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-lg font-semibold text-gray-900">Training Module</h1>
+              <span className="text-xs text-gray-500">Business Hub</span>
+            </div>
+          </div>
           {/* Demo Mode Indicator */}
           <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-md">
             🎯 Demo Mode
@@ -48,6 +59,15 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar }) => {
       </div>
 
       <div className="flex items-center space-x-4">
+        {/* Ticketing Portal Switch */}
+        <button
+          onClick={() => navigate('/tickets')}
+          className="flex items-center text-green-600 hover:text-green-800 text-sm font-medium px-4 py-2 rounded-lg border border-green-200 hover:bg-green-50 transition-colors"
+        >
+          <Ticket className="w-4 h-4 mr-2" />
+          Switch to Ticketing
+        </button>
+        
         {/* Notifications */}
         <div className="relative">
           <button

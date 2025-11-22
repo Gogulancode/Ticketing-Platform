@@ -38,8 +38,17 @@ export interface Ticket {
     lastName: string;
     email: string;
   };
-  attachments?: any[];
+  attachments?: TicketAttachment[];
   comments?: TicketComment[];
+}
+
+export interface TicketAttachment {
+  id?: string | number;
+  fileName?: string;
+  url?: string;
+  contentType?: string;
+  sizeBytes?: number;
+  [key: string]: unknown;
 }
 
 export interface TicketComment {
@@ -82,9 +91,12 @@ export interface CreateTicketRequest {
   subcategoryId?: number;
   departmentId?: number;
   statusId?: number;
-  customFieldValues?: Record<string, any>;
+  customFieldValues?: TicketCustomFieldValues;
   attachments?: File[];
 }
+
+export type CustomFieldPrimitive = string | number | boolean | null;
+export type TicketCustomFieldValues = Record<string, CustomFieldPrimitive | CustomFieldPrimitive[]>;
 
 export interface AttachmentRequest {
   fileName: string;
@@ -111,23 +123,68 @@ function getToken(): string | null {
   return localStorage.getItem('token');
 }
 
-async function apiFetch(path: string, options: { [key: string]: any } = {}): Promise<any> {
+async function apiFetch<TResponse = unknown>(path: string, options: RequestInit = {}): Promise<TResponse> {
   const token = getToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options.headers || {}),
-  };
-  
-  const res = await fetch(`${API_ENDPOINT}${path}`, { ...options, headers });
+  const mergedHeaders = new Headers({ 'Content-Type': 'application/json' });
+  if (token) {
+    mergedHeaders.set('Authorization', `Bearer ${token}`);
+  }
+
+  const optionHeaders = options.headers;
+  if (optionHeaders instanceof Headers) {
+    optionHeaders.forEach((value, key) => mergedHeaders.set(key, value));
+  } else if (Array.isArray(optionHeaders)) {
+    optionHeaders.forEach(([key, value]) => mergedHeaders.set(key, value));
+  } else if (optionHeaders && typeof optionHeaders === 'object') {
+    Object.entries(optionHeaders).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        mergedHeaders.set(key, value);
+      }
+    });
+  }
+
+  const res = await fetch(`${API_ENDPOINT}${path}`, { ...options, headers: mergedHeaders });
   
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(errorText || `HTTP ${res.status}`);
   }
-  
-  return res.json();
+
+  if (res.status === 204) {
+    return undefined as TResponse;
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return (await res.json()) as TResponse;
+  }
+
+  const text = await res.text();
+  if (!text) {
+    return undefined as TResponse;
+  }
+  try {
+    return JSON.parse(text) as TResponse;
+  } catch {
+    return text as unknown as TResponse;
+  }
 }
+
+type TicketIdentifier = {
+  id?: string | number;
+  ticketId?: string | number;
+  Id?: string | number;
+};
+
+type MyTicketsResponse = Ticket[] | ({
+  items?: Ticket[];
+  tickets?: Ticket[];
+  data?: Ticket[];
+  assignedTickets?: Ticket[];
+  collaboratorTickets?: Ticket[];
+  assigned?: Ticket[];
+  collaborations?: Ticket[];
+} & Record<string, unknown>) | null | undefined;
 
 export const ticketsApi = {
   // Get all tickets
@@ -138,7 +195,52 @@ export const ticketsApi = {
 
   // Get tickets assigned to current user
   async getMyTickets(): Promise<Ticket[]> {
-    return apiFetch('/tickets/my');
+    const raw = await apiFetch<MyTicketsResponse>('/tickets/my');
+
+    // If backend already returns an array, just pass it through
+    if (Array.isArray(raw)) {
+      return raw;
+    }
+
+    const bucket: Ticket[] = [];
+
+    if (raw) {
+      const potentialCollections = [
+        raw.items,
+        raw.tickets,
+        raw.data,
+        raw.assignedTickets,
+        raw.collaboratorTickets,
+        raw.assigned,
+        raw.collaborations,
+      ];
+
+      for (const collection of potentialCollections) {
+        if (Array.isArray(collection)) {
+          bucket.push(...collection);
+        }
+      }
+    }
+
+    if (bucket.length === 0 && raw) {
+      console.warn('⚠️ Unexpected my tickets response shape', raw);
+    }
+
+    // De-duplicate tickets (a user may be both assigned and collaborator)
+    const uniqueTickets = new Map<string | number, Ticket>();
+    for (const ticket of bucket) {
+      const candidate = ticket as Ticket & TicketIdentifier;
+      const ticketKey = candidate.id ?? candidate.ticketId ?? candidate.Id;
+      if (ticketKey != null) {
+        uniqueTickets.set(ticketKey, ticket as Ticket);
+      }
+    }
+
+    if (uniqueTickets.size > 0) {
+      return Array.from(uniqueTickets.values());
+    }
+
+    return bucket;
   },
 
   // Get single ticket

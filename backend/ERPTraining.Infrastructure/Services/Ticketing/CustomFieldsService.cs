@@ -6,10 +6,10 @@ namespace ERPTraining.Infrastructure.Services.Ticketing
 {
     public interface ICustomFieldsService
     {
-        Task<IEnumerable<CustomField>> GetAllAsync();
-        Task<IEnumerable<CustomField>> GetByCategoryAsync(int categoryId);
-        Task<IEnumerable<CustomField>> GetBySubCategoryAsync(int subCategoryId);
-        Task<IEnumerable<CustomField>> GetByCategoryAndSubCategoryAsync(int categoryId, int subCategoryId);
+        Task<IEnumerable<CustomField>> GetAllAsync(bool includeInactive = false);
+        Task<IEnumerable<CustomField>> GetByCategoryAsync(int categoryId, bool includeInactive = false);
+        Task<IEnumerable<CustomField>> GetBySubCategoryAsync(int subCategoryId, bool includeInactive = false);
+        Task<IEnumerable<CustomField>> GetByCategoryAndSubCategoryAsync(int categoryId, int subCategoryId, bool includeInactive = false);
         Task<CustomField?> GetByIdAsync(int id);
         Task<CustomField> CreateAsync(CustomField customField);
         Task<CustomField?> UpdateAsync(int id, CustomField customField);
@@ -27,10 +27,10 @@ namespace ERPTraining.Infrastructure.Services.Ticketing
             _context = context;
         }
 
-        public async Task<IEnumerable<CustomField>> GetAllAsync()
+        public async Task<IEnumerable<CustomField>> GetAllAsync(bool includeInactive = false)
         {
             return await _context.CustomFields
-                .Where(cf => cf.IsActive)
+                .Where(cf => !cf.IsDeleted && (includeInactive || cf.IsActive))
                 .Include(cf => cf.Category)
                 .Include(cf => cf.SubCategory)
                 .OrderBy(cf => cf.DisplayOrder)
@@ -38,10 +38,10 @@ namespace ERPTraining.Infrastructure.Services.Ticketing
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<CustomField>> GetByCategoryAsync(int categoryId)
+        public async Task<IEnumerable<CustomField>> GetByCategoryAsync(int categoryId, bool includeInactive = false)
         {
             return await _context.CustomFields
-                .Where(cf => cf.IsActive && (cf.CategoryId == categoryId || cf.CategoryId == null))
+                .Where(cf => !cf.IsDeleted && (includeInactive || cf.IsActive) && (cf.CategoryId == categoryId || cf.CategoryId == null))
                 .Include(cf => cf.Category)
                 .Include(cf => cf.SubCategory)
                 .OrderBy(cf => cf.DisplayOrder)
@@ -49,10 +49,10 @@ namespace ERPTraining.Infrastructure.Services.Ticketing
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<CustomField>> GetBySubCategoryAsync(int subCategoryId)
+        public async Task<IEnumerable<CustomField>> GetBySubCategoryAsync(int subCategoryId, bool includeInactive = false)
         {
             return await _context.CustomFields
-                .Where(cf => cf.IsActive && (cf.SubCategoryId == subCategoryId || cf.SubCategoryId == null))
+                .Where(cf => !cf.IsDeleted && (includeInactive || cf.IsActive) && (cf.SubCategoryId == subCategoryId || cf.SubCategoryId == null))
                 .Include(cf => cf.Category)
                 .Include(cf => cf.SubCategory)
                 .OrderBy(cf => cf.DisplayOrder)
@@ -60,10 +60,10 @@ namespace ERPTraining.Infrastructure.Services.Ticketing
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<CustomField>> GetByCategoryAndSubCategoryAsync(int categoryId, int subCategoryId)
+        public async Task<IEnumerable<CustomField>> GetByCategoryAndSubCategoryAsync(int categoryId, int subCategoryId, bool includeInactive = false)
         {
             return await _context.CustomFields
-                .Where(cf => cf.IsActive && 
+                .Where(cf => !cf.IsDeleted && (includeInactive || cf.IsActive) && 
                             ((cf.CategoryId == categoryId && cf.SubCategoryId == subCategoryId) ||
                              (cf.CategoryId == categoryId && cf.SubCategoryId == null) ||
                              (cf.CategoryId == null && cf.SubCategoryId == subCategoryId) ||
@@ -80,11 +80,23 @@ namespace ERPTraining.Infrastructure.Services.Ticketing
             return await _context.CustomFields
                 .Include(cf => cf.Category)
                 .Include(cf => cf.SubCategory)
-                .FirstOrDefaultAsync(cf => cf.Id == id);
+                .FirstOrDefaultAsync(cf => cf.Id == id && !cf.IsDeleted);
         }
 
         public async Task<CustomField> CreateAsync(CustomField customField)
         {
+            var normalizedName = customField.Name.Trim();
+            customField.Name = normalizedName;
+
+            var duplicateExists = await _context.CustomFields
+                .AnyAsync(cf => !cf.IsDeleted && cf.IsActive &&
+                               EF.Functions.Collate(cf.Name, "SQL_Latin1_General_CP1_CI_AS") == normalizedName);
+
+            if (duplicateExists)
+            {
+                throw new InvalidOperationException($"An active custom field with the name '{customField.Name}' already exists. If you want to recreate this, please delete the existing one first.");
+            }
+
             customField.CreatedAt = DateTime.UtcNow;
             customField.UpdatedAt = DateTime.UtcNow;
 
@@ -98,7 +110,21 @@ namespace ERPTraining.Infrastructure.Services.Ticketing
             var existing = await _context.CustomFields.FindAsync(id);
             if (existing == null) return null;
 
-            existing.Name = customField.Name;
+            var normalizedName = customField.Name.Trim();
+
+            if (!string.Equals(existing.Name, normalizedName, StringComparison.OrdinalIgnoreCase))
+            {
+                var duplicateActive = await _context.CustomFields
+                    .AnyAsync(cf => cf.Id != id && !cf.IsDeleted && cf.IsActive &&
+                                    EF.Functions.Collate(cf.Name, "SQL_Latin1_General_CP1_CI_AS") == normalizedName);
+
+                if (duplicateActive)
+                {
+                    throw new InvalidOperationException($"An active custom field with the name '{customField.Name}' already exists.");
+                }
+            }
+
+            existing.Name = normalizedName;
             existing.Label = customField.Label;
             existing.Type = customField.Type;
             existing.CategoryId = customField.CategoryId;
@@ -122,6 +148,7 @@ namespace ERPTraining.Infrastructure.Services.Ticketing
 
             // Soft delete by setting IsActive to false
             customField.IsActive = false;
+            customField.IsDeleted = true;
             customField.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return true;

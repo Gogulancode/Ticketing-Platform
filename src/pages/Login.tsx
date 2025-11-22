@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { login as apiLogin } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import BusinessHubLogo from '../components/BusinessHubLogo';
+import { AnimatedBusinessHubLogo } from '../components';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -38,6 +40,10 @@ const Login: React.FC = () => {
       // Step 2: Store token and user data
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      if (data.expires) {
+        const expiresIso = new Date(data.expires).toISOString();
+        localStorage.setItem('tokenExpiresAt', expiresIso);
+      }
       console.log('✅ Token stored, expires:', data.expires);
       
       // Step 3: Fetch and store user permissions in AuthContext
@@ -55,41 +61,102 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="p-3 bg-gray-100 rounded-lg">
-            <Shield className="h-8 w-8 text-blue-600" />
+    <div className="min-h-screen bg-gray-50 flex">
+      
+      {/* Left Side - Branding Panel (Similar to SaleSkip) */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 relative overflow-hidden">
+        {/* Geometric Background Pattern */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-20 w-64 h-64 border border-white/20 rotate-12 rounded-lg"></div>
+          <div className="absolute bottom-32 right-16 w-48 h-48 border border-white/20 -rotate-12 rounded-lg"></div>
+          <div className="absolute top-1/2 left-1/3 w-32 h-32 border border-white/20 rotate-45 rounded-lg"></div>
+        </div>
+        
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-center items-start p-16 text-white max-w-lg">
+          {/* Business Hub Icon */}
+          <div className="mb-8">
+            <BusinessHubLogo size="xl" className="text-white" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Login</h1>
-            <p className="text-gray-600">Sign in to access the platform</p>
+          
+          {/* Main Heading */}
+          <h1 className="text-5xl font-bold mb-6 leading-tight">
+            Hello,<br />
+            I'm Business Hub
+          </h1>
+          
+          {/* Description */}
+          <p className="text-2xl text-blue-100 mb-8 leading-relaxed">
+            I'm here to streamline your business operations and boost productivity. 
+            Let me help you save time and enhance efficiency across your enterprise!
+          </p>
+          
+          {/* Company Branding */}
+          <div className="mt-auto">
+            <p className="text-blue-200 text-sm">
+              © 2025 Babaji Shivram. All rights reserved.
+            </p>
           </div>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter your email (e.g., john.doe@company.com)"
-              autoComplete="off"
-              name="email"
-              id="login-email"
-              required
-            />
+      </div>
+
+      {/* Right Side - Login Form */}
+      <div className="flex-1 lg:w-1/2 flex items-center justify-center p-12 bg-white">
+        <div className="w-full max-w-lg">
+          
+          {/* Mobile Header - Company Logo */}
+          <div className="lg:hidden text-center mb-12">
+            <div className="bg-blue-50 rounded-2xl p-8 inline-block mb-6">
+              <img 
+                src="/BABAJI LOGO.png" 
+                alt="Babaji Shivram" 
+                className="h-32 w-auto mx-auto"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+
+          {/* Login Header */}
+          <div className="text-center mb-12">
+            {/* Company Logo for Desktop - Centered and Even Bigger */}
+            <div className="hidden lg:flex justify-center mb-6">
+              <img 
+                src="/BABAJI LOGO.png" 
+                alt="Babaji Shivram" 
+                className="h-32 w-auto"
+              />
+            </div>
+            
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">Welcome Back!</h2>
+            <p className="text-gray-600 mb-2">
+              Sign in to access the platform
+            </p>
+          </div>
+
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-8" autoComplete="off">
+            {/* Email Field */}
+            <div>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="w-full px-4 py-4 text-lg border-b-2 border-gray-200 focus:border-blue-600 focus:outline-none transition-colors bg-transparent"
+                placeholder="Enter your email"
+                autoComplete="off"
+                name="email"
+                id="login-email"
+                required
+              />
+            </div>
+            
+            {/* Password Field */}
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter your password"
+                className="w-full px-4 py-4 text-lg border-b-2 border-gray-200 focus:border-blue-600 focus:outline-none transition-colors bg-transparent pr-12"
+                placeholder="Password"
                 autoComplete="new-password"
                 name="password"
                 id="login-password"
@@ -98,27 +165,38 @@ const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none transition-colors"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
+                  <EyeOff className="h-6 w-6" />
                 ) : (
-                  <Eye className="h-5 w-5" />
+                  <Eye className="h-6 w-6" />
                 )}
               </button>
             </div>
-          </div>
-          {error && <div className="text-red-600 text-sm">{error}</div>}
-          <button
-            type="submit"
-            className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-            disabled={loading}
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="text-red-600 text-sm">{error}</div>
+              </div>
+            )}
+            
+            {/* Login Button */}
+            <button
+              type="submit"
+              className="w-full py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+              disabled={loading}
+            >
+              {loading && <AnimatedBusinessHubLogo size="sm" />}
+              <span>{loading ? 'Signing in...' : 'Login Now'}</span>
+            </button>
+            
+          </form>
+        </div>
       </div>
+      
     </div>
   );
 };

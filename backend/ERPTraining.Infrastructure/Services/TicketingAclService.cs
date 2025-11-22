@@ -113,23 +113,93 @@ public class TicketingAclService : ITicketingAclService
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null) return false;
 
-        // Check if user is already an agent
+        var now = DateTime.UtcNow;
+
+        // Ensure the Agent role exists so we can assign it
+        if (!await _roleManager.RoleExistsAsync("Agent"))
+        {
+            var roleCreateResult = await _roleManager.CreateAsync(new IdentityRole("Agent"));
+            if (!roleCreateResult.Succeeded)
+            {
+                return false;
+            }
+        }
+
+        async Task<bool> EnsureAgentRoleAsync()
+        {
+            if (await _userManager.IsInRoleAsync(user, "Agent"))
+            {
+                return true;
+            }
+
+            var roleResult = await _userManager.AddToRoleAsync(user, "Agent");
+            return roleResult.Succeeded;
+        }
+
         var existingAgent = await _context.Agents.FirstOrDefaultAsync(a => a.UserId == userId);
+        var userUpdated = false;
+
+        void EnsureUserMarkedAsAgent()
+        {
+            if (!user.IsAgent)
+            {
+                user.IsAgent = true;
+                user.UpdatedAt = now;
+                userUpdated = true;
+            }
+        }
+
         if (existingAgent != null)
         {
-            // User is already an agent, just ensure they have the role
-            if (!(await _userManager.IsInRoleAsync(user, "Agent")))
+            if (!await EnsureAgentRoleAsync())
             {
-                await _userManager.AddToRoleAsync(user, "Agent");
+                return false;
             }
+
+            EnsureUserMarkedAsAgent();
+
+            if (!existingAgent.IsActive)
+            {
+                existingAgent.IsActive = true;
+                existingAgent.UpdatedAt = now;
+            }
+
+            if (string.IsNullOrWhiteSpace(existingAgent.Name))
+            {
+                existingAgent.Name = $"{user.FirstName} {user.LastName}".Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(existingAgent.Email))
+            {
+                existingAgent.Email = user.Email ?? string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(existingAgent.Department))
+            {
+                existingAgent.Department = user.Department ?? existingAgent.Department;
+            }
+
+            if (userUpdated)
+            {
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
+                {
+                    return false;
+                }
+            }
+
+            await _context.SaveChangesAsync();
             return true;
         }
 
-        // Add Agent role to make them an agent
-        var roleResult = await _userManager.AddToRoleAsync(user, "Agent");
-        if (!roleResult.Succeeded) return false;
+        if (!await EnsureAgentRoleAsync())
+        {
+            return false;
+        }
 
-        // Create Agent record
+        EnsureUserMarkedAsAgent();
+
+        // Check if user is already an agent
         var agent = new Agent
         {
             UserId = userId,
@@ -140,11 +210,21 @@ public class TicketingAclService : ITicketingAclService
             MaxTicketsCapacity = 10, // Default capacity
             CurrentTicketCount = 0,
             AvailabilityStatus = "Available",
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            CreatedAt = now,
+            UpdatedAt = now
         };
 
         _context.Agents.Add(agent);
+
+        if (userUpdated)
+        {
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                return false;
+            }
+        }
+
         await _context.SaveChangesAsync();
 
         return true;

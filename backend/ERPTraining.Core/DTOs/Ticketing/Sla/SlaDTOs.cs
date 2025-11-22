@@ -2,13 +2,19 @@ namespace ERPTraining.Core.DTOs.Ticketing.Sla;
 
 public record SlaPolicyDto(
     Guid Id,
+    string Name,
+    string? Description,
     int Category,
     int Priority,
     int FirstResponseMins,
     int ResolutionMins,
+    int? EscalationTime,
+    bool IsActive,
+    bool IsDeleted,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    int EscalationContactsCount
+    int EscalationContactsCount,
+    List<SlaEscalationLevelDto>? EscalationLevels = null
 );
 
 public record CreateSlaPolicyRequest(
@@ -17,7 +23,8 @@ public record CreateSlaPolicyRequest(
     int Category,
     int Priority,
     int FirstResponseMins,
-    int ResolutionMins
+    int ResolutionMins,
+    List<CreateSlaEscalationLevelRequest>? EscalationLevels = null
 );
 
 public record UpdateSlaPolicyRequest(
@@ -27,7 +34,8 @@ public record UpdateSlaPolicyRequest(
     int Category,
     int Priority,
     int FirstResponseMins,
-    int ResolutionMins
+    int ResolutionMins,
+    List<CreateSlaEscalationLevelRequest>? EscalationLevels = null
 );
 
 public record SlaEscalationContactDto(

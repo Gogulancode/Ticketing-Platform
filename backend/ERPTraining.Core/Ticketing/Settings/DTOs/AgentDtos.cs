@@ -25,3 +25,5 @@ public record GroupAgentDto(
 );
 
 public record AddAgentToGroupRequest(int AgentId);
+
+public record AgentStatusUpdateRequest(bool IsActive);

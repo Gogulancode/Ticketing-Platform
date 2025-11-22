@@ -3,7 +3,6 @@ import {
   TicketCategory,
   TicketPriority,
   TicketStatus,
-  TicketSource,
 } from '../api/ticketsApi';
 
 // Export the types from the API file for easier imports
@@ -11,7 +10,6 @@ export {
   TicketCategory,
   TicketPriority,
   TicketStatus,
-  TicketSource,
   type CreateTicketDto,
   type TicketLinkDto,
   type UpdateTicketDto,

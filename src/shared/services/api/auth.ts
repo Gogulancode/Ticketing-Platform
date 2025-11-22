@@ -1,5 +1,9 @@
 // Client-side authentication API functions
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api';
+import { API_CONFIG } from '../../../config/api';
+
+// FORCE BUILD: Use centralized API configuration
+const API_BASE = API_CONFIG.BASE_URL;
+console.log('🔑 Auth API Base:', API_BASE);
 
 interface LoginData {
   email: string;
@@ -22,6 +26,8 @@ interface User {
   lastName: string;
   department?: string;
   role?: string;
+  roles?: string[];
+  isAgent?: boolean;
 }
 
 function getToken(): string | null {

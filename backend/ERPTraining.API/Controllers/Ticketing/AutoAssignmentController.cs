@@ -1,57 +1,60 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using ERPTraining.Core.Interfaces.Ticketing;
+using Microsoft.Extensions.Logging;
 using ERPTraining.Core.Entities.Ticketing;
+using ERPTraining.Core.Interfaces.Ticketing;
 using ERPTraining.Infrastructure.Data;
-using System.Security.Claims;
+using System.Linq;
 
 namespace ERPTraining.API.Controllers.Ticketing;
 
-// DISABLED: AutoAssignment functionality temporarily disabled due to circular reference issues
-// User requested manual assignment only
-/*
+// Auto-assignment endpoints are available for ticket routing automation.
 [ApiController]
 [Route("api/tickets/auto-assignment")]
 public class AutoAssignmentController : ControllerBase
 {
     private readonly IAutoAssignmentService _autoAssignmentService;
-    private readonly ILogger<AutoAssignmentController> _logger;
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<AutoAssignmentController> _logger;
 
     public AutoAssignmentController(
         IAutoAssignmentService autoAssignmentService,
-        ILogger<AutoAssignmentController> logger,
-        ApplicationDbContext context)
+        ApplicationDbContext context,
+        ILogger<AutoAssignmentController> logger)
     {
         _autoAssignmentService = autoAssignmentService;
-        _logger = logger;
         _context = context;
+        _logger = logger;
     }
 
-    /// <summary>
-    /// Auto-assign a ticket based on configured rules
-    /// </summary>
-    [HttpPost("assign/{ticketId}")]
+    [HttpPost("assign/{ticketId:guid}")]
     public async Task<IActionResult> AutoAssignTicket(Guid ticketId)
     {
         try
         {
             var result = await _autoAssignmentService.AutoAssignTicketAsync(ticketId);
-            
+
             if (result.Success)
             {
-                return Ok(new { 
-                    success = true, 
+                return Ok(new
+                {
+                    success = true,
                     message = result.Message,
                     assignedToUserId = result.AssignedToUserId,
                     assignedToAgentId = result.AssignedToAgentId,
                     assignedToGroupId = result.AssignedToGroupId,
-                    reason = result.Reason.ToString()
+                    reason = result.Reason.ToString(),
+                    ruleName = result.RuleName
                 });
             }
-            
-            return BadRequest(new { success = false, message = result.ErrorMessage });
+
+            return BadRequest(new
+            {
+                success = false,
+                message = result.ErrorMessage ?? "Unable to auto assign ticket",
+                reason = result.Reason.ToString(),
+                ruleName = result.RuleName
+            });
         }
         catch (Exception ex)
         {
@@ -60,116 +63,89 @@ public class AutoAssignmentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Get assignment recommendations for a ticket without actually assigning it
-    /// </summary>
-    [HttpGet("recommendations/{ticketId}")]
+    [HttpGet("assign/{ticketId:guid}/recommendations")]
     public async Task<IActionResult> GetAssignmentRecommendations(Guid ticketId)
     {
         try
         {
             var recommendation = await _autoAssignmentService.EvaluateAssignmentRulesAsync(ticketId);
-            
-            return Ok(new {
-                recommendedOption = recommendation.RecommendedOption,
-                allOptions = recommendation.Options.Take(5), // Limit to top 5 options
-                hasRecommendations = recommendation.Options.Any()
-            });
+            return Ok(recommendation);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting assignment recommendations for ticket {TicketId}", ticketId);
+            _logger.LogError(ex, "Error retrieving assignment recommendations for ticket {TicketId}", ticketId);
             return StatusCode(500, new { success = false, message = "Internal server error" });
         }
     }
 
-    /// <summary>
-    /// Auto-assign ticket based on email content (subject and body) with keyword matching
-    /// </summary>
-    [HttpPost("assign-from-email")]
+    [HttpPost("email")]
     public async Task<IActionResult> AutoAssignFromEmail([FromBody] EmailAssignmentRequest request)
     {
         try
         {
-            // First, extract keywords and determine category/subcategory
-            var categoryResult = await DetermineCategory(request.Subject, request.Content);
-            
-            if (categoryResult == null)
-            {
-                return BadRequest(new { 
-                    success = false, 
-                    message = "Unable to determine category from email content" 
-                });
-            }
+            var categoryDetermination = await DetermineCategory(request.Subject, request.Content);
+            var categoryId = categoryDetermination?.CategoryId ?? GetCategoryId("Other");
+            var subCategoryId = categoryDetermination?.SubCategoryId;
 
-            // Create a ticket assignment context
-            var assignmentContext = new EmailTicketContext
+            var context = new EmailTicketContext
             {
                 Subject = request.Subject,
                 Content = request.Content,
                 SenderEmail = request.SenderEmail,
-                DeterminedCategory = categoryResult.CategoryId,
-                DeterminedSubCategory = categoryResult.SubCategoryId,
-                MatchedKeywords = categoryResult.MatchedKeywords,
+                DeterminedCategory = categoryId,
+                DeterminedSubCategory = subCategoryId,
+                MatchedKeywords = categoryDetermination?.MatchedKeywords ?? new List<string>(),
                 Priority = DeterminePriority(request.Subject, request.Content)
             };
 
-            var result = await _autoAssignmentService.AutoAssignFromEmailAsync(assignmentContext);
-            
+            var result = await _autoAssignmentService.AutoAssignFromEmailAsync(context);
+
             if (result.Success)
             {
-                return Ok(new { 
-                    success = true, 
+                return Ok(new
+                {
+                    success = true,
                     message = result.Message,
                     assignedToUserId = result.AssignedToUserId,
                     assignedToAgentId = result.AssignedToAgentId,
                     assignedToGroupId = result.AssignedToGroupId,
                     reason = result.Reason.ToString(),
-                    determinedCategory = categoryResult.CategoryName,
-                    determinedSubCategory = categoryResult.SubCategoryName,
-                    matchedKeywords = categoryResult.MatchedKeywords
+                    ruleName = result.RuleName,
+                    matchedKeywords = context.MatchedKeywords,
+                    category = categoryDetermination?.CategoryName,
+                    subCategory = categoryDetermination?.SubCategoryName,
+                    confidence = categoryDetermination?.Confidence ?? 0
                 });
             }
-            
-            return BadRequest(new { success = false, message = result.ErrorMessage });
+
+            return BadRequest(new
+            {
+                success = false,
+                message = result.ErrorMessage ?? "Unable to auto assign email",
+                reason = result.Reason.ToString(),
+                ruleName = result.RuleName,
+                matchedKeywords = context.MatchedKeywords,
+                category = categoryDetermination?.CategoryName,
+                subCategory = categoryDetermination?.SubCategoryName,
+                confidence = categoryDetermination?.Confidence ?? 0
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error auto-assigning from email");
+            _logger.LogError(ex, "Error auto-assigning from email for sender {SenderEmail}", request.SenderEmail);
             return StatusCode(500, new { success = false, message = "Internal server error" });
         }
     }
 
-    /// <summary>
-    /// Get all active assignment rules
-    /// </summary>
     [HttpGet("rules")]
     public async Task<IActionResult> GetRules()
     {
         try
         {
             var rules = await _autoAssignmentService.GetActiveRulesAsync();
-            
-            // Return clean DTOs to avoid circular references
-            var response = rules.Select(rule => new
-            {
-                id = rule.Id,
-                name = rule.Name,
-                description = rule.Description,
-                categoryId = rule.CategoryId,
-                subCategoryId = rule.SubCategoryId,
-                ticketPriority = rule.TicketPriority,
-                departmentId = rule.DepartmentId,
-                keywords = rule.Keywords,
-                strategy = (int)rule.Strategy,
-                strategyName = rule.Strategy.ToString(),
-                priority = rule.Priority,
-                isActive = rule.IsActive,
-                createdAt = rule.CreatedAt,
-                updatedAt = rule.UpdatedAt
-            });
-            
-            return Ok(response);
+            var ordered = rules.OrderBy(r => r.Priority).ThenByDescending(r => r.IsActive);
+
+            return Ok(ordered.Select(MapRule));
         }
         catch (Exception ex)
         {
@@ -178,16 +154,13 @@ public class AutoAssignmentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Create a new assignment rule
-    /// </summary>
     [HttpPost("rules")]
     public async Task<IActionResult> CreateRule([FromBody] CreateAutoAssignmentRuleRequest request)
     {
         try
         {
             var rule = await _autoAssignmentService.CreateRuleAsync(request);
-            return CreatedAtAction(nameof(GetRule), new { id = rule.Id }, rule);
+            return CreatedAtAction(nameof(GetRule), new { id = rule.Id }, MapRule(rule));
         }
         catch (Exception ex)
         {
@@ -196,40 +169,20 @@ public class AutoAssignmentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Get a specific assignment rule by ID
-    /// </summary>
-    [HttpGet("rules/{id}")]
+    [HttpGet("rules/{id:int}")]
     public async Task<IActionResult> GetRule(int id)
     {
         try
         {
             var rules = await _autoAssignmentService.GetActiveRulesAsync();
             var rule = rules.FirstOrDefault(r => r.Id == id);
-            
+
             if (rule == null)
-                return NotFound();
-                
-            // Return clean DTO to avoid circular references
-            var response = new
             {
-                id = rule.Id,
-                name = rule.Name,
-                description = rule.Description,
-                categoryId = rule.CategoryId,
-                subCategoryId = rule.SubCategoryId,
-                ticketPriority = rule.TicketPriority,
-                departmentId = rule.DepartmentId,
-                keywords = rule.Keywords,
-                strategy = (int)rule.Strategy,
-                strategyName = rule.Strategy.ToString(),
-                priority = rule.Priority,
-                isActive = rule.IsActive,
-                createdAt = rule.CreatedAt,
-                updatedAt = rule.UpdatedAt
-            };
-            
-            return Ok(response);
+                return NotFound(new { success = false, message = "Rule not found" });
+            }
+
+            return Ok(MapRule(rule));
         }
         catch (Exception ex)
         {
@@ -238,20 +191,17 @@ public class AutoAssignmentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Update an existing assignment rule
-    /// </summary>
-    [HttpPut("rules/{id}")]
+    [HttpPut("rules/{id:int}")]
     public async Task<IActionResult> UpdateRule(int id, [FromBody] UpdateAutoAssignmentRuleRequest request)
     {
         try
         {
             var rule = await _autoAssignmentService.UpdateRuleAsync(id, request);
-            return Ok(rule);
+            return Ok(MapRule(rule));
         }
         catch (ArgumentException)
         {
-            return NotFound();
+            return NotFound(new { success = false, message = "Rule not found" });
         }
         catch (Exception ex)
         {
@@ -260,10 +210,7 @@ public class AutoAssignmentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Delete an assignment rule
-    /// </summary>
-    [HttpDelete("rules/{id}")]
+    [HttpDelete("rules/{id:int}")]
     public async Task<IActionResult> DeleteRule(int id)
     {
         try
@@ -278,9 +225,6 @@ public class AutoAssignmentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Get current agent workloads
-    /// </summary>
     [HttpGet("workloads")]
     public async Task<IActionResult> GetAgentWorkloads()
     {
@@ -296,16 +240,18 @@ public class AutoAssignmentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Rebalance agent workloads
-    /// </summary>
     [HttpPost("rebalance")]
     public async Task<IActionResult> RebalanceWorkloads()
     {
         try
         {
             var result = await _autoAssignmentService.RebalanceWorkloadsAsync();
-            return Ok(result);
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+
+            return BadRequest(new { success = false, message = result.ErrorMessage ?? "Unable to rebalance workloads" });
         }
         catch (Exception ex)
         {
@@ -314,17 +260,15 @@ public class AutoAssignmentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Test keyword matching for email content
-    /// </summary>
     [HttpPost("test-keywords")]
     public async Task<IActionResult> TestKeywordMatching([FromBody] KeywordTestRequest request)
     {
         try
         {
             var result = await DetermineCategory(request.Subject, request.Content);
-            
-            return Ok(new {
+
+            return Ok(new
+            {
                 success = result != null,
                 category = result?.CategoryName,
                 subcategory = result?.SubCategoryName,
@@ -515,6 +459,27 @@ public class AutoAssignmentController : ControllerBase
 
     #region Private Helper Methods
 
+    private object MapRule(AutoAssignmentRule rule)
+    {
+        return new
+        {
+            id = rule.Id,
+            name = rule.Name,
+            description = rule.Description,
+            categoryId = rule.CategoryId,
+            subCategoryId = rule.SubCategoryId,
+            ticketPriority = rule.TicketPriority,
+            departmentId = rule.DepartmentId,
+            keywords = rule.Keywords,
+            strategy = (int)rule.Strategy,
+            strategyName = rule.Strategy.ToString(),
+            priority = rule.Priority,
+            isActive = rule.IsActive,
+            createdAt = rule.CreatedAt,
+            updatedAt = rule.UpdatedAt
+        };
+    }
+
     private async Task<CategoryDeterminationResult?> DetermineCategory(string subject, string content)
     {
         // Get all active keyword mappings from database
@@ -529,7 +494,7 @@ public class AutoAssignmentController : ControllerBase
             return null;
         }
 
-        var combinedText = $"{subject} {content}".ToLower();
+        var combinedText = $"{subject} {content}".ToLowerInvariant();
         var bestMatch = new CategoryDeterminationResult();
         var maxScore = 0;
         var matchedKeywords = new List<string>();
@@ -546,7 +511,7 @@ public class AutoAssignmentController : ControllerBase
 
             foreach (var keywordMapping in keywords)
             {
-                var keyword = keywordMapping.Keyword.ToLower();
+                var keyword = keywordMapping.Keyword.ToLowerInvariant();
                 if (combinedText.Contains(keyword))
                 {
                     subcategoryMatchedKeywords.Add(keywordMapping.Keyword);
@@ -594,16 +559,9 @@ public class AutoAssignmentController : ControllerBase
         _ => 4 // Other
     };
 
-    private int? GetSubCategoryId(string categoryName, string subCategoryName)
-    {
-        // This would ideally be looked up from database
-        // For now, return null and let the system handle it
-        return null;
-    }
-
     private int DeterminePriority(string subject, string content)
     {
-        var combinedText = $"{subject} {content}".ToLower();
+        var combinedText = $"{subject} {content}".ToLowerInvariant();
         
         // Critical keywords
         if (combinedText.Contains("urgent") || combinedText.Contains("critical") || 
@@ -682,4 +640,3 @@ public class EmailTicketContext
 }
 
 #endregion
-*/

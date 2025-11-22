@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ERPTraining.Core.Interfaces;
@@ -88,13 +89,20 @@ public class UsersController : ControllerBase
             // Get total count for pagination
             var totalCount = await query.CountAsync();
 
-            // Apply pagination
-            var users = await query
+            // Apply pagination and get users
+            var usersQuery = await query
                 .OrderBy(u => u.LastName)
                 .ThenBy(u => u.FirstName)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(u => new 
+                .ToListAsync();
+
+            // Build user list with roles (need to query roles separately since it's async)
+            var users = new List<object>();
+            foreach (var u in usersQuery)
+            {
+                var userRoles = await _userManager.GetRolesAsync(u);
+                users.Add(new
                 {
                     id = u.Id,
                     username = u.UserName ?? "",
@@ -105,15 +113,14 @@ public class UsersController : ControllerBase
                     isActive = u.IsActive,
                     isERPUser = u.IsERPUser,
                     erpUserId = u.ERPUserId.HasValue ? u.ERPUserId.Value.ToString() : "",
-                    // Check if user is an agent by checking Agents table
-                    isAgent = _context.Agents.Any(a => a.UserId == u.Id && a.IsActive),
-                    roles = new[] { u.IsERPUser ? "ERP User" : "Local User" }, // Keep simple for now, will fix roles separately
+                    isAgent = u.IsAgent,
+                    roles = userRoles.ToArray(),
                     createdAt = u.CreatedAt.ToString("yyyy-MM-dd"),
                     lastLogin = "", // Not available in current User entity
                     department = u.Department ?? "",
-                    position = "" // Not available in current User entity
-                })
-                .ToListAsync();
+                    position = u.Position ?? ""
+                });
+            }
 
             var result = new
             {
@@ -157,10 +164,24 @@ public class UsersController : ControllerBase
             var existingAgent = await _context.Agents.FirstOrDefaultAsync(a => a.UserId == id);
             if (existingAgent != null)
             {
+                var stateChanged = false;
+
+                if (!user.IsAgent)
+                {
+                    user.IsAgent = true;
+                    user.UpdatedAt = DateTime.UtcNow;
+                    stateChanged = true;
+                }
+
                 if (!existingAgent.IsActive)
                 {
                     existingAgent.IsActive = true;
                     existingAgent.UpdatedAt = DateTime.UtcNow;
+                    stateChanged = true;
+                }
+
+                if (stateChanged)
+                {
                     await _context.SaveChangesAsync();
                 }
 
@@ -201,6 +222,11 @@ public class UsersController : ControllerBase
             };
 
             _context.Agents.Add(agent);
+            if (!user.IsAgent)
+            {
+                user.IsAgent = true;
+                user.UpdatedAt = DateTime.UtcNow;
+            }
             await _context.SaveChangesAsync();
 
             // Optionally assign an Identity role named "Agent" if it exists
@@ -407,7 +433,7 @@ public class UsersController : ControllerBase
             if (updateData.ContainsKey("username") && updateData["username"] != null)
             {
                 var newUsername = updateData["username"].ToString();
-                if (user.UserName != newUsername)
+                if (newUsername != null && !string.Equals(user.UserName, newUsername, StringComparison.Ordinal))
                 {
                     user.UserName = newUsername;
                     hasChanges = true;
@@ -417,7 +443,7 @@ public class UsersController : ControllerBase
             if (updateData.ContainsKey("email") && updateData["email"] != null)
             {
                 var newEmail = updateData["email"].ToString();
-                if (user.Email != newEmail)
+                if (newEmail != null && !string.Equals(user.Email, newEmail, StringComparison.OrdinalIgnoreCase))
                 {
                     user.Email = newEmail;
                     hasChanges = true;
@@ -427,7 +453,7 @@ public class UsersController : ControllerBase
             if (updateData.ContainsKey("firstName") && updateData["firstName"] != null)
             {
                 var newFirstName = updateData["firstName"].ToString();
-                if (user.FirstName != newFirstName)
+                if (newFirstName != null && !string.Equals(user.FirstName, newFirstName, StringComparison.Ordinal))
                 {
                     user.FirstName = newFirstName;
                     hasChanges = true;
@@ -437,7 +463,7 @@ public class UsersController : ControllerBase
             if (updateData.ContainsKey("lastName") && updateData["lastName"] != null)
             {
                 var newLastName = updateData["lastName"].ToString();
-                if (user.LastName != newLastName)
+                if (newLastName != null && !string.Equals(user.LastName, newLastName, StringComparison.Ordinal))
                 {
                     user.LastName = newLastName;
                     hasChanges = true;
@@ -447,7 +473,7 @@ public class UsersController : ControllerBase
             if (updateData.ContainsKey("phone") && updateData["phone"] != null)
             {
                 var newPhone = updateData["phone"].ToString();
-                if (user.PhoneNumber != newPhone)
+                if (newPhone != null && !string.Equals(user.PhoneNumber, newPhone, StringComparison.Ordinal))
                 {
                     user.PhoneNumber = newPhone;
                     hasChanges = true;
@@ -457,9 +483,19 @@ public class UsersController : ControllerBase
             if (updateData.ContainsKey("department") && updateData["department"] != null)
             {
                 var newDepartment = updateData["department"].ToString();
-                if (user.Department != newDepartment)
+                if (newDepartment != null && !string.Equals(user.Department, newDepartment, StringComparison.Ordinal))
                 {
                     user.Department = newDepartment;
+                    hasChanges = true;
+                }
+            }
+
+            if (updateData.ContainsKey("position") && updateData["position"] != null)
+            {
+                var newPosition = updateData["position"].ToString();
+                if (newPosition != null && !string.Equals(user.Position, newPosition, StringComparison.Ordinal))
+                {
+                    user.Position = newPosition;
                     hasChanges = true;
                 }
             }
@@ -481,6 +517,27 @@ public class UsersController : ControllerBase
                 if (user.IsActive != newIsActive)
                 {
                     user.IsActive = newIsActive;
+                    hasChanges = true;
+                }
+            }
+
+            if (updateData.ContainsKey("isAgent"))
+            {
+                var isAgentValue = updateData["isAgent"];
+                bool newIsAgent = false;
+                
+                if (isAgentValue is bool boolValue)
+                {
+                    newIsAgent = boolValue;
+                }
+                else if (bool.TryParse(isAgentValue?.ToString(), out bool parsedBool))
+                {
+                    newIsAgent = parsedBool;
+                }
+
+                if (user.IsAgent != newIsAgent)
+                {
+                    user.IsAgent = newIsAgent;
                     hasChanges = true;
                 }
             }
@@ -550,6 +607,9 @@ public class UsersController : ControllerBase
 
             _logger.LogInformation("Successfully updated user {UserId}", id);
 
+            // Get the updated roles for the response
+            var userRoles = await _userManager.GetRolesAsync(user);
+
             var result_obj = new
             {
                 success = true,
@@ -563,7 +623,10 @@ public class UsersController : ControllerBase
                     lastName = user.LastName,
                     phone = user.PhoneNumber,
                     department = user.Department,
+                    position = user.Position,
                     isActive = user.IsActive,
+                    isAgent = user.IsAgent,
+                    roles = userRoles.ToArray(),
                     updatedAt = user.UpdatedAt
                 }
             };
