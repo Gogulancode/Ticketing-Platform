@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart3, Clock, Users, AlertTriangle, FileText, TrendingUp, Calendar } from 'lucide-react';
 import ReportFiltersComponent from '../components/ReportFilters';
 import LoadingSpinner from '../../../components/LoadingSpinner';
+import AdminRouteGuard from '../components/AdminRouteGuard';
 import { 
   ReportFilters, 
   ResolutionResponseReport, 
@@ -145,6 +146,7 @@ const TicketReportsPage: React.FC = () => {
   };
 
   return (
+    <AdminRouteGuard>
     <div className="text-sm leading-snug p-6 bg-gray-50 min-h-screen">
       {/* Page Header */}
       <div className="mb-6">
@@ -349,6 +351,7 @@ const TicketReportsPage: React.FC = () => {
         )}
       </div>
     </div>
+    </AdminRouteGuard>
   );
 };
 

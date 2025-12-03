@@ -1010,6 +1010,32 @@ public class TicketSettingsController : ControllerBase
 
     // ================= Groups =================
     // Moved to TicketGroupsController to simplify routing and avoid ambiguity.
+
+    // ================= Email Processing Debug =================
+    /// <summary>
+    /// Manually trigger email processing for debugging purposes
+    /// </summary>
+    [HttpPost("trigger-email-processing")]
+    public async Task<ActionResult> TriggerEmailProcessing(CancellationToken ct)
+    {
+        try
+        {
+            _logger.LogInformation("🔧 Manual email processing triggered");
+            
+            // Get the GraphEmailToTicketProcessor service
+            var emailProcessor = HttpContext.RequestServices.GetRequiredService<GraphEmailToTicketProcessor>();
+            
+            await emailProcessor.ProcessEmailsAsync(ct);
+            
+            _logger.LogInformation("✅ Manual email processing completed");
+            return Ok(new { message = "Email processing triggered successfully. Check server logs for details." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error during manual email processing");
+            return StatusCode(500, new { message = "Error processing emails", error = ex.Message });
+        }
+    }
 }
 
 public record CreateEmailAccountRequest(string EmailAddress, string DisplayName, int CategoryId, bool? IsActive, string? Keywords);

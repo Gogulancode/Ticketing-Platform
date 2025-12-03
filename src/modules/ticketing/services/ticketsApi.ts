@@ -26,6 +26,11 @@ export interface Ticket {
   subcategoryId?: number; // Maps to relational subcategory tables  
   departmentId?: number; // Maps to department assignment
   
+  // Merge information
+  hasMergedTickets?: boolean;
+  wasMergedIntoAnother?: boolean;
+  mergedTicketsCount?: number;
+  
   createdByUser?: {
     id: string;
     firstName: string;
@@ -60,12 +65,13 @@ export interface TicketComment {
   isInternal: boolean;
 }
 
+// Status IDs match the database TicketStatuses table
 export enum TicketStatus {
-  Open = 0,
-  InProgress = 1,
-  Resolved = 2,
-  Closed = 3,
-  OnHold = 4
+  Open = 1,           // Database ID 1 = "Open"
+  InProgress = 2,     // Database ID 2 = "In Progress"
+  OnHold = 3,         // Database ID 3 = "On Hold"
+  Resolved = 4,       // Database ID 4 = "Resolved"
+  Closed = 5          // Database ID 5 = "Closed"
 }
 
 export enum TicketPriority {
@@ -195,7 +201,9 @@ export const ticketsApi = {
 
   // Get tickets assigned to current user
   async getMyTickets(): Promise<Ticket[]> {
-    const raw = await apiFetch<MyTicketsResponse>('/tickets/my');
+    // Request larger page size to get all tickets (API limits to 100 per page, but we request 500)
+    // For large ticket volumes, consider implementing proper server-side pagination
+    const raw = await apiFetch<MyTicketsResponse>('/tickets/my?pageSize=500');
 
     // If backend already returns an array, just pass it through
     if (Array.isArray(raw)) {

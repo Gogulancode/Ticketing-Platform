@@ -1,6 +1,7 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ERPTraining.Core.DTOs;
 using ERPTraining.Core.Interfaces;
 using System.Security.Claims;
@@ -31,6 +32,7 @@ namespace ERPTraining.API.Controllers;
 [Route("api/auth")]
 [Tags("Auth")]
 [Produces("application/json")]
+[EnableRateLimiting("auth")]  // Enterprise: Strict rate limiting on auth endpoints
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;

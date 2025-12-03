@@ -2,6 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { User, Clock, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
 
+// Helper function to get auth headers
+const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+};
+
 interface AgentPerformance {
   agentName: string;
   agentEmail: string;
@@ -45,7 +54,9 @@ const AgentPerformanceWidget: React.FC<AgentPerformanceWidgetProps> = ({ departm
   const fetchAgentPerformance = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/agent-performance?days=7`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/agent-performance?days=7`, {
+        headers: getAuthHeaders()
+      });
       if (!response.ok) {
         // If API fails, show a message instead of mock data
         throw new Error('Agent performance data unavailable');

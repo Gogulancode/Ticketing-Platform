@@ -1269,12 +1269,12 @@ class SettingsApiService {
     return [
       { 
         id: 1, 
-        name: 'New', 
+        name: 'Open', 
         workflowOrder: 1, 
         isActive: true, 
         color: '#3b82f6', 
         isDefault: true,
-        allowedTransitions: [2, 6] // Can go to In Progress or Closed
+        allowedTransitions: [2, 5] // Can go to In Progress or Closed
       },
       { 
         id: 2, 
@@ -1282,15 +1282,15 @@ class SettingsApiService {
         workflowOrder: 2, 
         isActive: true, 
         color: '#f59e0b',
-        allowedTransitions: [3, 4, 6] // Can go to Waiting, Resolved, or Closed
+        allowedTransitions: [3, 4, 5] // Can go to On Hold, Resolved, or Closed
       },
       { 
         id: 3, 
-        name: 'Waiting for others to Respond', 
+        name: 'On Hold', 
         workflowOrder: 3, 
         isActive: true, 
         color: '#8b5cf6',
-        allowedTransitions: [2, 4, 6] // Can go to In Progress, Resolved, or Closed
+        allowedTransitions: [2, 4, 5] // Can go to In Progress, Resolved, or Closed
       },
       { 
         id: 4, 
@@ -1298,7 +1298,7 @@ class SettingsApiService {
         workflowOrder: 4, 
         isActive: true, 
         color: '#10b981',
-        allowedTransitions: [5, 7] // Can go to Closed or Reopen
+        allowedTransitions: [5, 6] // Can go to Closed or Reopen
       },
       { 
         id: 5, 
@@ -1306,20 +1306,12 @@ class SettingsApiService {
         workflowOrder: 5, 
         isActive: true, 
         color: '#6b7280',
-        allowedTransitions: [7] // Can only Reopen
+        allowedTransitions: [6] // Can only Reopen
       },
       { 
         id: 6, 
-        name: 'Cancelled', 
-        workflowOrder: 6, 
-        isActive: true, 
-        color: '#ef4444',
-        allowedTransitions: [7] // Can only Reopen
-      },
-      { 
-        id: 7, 
         name: 'Reopen', 
-        workflowOrder: 7, 
+        workflowOrder: 6, 
         isActive: true, 
         color: '#f97316',
         allowedTransitions: [2] // Goes back to In Progress

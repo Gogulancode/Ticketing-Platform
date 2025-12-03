@@ -153,7 +153,8 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
   };
 
   const getStatusName = (status: number) => {
-    const statuses = { 1: 'Open', 2: 'In Progress', 3: 'Resolved', 4: 'Closed' };
+    // Matches database TicketStatuses table IDs
+    const statuses = { 1: 'Open', 2: 'In Progress', 3: 'On Hold', 4: 'Resolved', 5: 'Closed' };
     return statuses[status as keyof typeof statuses] || 'Unknown';
   };
 

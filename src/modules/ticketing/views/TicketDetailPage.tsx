@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { apiFetch } from '../../../utils/apiFetch';
+import { getCurrentUser } from '../../../shared/services/api/auth';
 import {
   ArrowLeft,
   AlertCircle,
   Send,
   X,
-  Reply,
   Forward,
   StickyNote,
   XCircle,
@@ -58,6 +58,19 @@ const getErrorMessage = (error: unknown): string => {
 const TicketDetailPage: React.FC = () => {
   // React hooks
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Parse URL query parameters for actions like reopen
+  const searchParams = new URLSearchParams(location.search);
+  const actionParam = searchParams.get('action');
+  
+  // Determine where to navigate back - default to /tickets/my (ticket list)
+  // If coming from dashboard (/tickets), use that instead
+  const backUrl = location.state?.from || '/tickets/my';
+  
+  // User role state - determines what features are visible
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAgent, setIsAgent] = useState(false);
   
   // Sidebar state - open by default
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -70,13 +83,63 @@ const TicketDetailPage: React.FC = () => {
   // Collaborators state
   const [showCollaboratorsModal, setShowCollaboratorsModal] = useState(false);
   const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>([]);
+
+  // Load user role on mount
+  useEffect(() => {
+    const loadUserRole = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        const adminRoles = ['Admin', 'SuperAdmin', 'Administrator'];
+        const singleRole = (currentUser.role || '').toString().toLowerCase();
+        const roles = Array.isArray(currentUser.roles)
+          ? currentUser.roles
+              .map((role: unknown) => {
+                if (!role) return '';
+                if (typeof role === 'string') return role;
+                if (typeof role === 'object' && role !== null && 'name' in role && typeof (role as { name: unknown }).name === 'string') {
+                  return (role as { name: string }).name;
+                }
+                return String(role);
+              })
+              .filter(Boolean)
+          : [];
+        const normalizedRoles = roles.map((role: string) => role.toLowerCase());
+        
+        const userIsAdmin = adminRoles.some(role => 
+          singleRole.includes(role.toLowerCase()) || normalizedRoles.some((r: string) => r.includes(role.toLowerCase()))
+        );
+        setIsAdmin(userIsAdmin);
+
+        const userIsAgent = Boolean(
+          currentUser.isAgent ||
+          singleRole.includes('agent') ||
+          normalizedRoles.some((role: string) => role.includes('agent'))
+        );
+        setIsAgent(userIsAgent);
+      } catch {
+        console.warn('⚠️ Could not fetch user info for role check');
+        // Default to non-admin/non-agent for safety
+        setIsAdmin(false);
+        setIsAgent(false);
+      }
+    };
+    loadUserRole();
+  }, []);
+
+  // Check if user has admin/agent privileges
+  const hasAdminPrivileges = isAdmin || isAgent;
+
   const handleAddNote = async () => {
     if (!noteContent.trim()) return;
     toast.loading('Adding note...');
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${id}/comments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ Content: noteContent, IsInternal: true })  // Changed to PascalCase
       });
       if (!response.ok) throw new Error('Failed to add note');
@@ -92,7 +155,6 @@ const TicketDetailPage: React.FC = () => {
   };
   // Reopen ticket handler
   const handleReopenTicket = async () => {
-    console.log('🔄 Reopening ticket:', id);
     toast.loading('Reopening ticket...');
     try {
       const token = localStorage.getItem('token');
@@ -103,7 +165,6 @@ const TicketDetailPage: React.FC = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      console.log('🔄 Reopen response:', response.status, response.statusText);
       if (!response.ok) {
         const errorText = await response.text();
         console.error('🔄 Reopen failed:', errorText);
@@ -120,7 +181,6 @@ const TicketDetailPage: React.FC = () => {
   };
   // Close ticket handler
   const handleCloseTicket = async () => {
-    console.log('❌ Closing ticket:', id);
     toast.loading('Closing ticket...');
     try {
       const token = localStorage.getItem('token');
@@ -131,7 +191,6 @@ const TicketDetailPage: React.FC = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      console.log('❌ Close response:', response.status, response.statusText);
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Close failed:', errorText);
@@ -161,7 +220,6 @@ const TicketDetailPage: React.FC = () => {
     
     toast.loading('Deleting ticket...');
     try {
-      console.log('🗑️ Attempting to delete ticket:', id);
       const token = localStorage.getItem('token');
       const response = await apiFetch(`${API_CONFIG.BASE_URL}/tickets-v2/${id}`, {
         method: 'DELETE',
@@ -172,12 +230,6 @@ const TicketDetailPage: React.FC = () => {
         body: JSON.stringify({ Reason: reason.trim() })
       });
       
-      console.log('🗑️ Delete response:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-      
       if (!response.ok) {
         const errorText = await response.text();
         console.error('🗑️ Delete failed with response:', errorText);
@@ -185,7 +237,6 @@ const TicketDetailPage: React.FC = () => {
       }
       
       toast.success('Ticket deleted');
-      console.log('🗑️ Ticket deleted successfully, redirecting...');
       navigate('/tickets');
     } catch (err: unknown) {
       console.error('🗑️ Delete error:', err);
@@ -278,8 +329,6 @@ const TicketDetailPage: React.FC = () => {
 
   // Reply/Forward modal send handler
   const handleSendEmail = async () => {
-    console.log('📧 Sending email:', emailType, 'for ticket:', id);
-    
     if (!emailContent.trim()) {
       toast.error('Please enter email content');
       return;
@@ -301,9 +350,9 @@ const TicketDetailPage: React.FC = () => {
         const formData = new FormData();
         
         if (emailType === 'reply') {
-          formData.append('ReplyMessage', emailContent);
+          formData.append('replyMessage', emailContent);
           emailAttachments.forEach((file) => {
-            formData.append('Attachments', file);
+            formData.append('attachments', file);
           });
           
           response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${id}/reply-email`, {
@@ -314,10 +363,10 @@ const TicketDetailPage: React.FC = () => {
             body: formData
           });
         } else {
-          formData.append('RecipientEmail', emailTo);
-          formData.append('ForwardMessage', emailContent);
+          formData.append('recipientEmail', emailTo);
+          formData.append('forwardMessage', emailContent);
           emailAttachments.forEach((file) => {
-            formData.append('Attachments', file);
+            formData.append('attachments', file);
           });
           
           response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${id}/forward-email`, {
@@ -331,7 +380,6 @@ const TicketDetailPage: React.FC = () => {
       } else {
         // No attachments - use JSON
         if (emailType === 'reply') {
-          console.log('📧 Sending reply email...');
           response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${id}/reply-email`, {
             method: 'POST',
             headers: { 
@@ -339,11 +387,10 @@ const TicketDetailPage: React.FC = () => {
               'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-              ReplyMessage: emailContent
+              replyMessage: emailContent
             })
           });
         } else if (emailType === 'forward') {
-          console.log('📧 Sending forward email to:', emailTo);
           response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${id}/forward-email`, {
             method: 'POST',
             headers: { 
@@ -351,16 +398,14 @@ const TicketDetailPage: React.FC = () => {
               'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-              RecipientEmail: emailTo,
-              ForwardMessage: emailContent
+              recipientEmail: emailTo,
+              forwardMessage: emailContent
             })
           });
         } else {
           throw new Error('Invalid email type');
         }
       }
-      
-      console.log('📧 Email response:', response.status, response.statusText);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -391,19 +436,16 @@ const TicketDetailPage: React.FC = () => {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailContent, setEmailContent] = useState('');
   const [emailTo, setEmailTo] = useState('');
-  const [emailType, setEmailType] = useState<'reply' | 'forward'>('reply');
+  const [emailType, setEmailType] = useState<'reply' | 'forward'>('forward'); // Default to forward (Reply is disabled)
   const [emailAttachments, setEmailAttachments] = useState<File[]>([]);
 
   // Fetch ticket data with fallback
   const { data: ticket, isLoading: ticketLoading, error: ticketError, refetch: refetchTicket } = useQuery({
     queryKey: ['ticket', id],
     queryFn: async () => {
-      console.log('🔍 Fetching ticket with ID:', id);
       try {
         // Try to get specific ticket first - use V2 API for custom fields support
         const result = await ticketsV2Api.getTicket(id!);
-        console.log('✅ Ticket fetched successfully:', result);
-        console.log('🎯 Custom Field Values in Response:', result.customFieldValues);
         return result;
       } catch (error) {
         console.error('❌ Error fetching specific ticket, trying fallback:', error);
@@ -414,7 +456,6 @@ const TicketDetailPage: React.FC = () => {
           const foundTicket = allTickets.find(t => t.id === id);
           
           if (foundTicket) {
-            console.log('✅ Ticket found via fallback:', foundTicket);
             return foundTicket;
           }
           
@@ -430,6 +471,19 @@ const TicketDetailPage: React.FC = () => {
     retry: 1,
     retryDelay: 1000
   });
+
+  // Handle URL action parameter (e.g., ?action=reopen from email link)
+  useEffect(() => {
+    if (actionParam === 'reopen' && ticket && !ticketLoading) {
+      // Check if ticket is in a resolved state (status 4) before auto-reopening
+      const ticketStatus = ticket.status ?? ticket.statusId;
+      if (ticketStatus === 4) {
+        handleReopenTicket();
+        // Clear the URL parameter after triggering
+        navigate(location.pathname, { replace: true, state: location.state });
+      }
+    }
+  }, [actionParam, ticket, ticketLoading]);
 
   const { data: agentsData } = useQuery({
     queryKey: ['agents'],
@@ -457,7 +511,7 @@ const TicketDetailPage: React.FC = () => {
 
   // Fetch agent groups to determine which agents can be assigned to this ticket
   const { data: agentGroups } = useQuery({
-    queryKey: ['agent-groups'],
+    queryKey: ['advanced-ticket-groups'],
     queryFn: async () => {
       try {
         return await apiSettingsApi.getAdvancedTicketGroups();
@@ -494,30 +548,35 @@ const TicketDetailPage: React.FC = () => {
 
   // Filter agents based on ticket category and subcategory using agent groups
   const getFilteredAgents = () => {
-    if (!ticket || !agentGroups || agentGroups.length === 0) {
-      // If no ticket, no agent groups, or groups not loaded yet, show all agents
-      console.log('🔍 No agent groups loaded, showing all agents:', {
-        hasTicket: !!ticket,
-        agentGroupsCount: agentGroups?.length || 0,
-        totalAgents: agents.length
-      });
-      return agents;
+    // If no ticket loaded yet, return empty
+    if (!ticket) {
+      return [];
+    }
+    
+    // If agent groups haven't loaded yet, return empty (loading state)
+    if (!agentGroups) {
+      return [];
+    }
+
+    // Extract ticket category - handle multiple possible field structures
+    const ticketCategoryId = ticket.categoryId || (ticket.category as any)?.id || ticket.category;
+    const categoryIdNum = typeof ticketCategoryId === 'number' ? ticketCategoryId : parseInt(ticketCategoryId as string);
+    
+    // If no category on ticket, return empty
+    if (!categoryIdNum || isNaN(categoryIdNum)) {
+      return [];
     }
 
     // Find matching agent groups based on ticket's category and subcategory
     const matchingGroups = agentGroups.filter(group => {
-      // Extract ticket category - handle multiple possible field structures
-      const ticketCategoryId = ticket.categoryId || ticket.category?.id || ticket.category;
-      const categoryIdNum = typeof ticketCategoryId === 'number' ? ticketCategoryId : parseInt(ticketCategoryId);
-      
       // Check if group matches ticket's category
       const categoryMatch = group.categoryId === ticketCategoryId || 
                            group.categoryId === categoryIdNum;
       
       // Extract ticket subcategory - handle multiple possible field structures
-      const ticketSubcategoryId = ticket.subcategoryId || ticket.subCategory?.id || ticket.subCategory;
+      const ticketSubcategoryId = ticket.subcategoryId || (ticket.subCategory as any)?.id || ticket.subCategory;
       const subcategoryIdNum = ticketSubcategoryId ? 
-        (typeof ticketSubcategoryId === 'number' ? ticketSubcategoryId : parseInt(ticketSubcategoryId)) : 
+        (typeof ticketSubcategoryId === 'number' ? ticketSubcategoryId : parseInt(ticketSubcategoryId as string)) : 
         null;
       
       // More flexible subcategory matching:
@@ -531,51 +590,18 @@ const TicketDetailPage: React.FC = () => {
       
       const isMatch = categoryMatch && subcategoryMatch && group.isActive;
       
-      console.log('🔍 Group matching check:', {
-        groupId: group.id,
-        groupName: group.name,
-        groupCategory: group.categoryId,
-        groupSubcategory: group.subcategoryId,
-        ticketCategory: ticket.categoryId || ticket.category,
-        ticketSubcategory: ticketSubcategoryId,
-        categoryMatch,
-        subcategoryMatch,
-        isActive: group.isActive,
-        finalMatch: isMatch
-      });
-      
       return isMatch;
     });
 
     if (matchingGroups.length === 0) {
-      // If no matching groups found, show all agents
-      console.log('🔍 No matching agent groups found for ticket', {
-        ticketCategory: ticket.categoryId || ticket.category,
-        ticketSubcategory: ticket.subcategoryId || ticket.subCategory,
-        availableGroups: agentGroups.map(g => ({
-          id: g.id,
-          name: g.name,
-          categoryId: g.categoryId,
-          subcategoryId: g.subcategoryId
-        }))
-      });
-      return agents;
+      // No matching groups for this category - return empty list
+      return [];
     }
 
     // Get all agent IDs from matching groups
     const allowedAgentIds = new Set<number>();
     matchingGroups.forEach(group => {
       group.assignedAgentIds?.forEach(agentId => allowedAgentIds.add(agentId));
-    });
-
-    console.log('🔍 Agent group assignment details:', {
-      matchingGroups: matchingGroups.map(g => ({
-        id: g.id,
-        name: g.name,
-        assignedAgentIds: g.assignedAgentIds
-      })),
-      allowedAgentIds: Array.from(allowedAgentIds),
-      availableAgentIds: agents.map(a => ({ id: a.id, name: a.name }))
     });
 
     // Filter agents to only show those in matching groups
@@ -588,24 +614,10 @@ const TicketDetailPage: React.FC = () => {
              (agentUserIdNumber !== null && allowedAgentIds.has(agentUserIdNumber));
     });
 
-    // If no agents match the group restrictions, fall back to showing all agents
-    // This handles cases where agent group assignments are outdated
+    // If matching groups exist but have no agents assigned, return empty
     if (filteredAgents.length === 0 && matchingGroups.length > 0) {
-      console.warn('⚠️ No agents found matching group restrictions, showing all agents. This may indicate outdated group assignments.', {
-        groupAgentIds: Array.from(allowedAgentIds),
-        actualAgentIds: agents.map(a => parseInt(a.id))
-      });
-      return agents;
+      return [];
     }
-
-    console.log('🎯 Filtered agents based on ticket category/subcategory', {
-      ticketCategory: ticket.categoryId || ticket.category,
-      ticketSubcategory: ticket.subcategoryId || ticket.subCategory,
-      matchingGroups: matchingGroups.map(g => g.name),
-      totalAgents: agents.length,
-      filteredAgents: filteredAgents.length,
-      agentNames: filteredAgents.map(a => a.name)
-    });
 
     return filteredAgents;
   };
@@ -656,13 +668,11 @@ const TicketDetailPage: React.FC = () => {
           <button
             onClick={async () => {
               try {
-                console.log('🧪 Direct API test for ticket:', id);
                 const result = await fetch(`${API_CONFIG.BASE_URL}/tickets/${id}`);
                 const data = await result.json();
-                console.log('🧪 Direct API result:', data);
                 alert(`Direct API test: ${result.ok ? 'Success' : 'Failed'} - Check console for details`);
               } catch (error) {
-                console.error('🧪 Direct API error:', error);
+                console.error('Direct API error:', error);
                 alert(`Direct API error: ${getErrorMessage(error)}`);
               }
             }}
@@ -673,12 +683,10 @@ const TicketDetailPage: React.FC = () => {
           <button
             onClick={async () => {
               try {
-                console.log('🧪 TicketsApi test for ticket:', id);
                 const result = await ticketsApi.getTicket(id!);
-                console.log('🧪 TicketsApi result:', result);
                 alert('TicketsApi test: Success - Check console for details');
               } catch (error) {
-                console.error('🧪 TicketsApi error:', error);
+                console.error('TicketsApi error:', error);
                 alert(`TicketsApi error: ${getErrorMessage(error)}`);
               }
             }}
@@ -688,7 +696,7 @@ const TicketDetailPage: React.FC = () => {
           </button>
         </div>
         <Link
-          to="/tickets"
+          to={backUrl}
           className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -704,7 +712,7 @@ const TicketDetailPage: React.FC = () => {
       <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center space-x-4">
-            <Link to="/tickets" className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors">
+            <Link to={backUrl} className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div className="flex items-center space-x-3">
@@ -718,55 +726,75 @@ const TicketDetailPage: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 justify-end">
-            <button className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-300 transition-colors whitespace-nowrap" onClick={() => { setEmailType('reply'); setShowEmailModal(true); }}>
-              <Reply className="h-4 w-4 mr-2" />
-              Reply
-            </button>
-            {finalTicket && (finalTicket.status === 3 || finalTicket.status === 4) && (
+            {/* Reply button removed - users should reply via Comments section */}
+            {/* Reopen - visible to all users when ticket is resolved (not closed - closed is final) */}
+            {finalTicket && finalTicket.status === 4 && (
               <button onClick={handleReopenTicket} className="flex items-center px-3 py-2 text-sm text-green-700 hover:bg-green-100 rounded border border-green-200 hover:border-green-300 transition-colors whitespace-nowrap">
                 <XCircle className="h-4 w-4 mr-2" />
                 Reopen
               </button>
             )}
-            <button className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-300 transition-colors whitespace-nowrap" onClick={() => setShowNoteModal(true)}>
-              <StickyNote className="h-4 w-4 mr-2" />
-              Add note
-            </button>
-            <button className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-300 transition-colors whitespace-nowrap" onClick={() => { setEmailType('forward'); setShowEmailModal(true); }}>
-              <Forward className="h-4 w-4 mr-2" />
-              Forward
-            </button>
-            <button onClick={handleCloseTicket} className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-300 transition-colors whitespace-nowrap">
-              <XCircle className="h-4 w-4 mr-2" />
-              Close
-            </button>
-            <button 
-              onClick={handleMergeTickets} 
-              className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-300 transition-colors whitespace-nowrap"
-            >
-              <GitMerge className="h-4 w-4 mr-2" />
-              Merge
-            </button>
-            <button onClick={handleDeleteTicket} className="flex items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-300 transition-colors whitespace-nowrap">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </button>
+            {/* Add Note - Admin/Agent only */}
+            {hasAdminPrivileges && (
+              <button className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-300 transition-colors whitespace-nowrap" onClick={() => setShowNoteModal(true)}>
+                <StickyNote className="h-4 w-4 mr-2" />
+                Add note
+              </button>
+            )}
+            {/* Forward - Admin/Agent only */}
+            {hasAdminPrivileges && (
+              <button className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-300 transition-colors whitespace-nowrap" onClick={() => { setEmailType('forward'); setShowEmailModal(true); }}>
+                <Forward className="h-4 w-4 mr-2" />
+                Forward
+              </button>
+            )}
+            {/* Close - Admin/Agent only */}
+            {hasAdminPrivileges && (
+              <button onClick={handleCloseTicket} className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-300 transition-colors whitespace-nowrap">
+                <XCircle className="h-4 w-4 mr-2" />
+                Close
+              </button>
+            )}
+            {/* Merge - Admin/Agent only */}
+            {hasAdminPrivileges && (
+              <button 
+                onClick={handleMergeTickets} 
+                className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-300 transition-colors whitespace-nowrap"
+              >
+                <GitMerge className="h-4 w-4 mr-2" />
+                Merge
+              </button>
+            )}
+            {/* Delete - Admin/Agent only */}
+            {hasAdminPrivileges && (
+              <button onClick={handleDeleteTicket} className="flex items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-300 transition-colors whitespace-nowrap">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </button>
+            )}
           </div>
         </div>
         {/* Attachments Section */}
         {attachments.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {attachments.map((att, idx) => (
-              <a 
-                key={idx} 
-                href={`${API_CONFIG.BASE_URL}/tickets-v2/attachments/${att.id}/download`} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="inline-flex items-center px-2 py-1 bg-gray-100 text-xs rounded hover:bg-gray-200"
-              >
-                📎 {att.fileName || att.name || `Attachment ${idx + 1}`}
-              </a>
-            ))}
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Paperclip className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">Attachments ({attachments.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {attachments.map((att, idx) => (
+                <a 
+                  key={idx} 
+                  href={`${API_CONFIG.BASE_URL}/tickets-v2/attachments/${att.id}/download`} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="inline-flex items-center px-3 py-1.5 bg-white border border-blue-300 text-blue-700 text-sm rounded-md hover:bg-blue-100 hover:border-blue-400 transition-colors shadow-sm"
+                >
+                  <Paperclip className="h-3.5 w-3.5 mr-1.5" />
+                  {att.fileName || att.name || `Attachment ${idx + 1}`}
+                </a>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -801,8 +829,6 @@ const TicketDetailPage: React.FC = () => {
               </span>
               <span className="text-gray-400 mx-2">•</span>
               <span>{(() => {
-                console.log('🔍 CreatedAt value:', finalTicket.createdAt, 'Type:', typeof finalTicket.createdAt);
-                console.log('🔍 Full ticket object:', finalTicket);
                 if (!finalTicket.createdAt) {
                   return 'Date not available';
                 }
@@ -843,11 +869,133 @@ const TicketDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Add Note Section - Only for Agents */}
-            <AddNote 
-              ticketId={finalTicket.id} 
-              isAgent={true} // TODO: Replace with actual user role check
-            />
+            {/* Merge Details Section */}
+            {(finalTicket.hasMergedTickets || finalTicket.wasMergedInto) && (
+              <div className="bg-indigo-50 rounded-lg border border-indigo-200 p-4 mb-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <GitMerge className="h-5 w-5 text-indigo-600" />
+                  <h3 className="text-sm font-semibold text-indigo-800">Merge Details</h3>
+                </div>
+                
+                {/* This is a Primary Ticket (has merged tickets) */}
+                {finalTicket.hasMergedTickets && finalTicket.mergedTickets && finalTicket.mergedTickets.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="bg-white rounded-md border border-indigo-100 p-3">
+                      <div className="text-sm font-medium text-indigo-800 mb-2">
+                        This is a Primary Ticket
+                      </div>
+                      <p className="text-xs text-gray-600 mb-3">
+                        The following tickets have been merged into this ticket:
+                      </p>
+                      
+                      {finalTicket.mergedTickets.map((merge: { mergeId: string; mergedTicketIds: string[]; mergeReason: string; mergedAt: string; mergedByName?: string }, index: number) => (
+                        <div key={merge.mergeId || index} className="bg-gray-50 rounded p-3 mb-2 last:mb-0">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                            <div>
+                              <span className="font-medium text-gray-700">Merged Tickets:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {/* Use mergedTicketDetails for clickable links with public IDs */}
+                                {finalTicket.mergedTicketDetails?.map((detail: { id: string; publicId: number; title: string }) => (
+                                  <Link
+                                    key={detail.id}
+                                    to={`/tickets/${detail.id}`}
+                                    className="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors font-medium"
+                                  >
+                                    #{detail.publicId} - {detail.title?.substring(0, 30)}{detail.title?.length > 30 ? '...' : ''}
+                                  </Link>
+                                )) || merge.mergedTicketIds?.map((ticketId: string) => (
+                                  <Link
+                                    key={ticketId}
+                                    to={`/tickets/${ticketId}`}
+                                    className="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors"
+                                  >
+                                    View Ticket
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Merged By:</span>
+                              <div className="mt-1 text-gray-600">
+                                {merge.mergedByName || 'System'}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Merged On:</span>
+                              <div className="mt-1 text-gray-600">
+                                {merge.mergedAt ? formatDate(merge.mergedAt) : 'Unknown date'}
+                              </div>
+                            </div>
+                          </div>
+                          {merge.mergeReason && (
+                            <div className="mt-2">
+                              <span className="font-medium text-gray-700 text-xs">Reason:</span>
+                              <p className="text-xs text-gray-600 mt-1">{merge.mergeReason}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* This Ticket Was Merged Into Another */}
+                {finalTicket.wasMergedInto && (
+                  <div className="bg-orange-50 rounded-md border border-orange-200 p-3">
+                    <div className="text-sm font-medium text-orange-800 mb-2">
+                      ⚠️ This Ticket Was Merged
+                    </div>
+                    <p className="text-xs text-gray-600 mb-3">
+                      This ticket has been merged into another ticket. All new updates should be made on the primary ticket.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <span className="font-medium text-gray-700">Primary Ticket:</span>
+                        <div className="mt-1">
+                          <Link
+                            to={`/tickets/${finalTicket.wasMergedInto.primaryTicketId}`}
+                            className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors font-medium"
+                          >
+                            #{finalTicket.wasMergedInto.primaryTicketPublicId} - View Primary Ticket
+                          </Link>
+                          {finalTicket.wasMergedInto.primaryTicketTitle && (
+                            <p className="text-gray-600 mt-1">{finalTicket.wasMergedInto.primaryTicketTitle}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Merged By:</span>
+                        <div className="mt-1 text-gray-600">
+                          {finalTicket.wasMergedInto.mergedByName || 'System'}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Merged On:</span>
+                        <div className="mt-1 text-gray-600">
+                          {finalTicket.wasMergedInto.mergedAt ? formatDate(finalTicket.wasMergedInto.mergedAt) : 'Unknown date'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {finalTicket.wasMergedInto.mergeReason && (
+                      <div className="mt-2">
+                        <span className="font-medium text-gray-700 text-xs">Reason:</span>
+                        <p className="text-xs text-gray-600 mt-1">{finalTicket.wasMergedInto.mergeReason}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Add Note Section - Only for Agents/Admins */}
+            {hasAdminPrivileges && (
+              <AddNote 
+                ticketId={finalTicket.id} 
+                isAgent={hasAdminPrivileges}
+              />
+            )}
 
             {/* Comments Section */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -855,7 +1003,7 @@ const TicketDetailPage: React.FC = () => {
                 ticketId={finalTicket.id} 
                 ticketTitle={finalTicket.title}
                 ticketNumber={ticketNumberForEmails || ticketDisplayNumber}
-                isAgent={true} // TODO: Replace with actual user role check
+                isAgent={hasAdminPrivileges}
               />
             </div>
 
@@ -866,89 +1014,51 @@ const TicketDetailPage: React.FC = () => {
 
         {/* Right Sidebar - Properties */}
         {isSidebarOpen && (
-  <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
-      {showNoteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">Add Note</h3>
-              <button
-                onClick={() => setShowNoteModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-4">
-              <textarea
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-                rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Type your note..."
-              />
-            </div>
-            <div className="flex items-center justify-end space-x-3 p-4 border-t bg-gray-50">
-              <button
-                onClick={() => setShowNoteModal(false)}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddNote}
-                disabled={!noteContent.trim()}
-                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
-              >
-                <StickyNote className="h-4 w-4 mr-2" />
-                Add Note
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-          
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
             <TicketProperties
               ticket={finalTicket}
               agents={filteredAgents}
+              isAgent={hasAdminPrivileges}
             />
             
-            {/* Collaborators Section */}
-            <div className="bg-white rounded-lg border border-gray-200 p-3">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700">Collaborators</h3>
-                <button
-                  onClick={() => setShowCollaboratorsModal(true)}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  + Add
-                </button>
-              </div>
-              
-              {collaborators.length === 0 ? (
-                <p className="text-xs text-gray-500 italic">No collaborators yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {collaborators.map((collab) => (
-                    <div key={collab.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-900 truncate">{collab.userName}</p>
-                        <p className="text-xs text-gray-500 truncate">{collab.userEmail}</p>
-                        <p className="text-xs text-gray-400">{collab.role}</p>
-                      </div>
-                      <button
-                        onClick={() => handleRemoveCollaborator(collab.userId)}
-                        className="ml-2 text-red-600 hover:text-red-700"
-                        title="Remove collaborator"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
+            {/* Collaborators Section - Admin/Agent only */}
+            {hasAdminPrivileges && (
+              <div className="bg-white rounded-lg border border-gray-200 p-3">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-700">Collaborators</h3>
+                  <button
+                    onClick={() => setShowCollaboratorsModal(true)}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    + Add
+                  </button>
                 </div>
-              )}
-            </div>
+                
+                {collaborators.length === 0 ? (
+                  <p className="text-xs text-gray-500 italic">No collaborators yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {collaborators.map((collab) => (
+                      <div key={collab.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-900 truncate">{collab.userName}</p>
+                          <p className="text-xs text-gray-500 truncate">{collab.userEmail}</p>
+                          <p className="text-xs text-gray-400">{collab.role}</p>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveCollaborator(collab.userId)}
+                          className="ml-2 text-red-600 hover:text-red-700"
+                          title="Remove collaborator"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
         )}
@@ -972,12 +1082,12 @@ const TicketDetailPage: React.FC = () => {
         />
       )}
 
-      {/* Email Modal */}
+      {/* Email Modal - Forward Only */}
       {showEmailModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900">Send Email</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Forward Email</h3>
               <button
                 onClick={() => setShowEmailModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -986,47 +1096,20 @@ const TicketDetailPage: React.FC = () => {
               </button>
             </div>
             <div className="p-4 space-y-4 overflow-y-auto flex-1">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setEmailType('reply')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                    emailType === 'reply'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <Reply className="h-4 w-4 inline mr-1" />
-                  Reply
-                </button>
-                <button
-                  onClick={() => setEmailType('forward')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                    emailType === 'forward'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <Forward className="h-4 w-4 inline mr-1" />
-                  Forward
-                </button>
+              {/* To Field - Required for Forward */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  To
+                </label>
+                <input
+                  type="email"
+                  value={emailTo || ''}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Enter recipient email address"
+                  required
+                />
               </div>
-              
-              {/* To Field - Show for Forward only */}
-              {emailType === 'forward' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    To
-                  </label>
-                  <input
-                    type="email"
-                    value={emailTo || ''}
-                    onChange={(e) => setEmailTo(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="Enter recipient email address"
-                    required
-                  />
-                </div>
-              )}
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1034,10 +1117,7 @@ const TicketDetailPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={emailType === 'reply' 
-                    ? `Re: [Ticket #${ticketNumberForEmails}] ${finalTicket.title}`
-                    : `Fwd: [Ticket #${ticketNumberForEmails}] ${finalTicket.title}`
-                  }
+                  value={`Fwd: [Ticket #${ticketNumberForEmails}] ${finalTicket.title}`}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600"
                   disabled
                   readOnly
@@ -1131,11 +1211,11 @@ const TicketDetailPage: React.FC = () => {
               </button>
               <button
                 onClick={handleSendEmail}
-                disabled={!emailContent.trim() || (emailType === 'forward' && !emailTo.trim())}
+                disabled={!emailContent.trim() || !emailTo.trim()}
                 className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="h-4 w-4 mr-2" />
-                Send Email
+                Forward Email
                 {emailAttachments.length > 0 && (
                   <span className="ml-2 px-2 py-0.5 bg-indigo-500 text-xs rounded-full">
                     {emailAttachments.length} file{emailAttachments.length !== 1 ? 's' : ''}
@@ -1239,6 +1319,48 @@ const TicketDetailPage: React.FC = () => {
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Add {selectedCollaborators.length > 0 && `(${selectedCollaborators.length})`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Note Modal */}
+      {showNoteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">Add Note</h3>
+              <button
+                onClick={() => setShowNoteModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4">
+              <textarea
+                value={noteContent}
+                onChange={(e) => setNoteContent(e.target.value)}
+                rows={6}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Type your note..."
+              />
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 border-t bg-gray-50">
+              <button
+                onClick={() => setShowNoteModal(false)}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddNote}
+                disabled={!noteContent.trim()}
+                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+              >
+                <StickyNote className="h-4 w-4 mr-2" />
+                Add Note
               </button>
             </div>
           </div>

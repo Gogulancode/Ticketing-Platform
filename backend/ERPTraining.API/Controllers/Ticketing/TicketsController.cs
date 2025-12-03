@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ERPTraining.Core.Entities.Ticketing;
 using ERPTraining.Core.Entities; // Add for User
 using ERPTraining.Core.Interfaces.Ticketing;
@@ -15,6 +16,7 @@ namespace ERPTraining.API.Controllers.Ticketing;
 [ApiController]
 [Route("api/tickets")]
 [Authorize] // Authentication required for all endpoints
+[EnableRateLimiting("api")]  // Enterprise: API rate limiting
 public class TicketsController : ControllerBase
 {
     private readonly ITicketService _ticketService;
@@ -23,11 +25,13 @@ public class TicketsController : ControllerBase
     private readonly string _connectionString;
     private readonly ApplicationDbContext _context;
     private readonly IAutoAssignmentService _autoAssignmentService;
+    private readonly IEmailService _emailService;
 
     public TicketsController(
         ITicketService ticketService, 
         IA_TicketSettingsService settingsService, 
         IAutoAssignmentService autoAssignmentService,
+        IEmailService emailService,
         ILogger<TicketsController> logger, 
         IConfiguration configuration,
         ApplicationDbContext context)
@@ -38,6 +42,7 @@ public class TicketsController : ControllerBase
         _connectionString = configuration.GetConnectionString("DefaultConnection") ?? "";
         _context = context;
         _autoAssignmentService = autoAssignmentService;
+        _emailService = emailService;
     }
 
     // Helper method to ensure DateTime is properly stored as UTC
@@ -257,7 +262,7 @@ public class TicketsController : ControllerBase
     [HttpGet("my")]
     public async Task<ActionResult<object>> GetMyTickets(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50,
+        [FromQuery] int pageSize = 100,
         [FromQuery] int? status = null,
         [FromQuery] int? priority = null,
         [FromQuery] int? category = null,
@@ -269,8 +274,8 @@ public class TicketsController : ControllerBase
             
             // Validate pagination parameters
             if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 50;
-            if (pageSize > 100) pageSize = 100; // Max 100 items per page
+            if (pageSize < 1) pageSize = 100;
+            if (pageSize > 500) pageSize = 500; // Increased max to 500 items per page
             
             // Check if user is Admin - if so, return ALL tickets
             var isAdmin = User.IsInRole("Admin");
@@ -303,6 +308,30 @@ public class TicketsController : ControllerBase
             var totalCount = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
             
+            // Get merge information using raw SQL (MergedTickets is not mapped to EF entity)
+            var mergedTicketLookup = new Dictionary<Guid, string>();
+            var allMergedIds = new HashSet<Guid>();
+            
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                using var cmd = new SqlCommand("SELECT PrimaryTicketId, MergedTicketIds FROM MergedTickets", connection);
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var primaryId = (Guid)reader["PrimaryTicketId"];
+                    var mergedIds = reader["MergedTicketIds"]?.ToString() ?? "";
+                    mergedTicketLookup[primaryId] = mergedIds;
+                    
+                    // Add all merged IDs to lookup set
+                    foreach (var idStr in mergedIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (Guid.TryParse(idStr.Trim(), out var mergedGuid))
+                            allMergedIds.Add(mergedGuid);
+                    }
+                }
+            }
+            
             // Project directly to response DTO with pagination
             var tickets = await query
                 .OrderByDescending(t => t.CreatedAt)
@@ -325,6 +354,9 @@ public class TicketsController : ControllerBase
                     firstResponseAt = t.FirstResponseAt,
                     resolvedAt = t.ResolvedAt,
                     isOverdue = false,
+                    // Include categoryId and subcategoryId for settings lookup
+                    categoryId = t.CategoryId,
+                    subcategoryId = t.SubcategoryId,
                     // Project user data directly from navigation property
                     createdByUser = t.CreatedByUser != null ? new {
                         id = t.CreatedByUser.Id,
@@ -337,9 +369,40 @@ public class TicketsController : ControllerBase
                 })
                 .ToListAsync();
             
+            // Add merge information to response
+            var ticketsWithMergeInfo = tickets.Select(t => new
+            {
+                t.id,
+                t.publicId,
+                t.title,
+                t.description,
+                t.category,
+                t.priority,
+                t.status,
+                t.source,
+                t.createdByUserId,
+                t.assignedToUserId,
+                t.createdAt,
+                t.updatedAt,
+                t.firstResponseAt,
+                t.resolvedAt,
+                t.isOverdue,
+                t.categoryId,
+                t.subcategoryId,
+                t.createdByUser,
+                t.commentCount,
+                t.attachmentCount,
+                // Merge info
+                hasMergedTickets = mergedTicketLookup.ContainsKey(t.id),
+                wasMergedIntoAnother = allMergedIds.Contains(t.id),
+                mergedTicketsCount = mergedTicketLookup.TryGetValue(t.id, out var mergedIds) 
+                    ? (mergedIds?.Split(',', StringSplitOptions.RemoveEmptyEntries).Length ?? 0) 
+                    : 0
+            }).ToList();
+            
             return Ok(new
             {
-                data = tickets,
+                data = ticketsWithMergeInfo,
                 pagination = new
                 {
                     page,
@@ -626,6 +689,26 @@ public class TicketsController : ControllerBase
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Auto-assignment failed for ticket {TicketId}", createdTicket.Id);
+            }
+
+            // Send email notification to the customer who created the ticket
+            try
+            {
+                var creator = await _context.Users.FirstOrDefaultAsync(u => u.Id == createdTicket.CreatedByUserId);
+                if (creator != null && !string.IsNullOrEmpty(creator.Email))
+                {
+                    _logger.LogInformation("📧 Sending ticket creation notification to {Email} for ticket {TicketId}", creator.Email, createdTicket.Id);
+                    await _emailService.SendTicketCreatedNotificationAsync(createdTicket, creator);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Could not send ticket creation notification - creator not found or no email for ticket {TicketId}", createdTicket.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Don't fail ticket creation if email fails
+                _logger.LogError(ex, "❌ Failed to send ticket creation notification for ticket {TicketId}", createdTicket.Id);
             }
 
             // Return a clean response without circular references

@@ -39,3 +39,8 @@ backend/ERPTraining.API/temp/
 .env
 .env.*
 *.env
+
+# Configuration files with secrets
+**/appsettings.json
+**/appsettings.*.json
+production-config/

@@ -19,20 +19,15 @@ const normalizePort = (protocol: string, rawPort?: string) => {
 const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
     const currentHost = window.location.hostname;
-    const currentProtocol = window.location.protocol;
 
     // Local development detection (localhost or 127.0.0.1 with any port)
     if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
       return DEFAULT_LOCAL_API; // Always use local backend for development
     }
 
-    // Production domain detection with protocol-specific port overrides
+    // Production domain - ALWAYS use HTTP port 81 (no SSL configured)
     if (currentHost === 'businesshub.babajishivram.com') {
-      const httpPort = import.meta.env.VITE_API_HTTP_PORT || '80';
-      const httpsPort = import.meta.env.VITE_API_HTTPS_PORT || '443';
-      const targetPort = currentProtocol === 'https:' ? httpsPort : httpPort;
-      const portSegment = normalizePort(currentProtocol, targetPort);
-      return `${currentProtocol}//${currentHost}${portSegment}/api`;
+      return 'http://businesshub.babajishivram.com:81/api';
     }
 
     // If we are on an unknown host but running in the browser, respect explicit env override

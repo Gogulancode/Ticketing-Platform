@@ -14,6 +14,7 @@ public interface IEmailService
         bool isHtml = true,
         IEnumerable<OutgoingEmailAttachment>? attachments = null,
         CancellationToken cancellationToken = default);
+    Task SendTicketCreatedNotificationAsync(Ticket ticket, ApplicationUser creator, CancellationToken cancellationToken = default);
     Task SendTicketAssignmentNotificationAsync(Ticket ticket, ApplicationUser agent, CancellationToken cancellationToken = default);
     Task SendCollaboratorAddedNotificationAsync(Ticket ticket, ApplicationUser collaborator, ApplicationUser addedBy, CancellationToken cancellationToken = default);
     Task SendTicketResolvedNotificationAsync(Ticket ticket, ApplicationUser creator, string? resolutionNotes, CancellationToken cancellationToken = default);

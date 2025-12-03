@@ -117,16 +117,34 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
     /// </summary>
     private async Task<Ticket?> FindExistingTicketAsync(EmailMessage email, ApplicationDbContext dbContext, CancellationToken cancellationToken)
     {
-        // Try to find ticket number in subject line
-        var ticketNumberMatch = Regex.Match(email.Subject, @"#(\d+)", RegexOptions.IgnoreCase);
-        if (ticketNumberMatch.Success && int.TryParse(ticketNumberMatch.Groups[1].Value, out int ticketNumber))
+        // Try multiple patterns to find ticket number in subject line
+        // Pattern 1: #101925 (with hash)
+        // Pattern 2: Ticket #101925 or Ticket 101925
+        // Pattern 3: [Ticket #101925] or [#101925]
+        // Pattern 4: Re: ... #101925 or just the number 101925
+        var patterns = new[]
         {
-            var ticket = await dbContext.Tickets
-                .FirstOrDefaultAsync(t => t.PublicId == ticketNumber, cancellationToken);
-            
-            if (ticket != null)
+            @"#(\d{5,6})",                    // #101925
+            @"\[Ticket\s*#?(\d{5,6})\]",      // [Ticket #101925] or [Ticket 101925]
+            @"Ticket\s*#?(\d{5,6})",          // Ticket #101925 or Ticket 101925
+            @"(?:^|[\s:])(\d{5,6})(?:[\s\]]|$)" // Standalone 5-6 digit number (like 101925)
+        };
+
+        foreach (var pattern in patterns)
+        {
+            var ticketNumberMatch = Regex.Match(email.Subject, pattern, RegexOptions.IgnoreCase);
+            if (ticketNumberMatch.Success && int.TryParse(ticketNumberMatch.Groups[1].Value, out int ticketNumber))
             {
-                return ticket;
+                _logger.LogInformation("Found potential ticket number {TicketNumber} in subject using pattern {Pattern}", ticketNumber, pattern);
+                
+                var ticket = await dbContext.Tickets
+                    .FirstOrDefaultAsync(t => t.PublicId == ticketNumber, cancellationToken);
+                
+                if (ticket != null)
+                {
+                    _logger.LogInformation("Matched email to existing ticket #{TicketNumber} (ID: {TicketId})", ticketNumber, ticket.Id);
+                    return ticket;
+                }
             }
         }
 
@@ -164,6 +182,22 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
         }
         var priority = DeterminePriorityFromEmail(email);
 
+        // Map category name to Category enum for consistency
+        // This ensures both CategoryId (relational) and Category (enum) are in sync
+        var categoryEnum = ERPTraining.Core.Entities.Ticketing.TicketCategory.General; // Default
+        if (category != null)
+        {
+            var categoryName = category.Name.ToLowerInvariant();
+            if (categoryName.Contains("technical") || categoryName.Contains("it"))
+                categoryEnum = ERPTraining.Core.Entities.Ticketing.TicketCategory.Technical;
+            else if (categoryName.Contains("content"))
+                categoryEnum = ERPTraining.Core.Entities.Ticketing.TicketCategory.Content;
+            else if (categoryName.Contains("assessment"))
+                categoryEnum = ERPTraining.Core.Entities.Ticketing.TicketCategory.Assessment;
+            else if (!categoryName.Contains("general"))
+                categoryEnum = ERPTraining.Core.Entities.Ticketing.TicketCategory.Other;
+        }
+
         // Generate ticket number
         var ticketNumber = await GenerateTicketNumberAsync(dbContext, cancellationToken);
 
@@ -180,6 +214,7 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
             Title = CleanSubject(email.Subject),
             Description = formattedDescription,
             CreatedByUserId = user.Id,
+            Category = categoryEnum, // Set both Category enum and CategoryId for consistency
             CategoryId = categoryId,
             SubcategoryId = subcategory?.Id,
             Priority = (ERPTraining.Core.Entities.Ticketing.TicketPriority)priority,
@@ -202,6 +237,18 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
 
         // Auto-assign if rules exist
         await AutoAssignTicketAsync(ticket, dbContext, cancellationToken);
+
+        // Send ticket creation notification email to the user
+        try
+        {
+            await _emailService.SendTicketCreatedNotificationAsync(ticket, user, cancellationToken);
+            _logger.LogInformation("Sent ticket creation notification for ticket #{TicketNumber} to {Email}", ticketNumber, email.FromEmail);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send ticket creation notification for ticket #{TicketNumber}", ticketNumber);
+            // Don't throw - ticket was created successfully, email is secondary
+        }
     }
 
     /// <summary>
@@ -232,17 +279,17 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
         // Update ticket's last activity
         ticket.UpdatedAt = DateTime.UtcNow;
         
-        // If ticket was resolved (not closed), reopen it when customer replies via email
-        if (ticket.Status == 4) // Only Resolved tickets can be auto-reopened (not Closed)
+        // If ticket was resolved or closed, reopen it when customer replies via email
+        if (ticket.Status == 4 || ticket.Status == 5) // Resolved (4) or Closed (5)
         {
-            // Look up the "Reopen" status ID dynamically (status IDs may vary across environments)
+            // Look up the "Reopened" status ID dynamically
             var reopenStatus = await dbContext.TicketStatuses
-                .Where(s => s.Name == "Reopen" && s.IsActive)
+                .Where(s => (s.Name == "Reopened" || s.Name == "Reopen") && s.IsActive)
                 .Select(s => s.Id)
                 .FirstOrDefaultAsync(cancellationToken);
             
-            ticket.Status = reopenStatus != 0 ? reopenStatus : 2; // Fallback to In Progress (2) if Reopen status not found
-            _logger.LogInformation("Reopened ticket #{TicketNumber} due to new email with status {StatusId}", 
+            ticket.Status = reopenStatus != 0 ? reopenStatus : 2; // Fallback to In Progress (2) if Reopened status not found
+            _logger.LogInformation("Reopened ticket #{TicketNumber} due to new email reply, new status: {StatusId}", 
                 ticket.PublicId?.ToString() ?? ticket.Id.ToString().Substring(0, 8), ticket.Status);
         }
 
@@ -483,27 +530,13 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
 
     /// <summary>
     /// Determines priority from email importance and content
+    /// Returns Low (0) by default - agents/users can adjust priority in ticket details
     /// </summary>
     private int DeterminePriorityFromEmail(EmailMessage email)
     {
-        var priority = email.Priority; // From Graph API importance
-        var content = $"{email.Subject} {email.Body}".ToLower();
-
-        // Check for urgent keywords
-        var urgentKeywords = new[] { "urgent", "critical", "emergency", "asap", "immediately", "down", "broken", "not working" };
-        var highKeywords = new[] { "important", "priority", "soon", "issue", "problem", "error" };
-
-        if (urgentKeywords.Any(keyword => content.Contains(keyword)))
-        {
-            return 4; // Critical
-        }
-        
-        if (highKeywords.Any(keyword => content.Contains(keyword)))
-        {
-            return Math.Max(priority, 3); // High
-        }
-
-        return priority;
+        // Default to Low priority for all email-created tickets
+        // Agents or users can change priority from the ticket detail page
+        return 0; // Low (TicketPriority enum: Low=0, Medium=1, High=2, Critical=3)
     }
 
     /// <summary>
@@ -604,42 +637,96 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
         body = Regex.Replace(body, @"</p>\s*", "\n", RegexOptions.IgnoreCase);
         body = Regex.Replace(body, @"<[^>]+>", " ");
         
-        // Remove common email disclaimers (like the one in your attachment)
+        // Clean up special characters and entities FIRST (before regex matching)
+        body = body.Replace("&quot;", "\"")
+                  .Replace("&amp;", "&")
+                  .Replace("&lt;", "<")
+                  .Replace("&gt;", ">")
+                  .Replace("&nbsp;", " ");
+
+        // IMPORTANT: Remove the External Email warning - this appears at the START of emails
+        // Full pattern: "External Email: This email has not been originated from babajishivram.com. 
+        //               Do not click on attachments or links/URLs unless the sender is reliable or trustworthy. 
+        //               You could be a victim of phishing, malware, or viruses. Ok"
+        var externalEmailPatterns = new[]
+        {
+            // Full external email warning (may span multiple lines after HTML conversion)
+            @"External\s*Email\s*:?\s*This\s+email\s+has\s+not\s+been\s+originated\s+from\s+babajishivram\.com\.?[\s\S]*?(?:phishing|malware|viruses)[\s\S]*?(?:Ok\.?)?",
+            // Catch just the "External Email:" header
+            @"External\s*Email\s*:[\s\S]*?(?=Attn|Dear|Hi|Hello|Subject|\w+\s+Sir|\w+\s+Ma'am|$)",
+            // Specific fragments that might remain after partial HTML parsing - very specific patterns first
+            @"[,\s]*malware[,\s]*or\s*viruses\.?\s*(?:Ok\.?)?\s*",  // ", malware, or viruses." - the most common remaining fragment
+            @"[,\s]*phishing[,\s]*malware[,\s]*or\s*viruses\.?\s*", // "phishing, malware, or viruses."
+            @"You\s+could\s+be\s+a\s+victim\s+of\s+phishing[\s\S]*?(?:Ok\.?)?",
+            @"Do\s+not\s+click\s+on\s+attachments\s+or\s+links[\s\S]*?trustworthy\.?",
+            @"This\s+email\s+has\s+not\s+been\s+originated\s+from[\s\S]*?\.com\.?",
+            // Simple string-based cleanup for any remaining fragments
+            @"^\s*,\s*malware.*?viruses\.?\s*",  // Start of content - ", malware, or viruses."
+        };
+
+        foreach (var pattern in externalEmailPatterns)
+        {
+            body = Regex.Replace(body, pattern, "", RegexOptions.IgnoreCase);
+        }
+        
+        // Direct string cleanup for any stubborn fragments that regex might miss
+        var fragmentsToRemove = new[]
+        {
+            ", malware, or viruses.",
+            ",malware,or viruses.",
+            ", malware, or viruses",
+            "malware, or viruses.",
+            ", malware, or viruses. Ok",
+            "phishing, malware, or viruses.",
+            "You could be a victim of phishing",
+            "External Email:",
+            "External Email :",
+        };
+        foreach (var fragment in fragmentsToRemove)
+        {
+            body = body.Replace(fragment, "", StringComparison.OrdinalIgnoreCase);
+        }
+        
+        // Remove common email disclaimers (at the END of emails)
         var disclaimerPatterns = new[]
         {
-            @"DISCLAIMER[&quot;:]*.*?(?=\r?\n\r?\n|\r?\n$|$)",
-            @"The information in this email.*?is legally privileged and confidential.*?(?=\r?\n\r?\n|\r?\n$|$)",
-            @"If you are not the intended recipient.*?(?=\r?\n\r?\n|\r?\n$|$)",
-            @"Although this email.*?virus free.*?(?=\r?\n\r?\n|\r?\n$|$)",
-            @".*?subsidiaries or affiliates.*?(?=\r?\n\r?\n|\r?\n$|$)",
-            @"This email and any attachments.*?confidential.*?(?=\r?\n\r?\n|\r?\n$|$)",
-            @"This message is intended only for.*?(?=\r?\n\r?\n|\r?\n$|$)",
-            @"This communication is confidential.*?(?=\r?\n\r?\n|\r?\n$|$)",
-            @"CONFIDENTIALITY NOTICE.*?(?=\r?\n\r?\n|\r?\n$|$)",
-            @"Please consider the environment.*?(?=\r?\n\r?\n|\r?\n$|$)",
-            @"Think before you print.*?(?=\r?\n\r?\n|\r?\n$|$)"
+            // Full Babaji Shivram disclaimer
+            @"DISCLAIMER[:\s""]*The\s+information\s+in\s+this\s+email[\s\S]*?receipt["".]?\s*$",
+            @"DISCLAIMER[\s\S]*$",
+            @"The\s+information\s+in\s+this\s+email.*?legally\s+privileged[\s\S]*$",
+            @"If\s+you\s+are\s+not\s+the\s+intended\s+recipient[\s\S]*$",
+            @"Although\s+this\s+email.*?virus\s+free[\s\S]*$",
+            @"no\s+responsibility\s+is\s+accepted\s+by\s+Babaji\s+Shivram[\s\S]*$",
+            @"Babaji\s+Shivram\s+Clearing\s+&\s+Carriers[\s\S]*$",
+            @"subsidiaries\s+or\s+affiliates[\s\S]*$",
+            // Generic patterns
+            @"CAUTION:?\s*This\s+email\s+originated[\s\S]*?(?:\r?\n\r?\n|\r?\n$|$)",
+            @"WARNING:?\s*This\s+email\s+originated[\s\S]*?(?:\r?\n\r?\n|\r?\n$|$)",
+            @"\[?External\]?\s*:?\s*This\s+email.*?(?:originated|outside)[\s\S]*?(?:\r?\n|$)",
+            @"This\s+email\s+and\s+any\s+attachments.*?confidential[\s\S]*$",
+            @"This\s+message\s+is\s+intended\s+only\s+for[\s\S]*$",
+            @"This\s+communication\s+is\s+confidential[\s\S]*$",
+            @"CONFIDENTIALITY\s+NOTICE[\s\S]*$",
+            @"Please\s+consider\s+the\s+environment[\s\S]*$",
+            @"Think\s+before\s+you\s+print[\s\S]*$"
         };
 
         foreach (var pattern in disclaimerPatterns)
         {
-            body = Regex.Replace(body, pattern, "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            body = Regex.Replace(body, pattern, "", RegexOptions.IgnoreCase);
         }
         
         // Remove common signature indicators and boilerplate
+        // Note: Don't remove "Best regards" etc. as they're part of valid content
+        // Only remove obvious email client additions and forwarded headers
         var signaturePatterns = new[]
         {
             @"--\s*\r?\n.*$",
-            @"Best [Rr]egards.*$",
-            @"Kind [Rr]egards.*$", 
-            @"Warm [Rr]egards.*$",
-            @"Regards.*$",
-            @"Thanks?[\s\r\n]*.*$",
-            @"Thank you.*$",
-            @"Sent from.*$",
-            @"Get Outlook for.*$",
-            @"Sent via.*$",
+            @"Sent\s+from.*$",
+            @"Get\s+Outlook\s+for.*$",
+            @"Sent\s+via.*$",
             @"From:.*?Subject:.*?(?=\r?\n\r?\n|\r?\n$|$)", // Remove forwarded email headers
-            @"-----Original Message-----.*$",
+            @"-----Original\s+Message-----.*$",
             @"________________________________.*$" // Outlook separator lines
         };
 
@@ -648,26 +735,30 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
             body = Regex.Replace(body, pattern, "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
         }
 
-        // Remove quoted text and reply chains
+        // Remove quoted text and reply chains - these patterns catch the original message being replied to
         var quotedTextPatterns = new[]
         {
-            @"On .* wrote:.*$", // "On [date] [person] wrote:"
-            @"From:.*?(?=\r?\n\r?\n|\r?\n$|$)", // Email headers in replies
-            @">.*$", // Quoted lines starting with >
-            @"_{10,}.*$" // Long underscores used as separators
+            // Outlook-style reply headers (most common) - match from "From:" onwards when it's a reply
+            @"From:\s*[^\r\n]+\r?\nSent:\s*[^\r\n]+\r?\nTo:\s*[^\r\n]+[\s\S]*$",
+            @"From:\s*[^\r\n]+<[^>]+>\r?\nSent:\s*[^\r\n]+[\s\S]*$",
+            // Gmail-style "On [date] [person] wrote:"
+            @"On\s+\w+,?\s+\w+\s+\d+,?\s+\d+.*?wrote:[\s\S]*$",
+            @"On\s+\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}.*?wrote:[\s\S]*$",
+            // Generic reply indicators
+            @"-{3,}\s*Original\s+Message\s*-{3,}[\s\S]*$",
+            @"_{3,}\s*Original\s+Message\s*_{3,}[\s\S]*$",
+            @"-----Original\s+Message-----[\s\S]*$",
+            @"________________________________[\s\S]*$",
+            // Quoted lines starting with > (each line)
+            @"^>+\s*.*$",
+            // Long underscores used as separators followed by content
+            @"_{10,}[\s\S]*$"
         };
 
         foreach (var pattern in quotedTextPatterns)
         {
             body = Regex.Replace(body, pattern, "", RegexOptions.IgnoreCase | RegexOptions.Multiline);
         }
-
-        // Clean up special characters and entities
-        body = body.Replace("&quot;", "\"")
-                  .Replace("&amp;", "&")
-                  .Replace("&lt;", "<")
-                  .Replace("&gt;", ">")
-                  .Replace("&nbsp;", " ");
 
         // Clean up whitespace and format properly
         body = Regex.Replace(body, @"\r?\n\s*\r?\n", "\n\n"); // Replace multiple newlines with double newline

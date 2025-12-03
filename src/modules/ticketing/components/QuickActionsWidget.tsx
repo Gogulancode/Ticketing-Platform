@@ -1,23 +1,25 @@
 import React from 'react';
 import { Plus, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const QuickActionsWidget: React.FC = () => {
+  const navigate = useNavigate();
+  
   const quickActions = [
     {
       icon: Plus,
       label: 'New Ticket',
       color: 'bg-blue-600 hover:bg-blue-700',
-      onClick: () => window.location.href = '/tickets/new'
+      onClick: () => navigate('/tickets/new')
     },
     {
       icon: Search,
       label: 'Search Tickets',
       color: 'bg-green-600 hover:bg-green-700',
       onClick: () => {
-        const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
-        if (searchInput) {
-          searchInput.focus();
-        }
+        // Navigate to My Tickets page where search functionality is available
+        navigate('/tickets/my');
+        // After navigation, focus will be handled by the My Tickets page
       }
     }
   ];

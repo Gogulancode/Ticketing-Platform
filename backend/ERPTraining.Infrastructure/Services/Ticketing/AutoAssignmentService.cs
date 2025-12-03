@@ -223,7 +223,10 @@ public class AutoAssignmentService : IAutoAssignmentService
 
     private async Task<List<AutoAssignmentRule>> GetMatchingRulesAsync(Ticket ticket)
     {
+        // Enterprise: Use eager loading with Include to prevent N+1 queries
         var query = _context.AutoAssignmentRules
+            .Include(r => r.RuleAgents)   // Eager load agents in single query
+            .Include(r => r.RuleGroups)   // Eager load groups in single query
             .Where(r => r.IsActive);
 
         // Filter by category
@@ -232,19 +235,8 @@ public class AutoAssignmentService : IAutoAssignmentService
         // Filter by priority
         query = query.Where(r => r.TicketPriority == null || r.TicketPriority == (int)ticket.Priority);
 
+        // Single database query with all related data
         var rules = await query.ToListAsync();
-
-        // Load related data separately to avoid navigation property issues
-        foreach (var rule in rules)
-        {
-            rule.RuleAgents = await _context.AutoAssignmentRuleAgents
-                .Where(ra => ra.RuleId == rule.Id)
-                .ToListAsync();
-                
-            rule.RuleGroups = await _context.AutoAssignmentRuleGroups
-                .Where(rg => rg.RuleId == rule.Id)
-                .ToListAsync();
-        }
 
         // Filter by keywords (in memory due to JSON complexity)
         var filteredRules = new List<AutoAssignmentRule>();

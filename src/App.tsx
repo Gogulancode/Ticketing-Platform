@@ -9,7 +9,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { Layout } from '@/shared';
 import { LandingPage, Profile, Notifications } from '@/shared';
 
-// Auth pages - Use the correct JWT-based login
+// Auth pages
 import Login from './pages/Login';
 
 // Training module components
@@ -46,6 +46,7 @@ import {
   TicketAnalyticsPage,
   UserManagementPage
 } from '@/modules/ticketing';
+import TicketPublicIdRedirect from './modules/ticketing/views/TicketPublicIdRedirect';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -126,6 +127,7 @@ function App() {
               <Route path="users" element={<UserManagementPage />} />
               <Route path="profile" element={<Profile />} />
               <Route path="notifications" element={<Notifications />} />
+              <Route path="by-public-id/:publicId" element={<TicketPublicIdRedirect />} />
               <Route path=":ticketId" element={<TicketDetailPage />} />
               <Route path=":ticketId/edit" element={<TicketEditPage />} />
             </Route>

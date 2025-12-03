@@ -25,6 +25,10 @@ type TicketListItem = Omit<Ticket, 'category' | 'priority' | 'status'> & {
   assignedAgentId?: string | number;
   assignedToUserId?: string | number;
   agentName?: string;
+  // Merge information
+  hasMergedTickets?: boolean;
+  wasMergedIntoAnother?: boolean;
+  mergedTicketsCount?: number;
 };
 
 const MyTicketsPage: React.FC = () => {
@@ -85,104 +89,124 @@ const MyTicketsPage: React.FC = () => {
         throw err;
       }
     },
-    refetchInterval: 15000, // More frequent refresh to get updates
-    staleTime: 0, // Always refetch to get latest data
+    // Enterprise: Optimized caching strategy
+    staleTime: 30000, // Data is fresh for 30 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds (not 5s to reduce API load)
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
   });
 
-  // Fetch settings for display names
+  // Fetch settings for display names - Enterprise: Cache static data longer
   const { data: categories } = useQuery<TicketCategoryConfig[]>({
     queryKey: ['ticket-categories'],
     queryFn: () => settingsApi.getTicketCategories(),
+    staleTime: 5 * 60 * 1000, // Categories don't change often - cache 5 min
   });
 
   const { data: priorities } = useQuery<PriorityLevel[]>({
     queryKey: ['ticket-priorities'],
     queryFn: () => settingsApi.getPriorityLevels(),
+    staleTime: 5 * 60 * 1000, // Priorities don't change often - cache 5 min
   });
 
   const { data: statuses } = useQuery<TicketStatusConfig[]>({
     queryKey: ['ticket-statuses'],
     queryFn: () => settingsApi.getTicketStatuses(),
+    staleTime: 5 * 60 * 1000, // Statuses don't change often - cache 5 min
   });
 
   const { data: agents } = useQuery<Agent[]>({
     queryKey: ['agents'],
     queryFn: () => settingsApi.getAgents(),
+    staleTime: 2 * 60 * 1000, // Agents may change more often - cache 2 min
   });
 
-  // Helper functions for display names
-  const getCategoryName = (ticket: TicketListItem) => {
-    // Handle both nested object and direct ID lookup
-    if (typeof ticket.category === 'object' && ticket.category?.name) return ticket.category.name;
+  // Enterprise: Memoized helper functions to prevent unnecessary recalculations
+  const getCategoryName = useCallback((ticket: TicketListItem) => {
+    // First check for direct name from API
     if (ticket.categoryName) return ticket.categoryName;
+    if (typeof ticket.category === 'object' && ticket.category?.name) return ticket.category.name;
     
-    // Map backend enum values to category names  
+    // Priority: Use categoryId for lookup from settings
+    const categoryId = ticket.categoryId ?? (typeof ticket.category === 'object' ? ticket.category?.id : undefined);
+    if (categoryId != null && categories?.length) {
+      const category = categories.find((cat) => cat.id === categoryId);
+      if (category?.name) return category.name;
+    }
+    
+    // Fallback: Map backend enum values to category names  
     const categoryValue = typeof ticket.category === 'number' ? Number(ticket.category) : undefined;
     switch (categoryValue) {
       case 0: return 'General Inquiry';
       case 1: return 'Technical Support';
       case 2: return 'Bug Report';
       case 3: return 'Feature Request';
-      default: {
-        // Fallback to settings lookup
-        const categoryId = ticket.categoryId ?? (typeof ticket.category === 'object' ? ticket.category?.id : undefined);
-        const category = categories?.find((cat) => 
-          cat.id === categoryId
-        );
-        return category?.name || 'No Category';
-      }
+      default:
+        return 'No Category';
     }
-  };
+  }, [categories]);
 
-  const getPriorityName = (ticket: TicketListItem) => {
-    // Handle both nested object and direct ID lookup
-    if (typeof ticket.priority === 'object' && ticket.priority?.name) return ticket.priority.name;
+  const getPriorityName = useCallback((ticket: TicketListItem) => {
+    // First check for direct name from API
     if (ticket.priorityName) return ticket.priorityName;
+    if (typeof ticket.priority === 'object' && ticket.priority?.name) return ticket.priority.name;
     
-    // Map backend enum values to priority names
+    // Get the priority value - could be enum (0-3) or database ID (1-4)
     const priorityValue = typeof ticket.priority === 'number' ? Number(ticket.priority) : undefined;
+    const priorityId = ticket.priorityId ?? (typeof ticket.priority === 'object' ? ticket.priority?.id : undefined);
+    
+    // If we have a priorityId that's >= 1, try to look it up directly (database ID)
+    if (priorityId != null && priorityId >= 1 && priorities?.length) {
+      const priority = priorities.find((pri) => pri.id === priorityId);
+      if (priority?.name) return priority.name;
+    }
+    
+    // Map backend enum values (0-3) to database IDs (1-4): enum + 1 = database ID
+    // Enum: Low=0, Medium=1, High=2, Critical=3
+    // DB:   Low=1, Medium=2, High=3, Critical=4
+    if (priorityValue != null && priorityValue >= 0 && priorityValue <= 3 && priorities?.length) {
+      const dbPriorityId = priorityValue + 1; // Convert enum to database ID
+      const priority = priorities.find((pri) => pri.id === dbPriorityId);
+      if (priority?.name) return priority.name;
+    }
+    
+    // Final fallback: hardcoded enum mapping
     switch (priorityValue) {
       case 0: return 'Low';
       case 1: return 'Medium'; 
       case 2: return 'High';
       case 3: return 'Critical';
-      default: {
-        // Fallback to settings lookup
-        const derivedPriorityId = ticket.priorityId ?? (typeof ticket.priority === 'object' ? ticket.priority?.id : undefined);
-        const derivedLevel = typeof ticket.priority === 'object' ? ticket.priority?.level : undefined;
-        const priority = priorities?.find((pri) => 
-          pri.id === derivedPriorityId || pri.level === (priorityValue ?? derivedLevel)
-        );
-        return priority?.name || 'No Priority';
-      }
+      default: return 'Low';
     }
-  };
+  }, [priorities]);
 
   const getStatusName = useCallback((ticket: TicketListItem) => {
-    // Handle both nested object and direct ID lookup
-    if (typeof ticket.status === 'object' && ticket.status?.name) return ticket.status.name;
+    // First check for direct name from API
     if (ticket.statusName) return ticket.statusName;
+    if (typeof ticket.status === 'object' && ticket.status?.name) return ticket.status.name;
     
-    // Map backend enum values to status names
+    // Priority: Use statusId for lookup from settings  
+    const statusId = ticket.statusId ?? (typeof ticket.status === 'object' ? ticket.status?.id : undefined);
     const statusValue = typeof ticket.status === 'number' ? Number(ticket.status) : undefined;
+    
+    // Try settings lookup first
+    if (statuses?.length) {
+      const status = statuses.find((s) => s.id === (statusId ?? statusValue));
+      if (status?.name) return status.name;
+    }
+    
+    // Fallback: Map database status IDs to status names (matches TicketStatuses table)
     switch (statusValue) {
-      case 0: return 'New';
       case 1: return 'Open';
       case 2: return 'In Progress';
-      case 3: return 'Resolved';
-      case 4: return 'Closed';
-      default: {
-        // Fallback to settings lookup
-        const statusId = ticket.statusId ?? (typeof ticket.status === 'object' ? ticket.status?.id : undefined);
-        const status = statuses?.find((s) => 
-          s.id === (statusId ?? statusValue)
-        );
-        return status?.name || 'No Status';
-      }
+      case 3: return 'On Hold';
+      case 4: return 'Resolved';
+      case 5: return 'Closed';
+      default:
+        return 'Open';
     }
   }, [statuses]);
 
-  const getAgentName = (ticket: TicketListItem) => {
+  const getAgentName = useCallback((ticket: TicketListItem) => {
     // Handle both nested object and direct ID lookup
     if (ticket.assignedAgent?.name) return ticket.assignedAgent.name;
     if (ticket.assignedAgent?.email) return ticket.assignedAgent.email;
@@ -198,20 +222,26 @@ const MyTicketsPage: React.FC = () => {
       (ticket.assignedAgent?.email && a.email === ticket.assignedAgent.email)
     );
     return agent?.name || agent?.email || 'Unassigned';
-  };
+  }, [agents]);
 
-  const getStatusColor = (ticket: TicketListItem) => {
+  const getStatusColor = useCallback((ticket: TicketListItem) => {
     const statusName = getStatusName(ticket)?.toLowerCase();
     switch (statusName) {
       case 'open': case 'new': return 'bg-blue-100 text-blue-800';
       case 'in progress': case 'assigned': return 'bg-yellow-100 text-yellow-800';
+      case 'on hold': return 'bg-orange-100 text-orange-800';
+      case 'waiting for user': return 'bg-purple-100 text-purple-800';
       case 'resolved': return 'bg-green-100 text-green-800';
       case 'closed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'reopen': return 'bg-amber-100 text-amber-800';
+      default: 
+        // Check if status contains waiting
+        if (statusName?.includes('waiting')) return 'bg-purple-100 text-purple-800';
+        return 'bg-gray-100 text-gray-800';
     }
-  };
+  }, [getStatusName]);
 
-  const getPriorityColor = (ticket: TicketListItem) => {
+  const getPriorityColor = useCallback((ticket: TicketListItem) => {
     const priorityName = getPriorityName(ticket)?.toLowerCase();
     switch (priorityName) {
       case 'low': return 'text-green-600';
@@ -220,7 +250,7 @@ const MyTicketsPage: React.FC = () => {
       case 'urgent': case 'critical': return 'text-red-600';
       default: return 'text-gray-500';
     }
-  };
+  }, [getPriorityName]);
 
   // Filter tickets
   const filteredTickets = useMemo<TicketListItem[]>(() => {
@@ -255,7 +285,7 @@ const MyTicketsPage: React.FC = () => {
       const statusName = getStatusName(ticket)?.toLowerCase() || '';
       const statusId = ticket.statusId ?? numericStatus;
       
-      // More flexible status matching
+      // More flexible status matching - handles all status types properly
       const matchesStatus = 
         (statusFilter === 'open' && (
           statusName.includes('open') || 
@@ -267,17 +297,20 @@ const MyTicketsPage: React.FC = () => {
           statusName.includes('progress') || 
           statusName.includes('assigned') || 
           statusName.includes('working') ||
-          statusId === TicketStatus.InProgress
+          statusName.includes('waiting') ||  // Include "Waiting for User" in progress
+          statusName.includes('on hold') ||  // Include "On Hold" in progress
+          statusId === TicketStatus.InProgress ||
+          statusId === TicketStatus.OnHold  // Status ID 3 = On Hold / Waiting for User
         )) ||
         (statusFilter === 'resolved' && (
           statusName.includes('resolved') || 
           statusName.includes('completed') ||
-          statusId === TicketStatus.Resolved
+          statusId === TicketStatus.Resolved  // Status ID 4 = Resolved
         )) ||
         (statusFilter === 'closed' && (
           statusName.includes('closed') || 
           statusName.includes('done') ||
-          statusId === TicketStatus.Closed
+          statusId === TicketStatus.Closed  // Status ID 5 = Closed
         ));
       
       return matchesSearch && matchesStatus && matchesCategory && matchesAgent;
@@ -308,26 +341,76 @@ const MyTicketsPage: React.FC = () => {
     setCurrentPage(prev => Math.min(totalPages, prev + 1));
   };
 
-  // Calculate ticket counts for summary
-  const ticketCounts = (() => {
+  // Enterprise: Memoize ticket counts to prevent recalculation on every render
+  const ticketCounts = useMemo(() => {
     const allTickets = tickets ?? [];
+    // Filter out deleted tickets (status 99) for all counts
+    const activeTickets = allTickets.filter((ticket) => {
+      const statusId = getStatusIdFromTicket(ticket);
+      return statusId !== 99;
+    });
     const countWhere = (predicate: (ticket: TicketListItem) => boolean) =>
-      allTickets.filter(predicate).length;
+      activeTickets.filter(predicate).length;
 
+    // Helper to get status ID from ticket, handling various formats
+    function getStatusIdFromTicket(ticket: TicketListItem): number | undefined {
+      // First try statusId (most reliable)
+      if (ticket.statusId !== undefined && ticket.statusId !== null) {
+        return typeof ticket.statusId === 'number' ? ticket.statusId : parseInt(String(ticket.statusId), 10);
+      }
+      // Try status as number (enum value)
+      if (typeof ticket.status === 'number') {
+        return ticket.status;
+      }
+      // Try status as object with id
+      if (ticket.status && typeof ticket.status === 'object' && 'id' in ticket.status) {
+        return (ticket.status as StatusReference).id;
+      }
+      // Check statusName field - map name to ID
+      if (ticket.statusName) {
+        const statusName = ticket.statusName.toLowerCase();
+        if (statusName === 'new' || statusName === 'open') return 1;
+        if (statusName === 'in progress' || statusName === 'inprogress') return 2;
+        if (statusName === 'waiting for user' || statusName === 'on hold' || statusName === 'onhold') return 3;
+        if (statusName === 'resolved') return 4;
+        if (statusName === 'closed') return 5;
+        if (statusName === '3rd party dependencies') return 6;
+        if (statusName === 'reopened') return 1007;
+        if (statusName === 'merged') return 1009;
+      }
+      return undefined;
+    }
+
+    // Status IDs: 1=New, 2=In Progress, 3=Waiting, 4=Resolved, 5=Closed, 6=3rd party, 1007=Reopened, 1009=Merged
     return {
-      total: allTickets.length,
+      total: activeTickets.length,
+      // Open bucket: New (1), Reopened (1007)
       open: countWhere((ticket) => {
-        const status = getStatusName(ticket)?.toLowerCase();
-        return status === 'open' || status === 'new';
+        const statusId = getStatusIdFromTicket(ticket);
+        return statusId === 1 || statusId === 1007;
       }),
+      // In Progress bucket: In Progress (2), Waiting for User (3), 3rd party Dependencies (6)
       inProgress: countWhere((ticket) => {
-        const status = getStatusName(ticket)?.toLowerCase();
-        return status === 'in progress' || status === 'assigned';
+        const statusId = getStatusIdFromTicket(ticket);
+        return statusId === 2 || statusId === 3 || statusId === 6;
       }),
-      resolved: countWhere((ticket) => getStatusName(ticket)?.toLowerCase() === 'resolved'),
-      closed: countWhere((ticket) => getStatusName(ticket)?.toLowerCase() === 'closed'),
+      // Resolved bucket: Only Resolved (4)
+      resolved: countWhere((ticket) => {
+        const statusId = getStatusIdFromTicket(ticket);
+        return statusId === 4;
+      }),
+      // Closed bucket: Only Closed (5)
+      closed: countWhere((ticket) => {
+        const statusId = getStatusIdFromTicket(ticket);
+        return statusId === 5;
+      }),
+      // Merged bucket: Only Merged (1009)
+      merged: countWhere((ticket) => {
+        const statusId = getStatusIdFromTicket(ticket);
+        return statusId === 1009;
+      }),
     };
-  })();
+  }, [tickets]);
 
   // Export function
   const handleExport = () => {
@@ -414,7 +497,7 @@ const MyTicketsPage: React.FC = () => {
 
           {/* Ticket Summary Cards */}
           <div className="px-sm py-sm border-b border-gray-200">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               <div className="bg-gray-50 rounded-lg p-3 text-center">
                 <div className="text-2xl font-bold text-gray-900">{ticketCounts.total}</div>
                 <div className="text-xs text-gray-600">Total</div>
@@ -434,6 +517,10 @@ const MyTicketsPage: React.FC = () => {
               <div className="bg-gray-50 rounded-lg p-3 text-center">
                 <div className="text-2xl font-bold text-gray-900">{ticketCounts.closed}</div>
                 <div className="text-xs text-gray-600">Closed</div>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold text-purple-900">{ticketCounts.merged}</div>
+                <div className="text-xs text-purple-600">Merged</div>
               </div>
             </div>
           </div>
@@ -529,10 +616,12 @@ const MyTicketsPage: React.FC = () => {
               <div className="bg-gray-50 border-b border-gray-200 px-sm py-3">
                 <div className="grid grid-cols-12 gap-4 text-xs font-medium text-gray-600 uppercase tracking-wide">
                   <div className="col-span-1">ID</div>
-                  <div className="col-span-4">Title</div>
-                  <div className="col-span-2">Status</div>
+                  <div className="col-span-2">Title</div>
+                  <div className="col-span-1">Merged</div>
+                  <div className="col-span-1">Status</div>
                   <div className="col-span-1">Priority</div>
                   <div className="col-span-2">Category</div>
+                  <div className="col-span-2">Created</div>
                   <div className="col-span-2">Agent</div>
                 </div>
               </div>
@@ -548,20 +637,56 @@ const MyTicketsPage: React.FC = () => {
                       <div className="col-span-1">
                         <span className="font-mono text-xs text-gray-600">#{getPublicTicketId(ticket)}</span>
                       </div>
-                      <div className="col-span-4">
+                      <div className="col-span-2">
                         <Link
                           to={`/tickets/${ticket.id}`}
-                          className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                          state={{ from: '/tickets/my' }}
+                          className="font-medium text-blue-600 hover:text-blue-800 hover:underline line-clamp-2"
+                          title={ticket.title}
                         >
                           {ticket.title}
                         </Link>
-                        <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
-                          {formatTicketDateTime(ticket.createdAt)}
-                        </div>
                       </div>
-                      <div className="col-span-2">
-                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(ticket)}`}>
+                      <div className="col-span-1 relative group">
+                        {ticket.hasMergedTickets ? (
+                          <div className="relative">
+                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800 cursor-help">
+                              <svg className="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2" />
+                              </svg>
+                              +{ticket.mergedTicketsCount || 0}
+                            </span>
+                            {/* Tooltip */}
+                            <div className="absolute z-50 hidden group-hover:block bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48">
+                              <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 shadow-lg">
+                                <div className="font-semibold mb-1">Primary Ticket</div>
+                                <div className="text-gray-300">{ticket.mergedTicketsCount || 0} ticket(s) have been merged into this one. All conversations are consolidated here.</div>
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : ticket.wasMergedIntoAnother ? (
+                          <div className="relative">
+                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800 cursor-help">
+                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                              </svg>
+                            </span>
+                            {/* Tooltip */}
+                            <div className="absolute z-50 hidden group-hover:block bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48">
+                              <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 shadow-lg">
+                                <div className="font-semibold mb-1">Merged Ticket</div>
+                                <div className="text-gray-300">This ticket was merged into another ticket. Check the primary ticket for updates.</div>
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-300">—</span>
+                        )}
+                      </div>
+                      <div className="col-span-1">
+                        <span className={`px-2 py-0.5 text-xs rounded-full whitespace-nowrap ${getStatusColor(ticket)}`}>
                           {getStatusName(ticket)}
                         </span>
                       </div>
@@ -571,10 +696,20 @@ const MyTicketsPage: React.FC = () => {
                         </span>
                       </div>
                       <div className="col-span-2">
-                        <span className="text-sm text-gray-900">{getCategoryName(ticket)}</span>
+                        <span className="text-sm text-gray-900" title={getCategoryName(ticket)}>
+                          {getCategoryName(ticket)}
+                        </span>
                       </div>
                       <div className="col-span-2">
-                        <div className="flex items-center gap-1 text-sm text-gray-900">
+                        <div className="text-xs text-gray-500 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span title={new Date(ticket.createdAt).toLocaleString()}>
+                            {formatTicketDateTime(ticket.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <div className="flex items-center gap-1 text-xs text-gray-900">
                           <User className="h-3 w-3" />
                           {getAgentName(ticket)}
                         </div>

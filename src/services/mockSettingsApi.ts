@@ -23,11 +23,11 @@ export const mockSettingsApi = {
   ]),
 
   getTicketStatuses: () => Promise.resolve([
-    { id: 0, name: 'Open', workflowOrder: 0, isActive: true, color: '#3b82f6', isDefault: true },
-    { id: 1, name: 'In Progress', workflowOrder: 1, isActive: true, color: '#eab308', isDefault: false },
-    { id: 2, name: 'Resolved', workflowOrder: 2, isActive: true, color: '#22c55e', isDefault: false },
-    { id: 3, name: 'Closed', workflowOrder: 3, isActive: true, color: '#6b7280', isDefault: false },
-    { id: 4, name: 'On Hold', workflowOrder: 4, isActive: true, color: '#f97316', isDefault: false }
+    { id: 1, name: 'Open', workflowOrder: 1, isActive: true, color: '#3b82f6', isDefault: true },
+    { id: 2, name: 'In Progress', workflowOrder: 2, isActive: true, color: '#eab308', isDefault: false },
+    { id: 3, name: 'On Hold', workflowOrder: 3, isActive: true, color: '#f97316', isDefault: false },
+    { id: 4, name: 'Resolved', workflowOrder: 4, isActive: true, color: '#22c55e', isDefault: false },
+    { id: 5, name: 'Closed', workflowOrder: 5, isActive: true, color: '#6b7280', isDefault: false }
   ]),
 
   getIssueTypes: () => Promise.resolve([

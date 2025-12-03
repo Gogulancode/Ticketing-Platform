@@ -44,19 +44,19 @@ public class EmailProcessingBackgroundService : BackgroundService
                 
                 if (!isGraphApiEnabled)
                 {
-                    _logger.LogDebug("Graph API email processing is disabled");
+                    _logger.LogInformation("Graph API email processing is disabled");
                     await Task.Delay(_processingInterval, stoppingToken);
                     continue;
                 }
 
-                _logger.LogDebug("Starting email processing cycle...");
+                _logger.LogInformation("🔄 Starting email processing cycle...");
 
                 using var scope = _serviceProvider.CreateScope();
                 var emailProcessor = scope.ServiceProvider.GetRequiredService<GraphEmailToTicketProcessor>();
                 
                 await emailProcessor.ProcessEmailsAsync(stoppingToken);
 
-                _logger.LogDebug("Email processing cycle completed");
+                _logger.LogInformation("✅ Email processing cycle completed");
             }
             catch (OperationCanceledException)
             {

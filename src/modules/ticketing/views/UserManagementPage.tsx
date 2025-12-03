@@ -3,6 +3,16 @@ import {
   Users, Search, Edit, UserPlus, CheckCircle, XCircle, Eye, X, 
   UserCheck, RefreshCw 
 } from 'lucide-react';
+import AdminRouteGuard from '../components/AdminRouteGuard';
+
+// Helper function to get auth headers
+const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+};
 
 interface User {
   id: string;
@@ -121,6 +131,7 @@ const UserManagementPage: React.FC = () => {
         `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users?${params.toString()}`,
         {
           headers: {
+            ...getAuthHeaders(),
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             Pragma: 'no-cache'
           }
@@ -197,7 +208,9 @@ const UserManagementPage: React.FC = () => {
   const loadAgents = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets/settings/agents`);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets/settings/agents`, {
+        headers: getAuthHeaders()
+      });
       if (response.ok) {
         const agentData = await response.json();
         setAgents(Array.isArray(agentData) ? agentData : []);
@@ -271,7 +284,7 @@ const UserManagementPage: React.FC = () => {
       // API call via proxy to backend server
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           username: newUser.username || newUser.email,
           email: newUser.email,
@@ -320,7 +333,7 @@ const UserManagementPage: React.FC = () => {
       // API call to backend server for agent conversion
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/ticketing/acl/convert-to-agent/${userId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
       });
 
       if (response.ok) {
@@ -345,7 +358,7 @@ const UserManagementPage: React.FC = () => {
       // API call via proxy to backend server for user status toggle
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users/${userId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ isActive: !currentStatus }),
       });
 
@@ -398,7 +411,7 @@ const UserManagementPage: React.FC = () => {
       const response = await fetch(apiUrl, {
         method: 'PUT',
         headers: { 
-          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache'
         },
@@ -465,13 +478,15 @@ const UserManagementPage: React.FC = () => {
       // API call via proxy to backend server for agent status toggle
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets/settings/agents/${agentId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ isActive: !currentStatus }),
       });
 
       if (response.ok) {
         setSuccess('Agent status updated successfully!');
         loadAgents();
+        // Also refresh users list since isAgent status changes
+        loadUsers(currentPage, searchTerm);
       } else {
         setError('Failed to update agent status');
       }
@@ -501,6 +516,7 @@ const UserManagementPage: React.FC = () => {
   });
 
   return (
+    <AdminRouteGuard>
     <div className="text-sm leading-snug space-y-sm">
       {/* Header */}
       <div className="py-sm">
@@ -700,7 +716,9 @@ const UserManagementPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-wrap gap-1">
-                          {user.roles.map((role) => (
+                          {user.roles
+                            .filter(role => role !== 'Agent' || user.isAgent) // Hide Agent role if user is no longer an agent
+                            .map((role) => (
                             <span
                               key={role}
                               className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -1518,6 +1536,7 @@ const UserManagementPage: React.FC = () => {
         </div>
       )}
     </div>
+    </AdminRouteGuard>
   );
 };
 

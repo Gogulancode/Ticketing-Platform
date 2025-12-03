@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, AlertCircle } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
 
+// Helper function to get auth headers
+const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+};
+
 interface CustomFieldAnalyticsProps {
   days?: number;
   className?: string;
@@ -61,7 +70,9 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
         setLoading(true);
         console.log('📊 Loading custom field analytics...');
         
-        const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/custom-fields/analytics?days=${days}`);
+        const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/custom-fields/analytics?days=${days}`, {
+          headers: getAuthHeaders()
+        });
         if (!response.ok) {
           throw new Error(`API Error: ${response.status}`);
         }

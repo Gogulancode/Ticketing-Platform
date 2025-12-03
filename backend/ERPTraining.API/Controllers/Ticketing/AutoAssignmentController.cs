@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ERPTraining.Core.Entities.Ticketing;
@@ -11,6 +13,8 @@ namespace ERPTraining.API.Controllers.Ticketing;
 // Auto-assignment endpoints are available for ticket routing automation.
 [ApiController]
 [Route("api/tickets/auto-assignment")]
+[Authorize]
+[EnableRateLimiting("api")]  // Enterprise: API rate limiting
 public class AutoAssignmentController : ControllerBase
 {
     private readonly IAutoAssignmentService _autoAssignmentService;

@@ -214,6 +214,15 @@ type UpdateTicketCategoryInput = Partial<TicketCategoryConfig> & {
 class SettingsApiService {
   protected baseUrl = import.meta.env.DEV ? 'http://localhost:5015/api' : API_CONFIG.BASE_URL;
 
+  // Helper method to get auth headers
+  protected getAuthHeaders(): Record<string, string> {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    };
+  }
+
   // Department configurations
   async getDepartments(): Promise<Department[]> {
     console.log('🔧 Using mock department data (API server not available)');
@@ -290,7 +299,9 @@ class SettingsApiService {
   // Issue Type configurations
   async getIssueTypes(): Promise<IssueType[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/issuetypes`);
+      const response = await fetch(`${this.baseUrl}/tickets/settings/issuetypes`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.warn('Issue Types API not available, using mock data');
         return this.getMockIssueTypes();
@@ -473,7 +484,9 @@ class SettingsApiService {
   // Email Configuration Methods
   async getEmailConfiguration(): Promise<EmailConfiguration> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/email-configuration`);
+      const response = await fetch(`${this.baseUrl}/tickets/settings/email-configuration`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.warn('Email config API not available, using mock data');
         return this.getMockEmailConfiguration();
@@ -491,7 +504,7 @@ class SettingsApiService {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/email-configuration`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(config)
       });
       
@@ -510,7 +523,9 @@ class SettingsApiService {
 
   async getEmailAccounts(): Promise<EmailAccount[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/email-accounts`);
+      const response = await fetch(`${this.baseUrl}/tickets/settings/email-accounts`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.warn('Email accounts API not available, using mock data');
         return this.getMockEmailAccounts();
@@ -528,7 +543,7 @@ class SettingsApiService {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/email-accounts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(account)
       });
       
@@ -549,7 +564,7 @@ class SettingsApiService {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/email-accounts/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(account)
       });
       
@@ -611,7 +626,9 @@ class SettingsApiService {
   // Ticket Groups API methods
   async getTicketGroups(): Promise<TicketGroup[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/groups`);
+      const response = await fetch(`${this.baseUrl}/tickets/settings/groups`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.warn('Ticket groups API not available, using mock data');
         return this.getMockTicketGroups();
@@ -629,7 +646,7 @@ class SettingsApiService {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/groups`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(group)
       });
       
@@ -650,7 +667,7 @@ class SettingsApiService {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/groups/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify({ ...group, id })
       });
       
@@ -688,7 +705,9 @@ class SettingsApiService {
   // Agents API methods
   async getAgents(): Promise<Agent[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/agents`);
+      const response = await fetch(`${this.baseUrl}/tickets/settings/agents`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.warn('Agents API not available, using mock data');
         return this.getMockAgents();
@@ -706,7 +725,7 @@ class SettingsApiService {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/agents`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(agent)
       });
       
@@ -727,7 +746,7 @@ class SettingsApiService {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/agents/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify({ ...agent, id })
       });
       
@@ -747,7 +766,8 @@ class SettingsApiService {
   async deleteAgent(id: number): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/agents/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
       });
       
       if (!response.ok) {
@@ -765,7 +785,9 @@ class SettingsApiService {
   // Category Email Mappings API methods
   async getCategoryEmailMappings(): Promise<CategoryEmailMapping[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/email-mappings`);
+      const response = await fetch(`${this.baseUrl}/tickets/settings/email-mappings`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.warn('Email mappings API not available, using mock data');
         return this.getMockCategoryEmailMappings();
@@ -783,7 +805,7 @@ class SettingsApiService {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/email-mappings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(mapping)
       });
       
@@ -804,7 +826,7 @@ class SettingsApiService {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/email-mappings/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify({ ...mapping, id })
       });
       
@@ -851,7 +873,7 @@ class SettingsApiService {
 
     const response = await fetch(`${this.baseUrl}/tickets/settings/subcategories`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(request)
     });
     
@@ -894,7 +916,7 @@ class SettingsApiService {
 
       const response = await fetch(`${this.baseUrl}/tickets/settings/subcategories/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(request)
       });
       
@@ -919,7 +941,7 @@ class SettingsApiService {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/departments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(department)
       });
       
@@ -940,7 +962,7 @@ class SettingsApiService {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/departments/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify({ ...department, id })
       });
       
@@ -969,7 +991,7 @@ class SettingsApiService {
     };
     const response = await fetch(`${this.baseUrl}/tickets/settings/priorities`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(payload)
     });
     
@@ -1007,7 +1029,7 @@ class SettingsApiService {
     }
     const response = await fetch(`${this.baseUrl}/tickets/settings/priorities/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(payload)
     });
     
@@ -1034,7 +1056,7 @@ class SettingsApiService {
   async createStatus(status: Omit<TicketStatusConfig, 'id'>): Promise<TicketStatusConfig> {
     const response = await fetch(`${this.baseUrl}/tickets/settings/statuses`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(status)
     });
     
@@ -1061,7 +1083,7 @@ class SettingsApiService {
   async updateStatus(id: number, status: Partial<TicketStatusConfig>): Promise<TicketStatusConfig> {
     const response = await fetch(`${this.baseUrl}/tickets/settings/statuses/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify({ ...status, id })
     });
     
@@ -1339,12 +1361,12 @@ class SettingsApiService {
     return [
       { 
         id: 1, 
-        name: 'New', 
+        name: 'Open', 
         workflowOrder: 1, 
         isActive: true, 
         color: '#3b82f6', 
         isDefault: true,
-        allowedTransitions: [2, 6] // Can go to In Progress or Closed
+        allowedTransitions: [2, 5] // Can go to In Progress or Closed
       },
       { 
         id: 2, 
@@ -1352,15 +1374,15 @@ class SettingsApiService {
         workflowOrder: 2, 
         isActive: true, 
         color: '#f59e0b',
-        allowedTransitions: [3, 4, 6] // Can go to Waiting, Resolved, or Closed
+        allowedTransitions: [3, 4, 5] // Can go to On Hold, Resolved, or Closed
       },
       { 
         id: 3, 
-        name: 'Waiting for others to Respond', 
+        name: 'On Hold', 
         workflowOrder: 3, 
         isActive: true, 
         color: '#8b5cf6',
-        allowedTransitions: [2, 4, 6] // Can go to In Progress, Resolved, or Closed
+        allowedTransitions: [2, 4, 5] // Can go to In Progress, Resolved, or Closed
       },
       { 
         id: 4, 
@@ -1368,7 +1390,7 @@ class SettingsApiService {
         workflowOrder: 4, 
         isActive: true, 
         color: '#10b981',
-        allowedTransitions: [5, 7] // Can go to Closed or Reopen
+        allowedTransitions: [5, 6] // Can go to Closed or Reopen
       },
       { 
         id: 5, 
@@ -1376,20 +1398,12 @@ class SettingsApiService {
         workflowOrder: 5, 
         isActive: true, 
         color: '#6b7280',
-        allowedTransitions: [7] // Can only Reopen
+        allowedTransitions: [6] // Can only Reopen
       },
       { 
         id: 6, 
-        name: 'Cancelled', 
-        workflowOrder: 6, 
-        isActive: true, 
-        color: '#ef4444',
-        allowedTransitions: [7] // Can only Reopen
-      },
-      { 
-        id: 7, 
         name: 'Reopen', 
-        workflowOrder: 7, 
+        workflowOrder: 6, 
         isActive: true, 
         color: '#f97316',
         allowedTransitions: [2] // Goes back to In Progress

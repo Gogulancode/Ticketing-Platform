@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MessageCircle, Send, Lock, User, Clock, StickyNote, Reply, Forward, Mail, Paperclip, Download } from 'lucide-react';
-import { commentsApi, type Comment, type AddCommentRequest } from '../../../../../shared/services/api/commentsApi';
-import { ticketForwardService, type ForwardRequest } from '../../../../../shared/services/ticketForwardService';
+import { Link } from 'react-router-dom';
+import { MessageCircle, Send, Lock, User, Clock, StickyNote, Reply, Forward, Mail, Paperclip, Download, X, FileText } from 'lucide-react';
+import { commentsApi, type Comment, type AddCommentWithAttachmentsRequest } from '../../../../../shared/services/api/commentsApi';
 import { ticketEmailUtility } from '../../../../../shared/services/ticketEmailUtility';
 
 interface TicketCommentsProps {
@@ -18,13 +18,23 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
   const [isInternal, setIsInternal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Reply and Forward states
+  // Attachment state for main comment
+  const [commentAttachments, setCommentAttachments] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Reply state with attachments
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+  const [replyAttachments, setReplyAttachments] = useState<File[]>([]);
+  const replyFileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Forward states
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [forwardEmail, setForwardEmail] = useState('');
   const [forwardMessage, setForwardMessage] = useState('');
   const [isForwarding, setIsForwarding] = useState(false);
+  const [forwardAttachments, setForwardAttachments] = useState<File[]>([]);
+  const forwardFileInputRef = useRef<HTMLInputElement>(null);
 
   // Query to fetch comments
   const { data: comments, isLoading, error } = useQuery({
@@ -34,15 +44,17 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
     staleTime: 30 * 1000, // 30 seconds
   });
 
-  // Mutation to add comment
+  // Mutation to add comment (with or without attachments)
   const addCommentMutation = useMutation({
-    mutationFn: (request: AddCommentRequest) => commentsApi.addComment(ticketId, request),
+    mutationFn: (request: AddCommentWithAttachmentsRequest) => 
+      commentsApi.addCommentWithAttachments(ticketId, request),
     onSuccess: () => {
       // Invalidate and refetch comments
       queryClient.invalidateQueries({ queryKey: ['ticket-comments', ticketId] });
       queryClient.invalidateQueries({ queryKey: ['ticket', ticketId] });
       setNewComment('');
       setIsInternal(false);
+      setCommentAttachments([]);
       setIsSubmitting(false);
     },
     onError: (error) => {
@@ -59,13 +71,79 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
 
     setIsSubmitting(true);
     addCommentMutation.mutate({
-      Content: newComment.trim(),  // Changed to PascalCase
-      IsInternal: isInternal       // Changed to PascalCase
+      content: newComment.trim(),
+      isInternal: isInternal,
+      attachments: commentAttachments.length > 0 ? commentAttachments : undefined
     });
     
     // Log what email subject would be sent to user for tracking
     console.log(`📧 Email notification subject: [Ticket #${effectiveTicketNumber}] ${ticketTitle || 'Support Request'} - Comment Update`);
     console.log(`📧 When user replies to this email, it becomes a comment (no duplicate tickets)`);
+  };
+
+  // Handle file selection for main comment
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    // Validate file size (max 10MB per file)
+    const validFiles = files.filter(file => {
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`File "${file.name}" exceeds 10MB limit`);
+        return false;
+      }
+      return true;
+    });
+    setCommentAttachments(prev => [...prev, ...validFiles]);
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Remove attachment
+  const removeAttachment = (index: number) => {
+    setCommentAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Handle file selection for reply
+  const handleReplyFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles = files.filter(file => {
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`File "${file.name}" exceeds 10MB limit`);
+        return false;
+      }
+      return true;
+    });
+    setReplyAttachments(prev => [...prev, ...validFiles]);
+    if (replyFileInputRef.current) {
+      replyFileInputRef.current.value = '';
+    }
+  };
+
+  // Remove reply attachment
+  const removeReplyAttachment = (index: number) => {
+    setReplyAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Handle file selection for forward
+  const handleForwardFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles = files.filter(file => {
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`File "${file.name}" exceeds 10MB limit`);
+        return false;
+      }
+      return true;
+    });
+    setForwardAttachments(prev => [...prev, ...validFiles]);
+    if (forwardFileInputRef.current) {
+      forwardFileInputRef.current.value = '';
+    }
+  };
+
+  // Remove forward attachment
+  const removeForwardAttachment = (index: number) => {
+    setForwardAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   // Handle reply to specific comment
@@ -76,46 +154,60 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
     const replyContent = `[Reply to Comment #${commentId}] ${replyText.trim()}`;
     
     addCommentMutation.mutate({
-      Content: replyContent,
-      IsInternal: isInternal
+      content: replyContent,
+      isInternal: isInternal,
+      attachments: replyAttachments.length > 0 ? replyAttachments : undefined
     });
     setReplyingTo(null);
     setReplyText('');
+    setReplyAttachments([]);
     
     // If configured, send email notification with proper subject
     console.log(`📧 Reply would have subject: Re: [Ticket #${effectiveTicketNumber}] ${ticketTitle || 'Support Request'}`);
   };
 
-  // Handle forward ticket
+  // Handle forward ticket with attachments
   const handleForward = async () => {
     if (!forwardEmail.trim()) return;
 
     setIsForwarding(true);
     try {
-      // Generate ticket number for tracking
-      const forwardRequest: ForwardRequest = {
-        ticketId,
-        toEmail: forwardEmail,
-        message: forwardMessage,
-        includeHistory: true,
-        forwardType: 'agent', // Assume internal forwarding for now
-        ticketNumber: effectiveTicketNumber,
-        ticketTitle: ticketTitle || 'Support Request'
-      };
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api';
+      const token = localStorage.getItem('token');
       
-      const result = await ticketForwardService.forwardTicket(forwardRequest);
+      // Use FormData to support file attachments
+      const formData = new FormData();
+      formData.append('recipientEmail', forwardEmail);
+      formData.append('forwardMessage', forwardMessage);
       
-      if (result.success) {
+      // Add attachments if any
+      if (forwardAttachments.length > 0) {
+        forwardAttachments.forEach((file) => {
+          formData.append('attachments', file);
+        });
+      }
+      
+      const response = await fetch(`${baseUrl}/tickets-v2/${ticketId}/forward-email`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+      
+      if (response.ok) {
         // Refresh comments to show the forward action
         queryClient.invalidateQueries({ queryKey: ['ticket-comments', ticketId] });
         setShowForwardModal(false);
         setForwardEmail('');
         setForwardMessage('');
+        setForwardAttachments([]);
         
         console.log(`✅ Ticket #${effectiveTicketNumber} forwarded successfully with subject: Fwd: [Ticket #${effectiveTicketNumber}] ${ticketTitle || 'Support Request'}`);
       } else {
-        console.error('Failed to forward ticket:', result.message);
-        alert('Failed to forward ticket: ' + result.message);
+        const errorData = await response.text();
+        console.error('Failed to forward ticket:', errorData);
+        alert('Failed to forward ticket: ' + (errorData || response.statusText));
       }
     } catch (error) {
       console.error('Error forwarding ticket:', error);
@@ -135,6 +227,104 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  // Parse comment body and convert ticket references to clickable links
+  // Supports two formats:
+  // 1. New format: [#101912](ticket:guid-here) - links directly to ticket
+  // 2. Old format: #101912 - fallback, searches for ticket
+  const renderCommentBody = (body: string) => {
+    const parts: (string | React.ReactNode)[] = [];
+    let keyIndex = 0;
+
+    // First, handle new format: [#PublicId](ticket:GUID)
+    const newFormatPattern = /\[#(\d+)\]\(ticket:([a-f0-9-]+)\)/gi;
+    
+    // Split by the new format pattern and process
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = newFormatPattern.exec(body)) !== null) {
+      // Add text before the match
+      if (match.index > lastIndex) {
+        const textBefore = body.slice(lastIndex, match.index);
+        // Process this text for old format patterns
+        parts.push(...processOldFormat(textBefore, keyIndex));
+        keyIndex += 100; // Increment to avoid key collisions
+      }
+      
+      // Add the clickable ticket link (new format - direct link)
+      const ticketPublicId = match[1];
+      const ticketGuid = match[2];
+      parts.push(
+        <Link
+          key={`ticket-new-${keyIndex++}`}
+          to={`/tickets/${ticketGuid}`}
+          className="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium hover:underline"
+          title={`View ticket #${ticketPublicId}`}
+        >
+          #{ticketPublicId}
+        </Link>
+      );
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Process remaining text after last match
+    if (lastIndex < body.length) {
+      const remainingText = body.slice(lastIndex);
+      parts.push(...processOldFormat(remainingText, keyIndex));
+    }
+    
+    // If no matches at all, just return the body
+    if (parts.length === 0) {
+      return body;
+    }
+    
+    return parts;
+  };
+
+  // Process old format ticket references (#123456) - used for legacy comments
+  const processOldFormat = (text: string, startKeyIndex: number): (string | React.ReactNode)[] => {
+    const oldFormatPattern = /#(\d{4,})/g;
+    const parts: (string | React.ReactNode)[] = [];
+    let lastIndex = 0;
+    let match;
+    let keyIndex = startKeyIndex;
+
+    while ((match = oldFormatPattern.exec(text)) !== null) {
+      // Add text before the match
+      if (match.index > lastIndex) {
+        parts.push(text.slice(lastIndex, match.index));
+      }
+      
+      // For old format, use the lookup endpoint to find by public ID
+      const ticketPublicId = match[1];
+      parts.push(
+        <Link
+          key={`ticket-old-${keyIndex++}`}
+          to={`/tickets/by-public-id/${ticketPublicId}`}
+          className="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium hover:underline cursor-pointer"
+          title={`View ticket #${ticketPublicId}`}
+        >
+          #{ticketPublicId}
+        </Link>
+      );
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex));
+    }
+    
+    // If no matches, return original text as array
+    if (parts.length === 0) {
+      return [text];
+    }
+    
+    return parts;
   };
 
   // Filter comments based on user role
@@ -246,7 +436,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
 
               {/* Comment Body */}
               <div className="text-gray-700 whitespace-pre-wrap">
-                {comment.body}
+                {renderCommentBody(comment.body)}
               </div>
 
               {/* Comment Attachments */}
@@ -274,7 +464,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                           </div>
                         </div>
                         <a
-                          href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015'}/api/tickets-v2/attachments/${attachment.id}/download`}
+                          href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets-v2/attachments/${attachment.id}/download`}
                           download={attachment.fileName}
                           className="flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
                           title="Download attachment"
@@ -305,23 +495,75 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
             disabled={isSubmitting}
           />
           
+          {/* Attachment Preview */}
+          {commentAttachments.length > 0 && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2 text-sm font-medium text-gray-700">
+                <Paperclip className="h-4 w-4" />
+                {commentAttachments.length} file(s) selected
+              </div>
+              <div className="space-y-2">
+                {commentAttachments.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <FileText className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">{file.name}</div>
+                        <div className="text-xs text-gray-500">{(file.size / 1024).toFixed(2)} KB</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(index)}
+                      className="p-1 text-red-500 hover:bg-red-50 rounded"
+                      title="Remove file"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           <div className="flex items-center justify-between">
-            {/* Internal comment option (only for agents) */}
-            {isAgent && (
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isInternal}
-                  onChange={(e) => setIsInternal(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  disabled={isSubmitting}
-                />
-                <div className="flex items-center gap-1 text-sm text-gray-600">
-                  <Lock className="h-3 w-3" />
-                  Internal comment (only visible to agents)
-                </div>
-              </label>
-            )}
+            <div className="flex items-center gap-4">
+              {/* Internal comment option (only for agents) */}
+              {isAgent && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isInternal}
+                    onChange={(e) => setIsInternal(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    disabled={isSubmitting}
+                  />
+                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <Lock className="h-3 w-3" />
+                    Internal
+                  </div>
+                </label>
+              )}
+              
+              {/* Attachment button */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg border border-gray-300 transition-colors"
+                disabled={isSubmitting}
+              >
+                <Paperclip className="h-4 w-4" />
+                Attach Files
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.csv,.zip"
+              />
+            </div>
 
             {/* Submit button */}
             <button
@@ -352,7 +594,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
             <Reply className="h-4 w-4" />
             Replying to comment
             <button
-              onClick={() => setReplyingTo(null)}
+              onClick={() => { setReplyingTo(null); setReplyAttachments([]); }}
               className="text-gray-400 hover:text-gray-600"
             >
               ✕
@@ -366,18 +608,61 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
               rows={2}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
+            
+            {/* Reply Attachment Preview */}
+            {replyAttachments.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-lg p-2">
+                <div className="flex flex-wrap gap-2">
+                  {replyAttachments.map((file, index) => (
+                    <div key={index} className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm">
+                      <FileText className="h-3 w-3 text-blue-500" />
+                      <span className="max-w-[120px] truncate">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeReplyAttachment(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div className="flex items-center justify-between">
-              {isAgent && (
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isInternal}
-                    onChange={(e) => setIsInternal(e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-600">Internal reply</span>
-                </label>
-              )}
+              <div className="flex items-center gap-3">
+                {isAgent && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isInternal}
+                      onChange={(e) => setIsInternal(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-600">Internal</span>
+                  </label>
+                )}
+                
+                {/* Reply Attachment button */}
+                <button
+                  type="button"
+                  onClick={() => replyFileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-sm text-gray-600 hover:text-blue-600 hover:bg-white rounded border border-gray-300"
+                >
+                  <Paperclip className="h-3 w-3" />
+                  Attach
+                </button>
+                <input
+                  ref={replyFileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleReplyFileSelect}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.csv,.zip"
+                />
+              </div>
+              
               <button
                 onClick={() => handleReply(replyingTo)}
                 disabled={!replyText.trim() || isSubmitting}
@@ -457,10 +742,54 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                 />
               </div>
 
+              {/* Attachments Field */}
+              <div className="flex gap-3">
+                <label className="w-16 text-sm font-medium text-gray-700 pt-2">Attach:</label>
+                <div className="flex-1 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => forwardFileInputRef.current?.click()}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg border border-gray-300 transition-colors"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                    Add Attachments
+                  </button>
+                  <input
+                    ref={forwardFileInputRef}
+                    type="file"
+                    multiple
+                    onChange={handleForwardFileSelect}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.csv,.zip"
+                  />
+                  
+                  {forwardAttachments.length > 0 && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 space-y-1">
+                      {forwardAttachments.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <FileText className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                            <span className="text-sm text-gray-900 truncate">{file.name}</span>
+                            <span className="text-xs text-gray-500">({(file.size / 1024).toFixed(1)} KB)</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeForwardAttachment(index)}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Action Buttons */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t">
                 <button
-                  onClick={() => setShowForwardModal(false)}
+                  onClick={() => { setShowForwardModal(false); setForwardAttachments([]); }}
                   className="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
                 >
                   Cancel

@@ -25,31 +25,37 @@ public class TicketService : ITicketService
 
     public async Task<Ticket> CreateTicketAsync(Ticket ticket)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-        try
+        // Use execution strategy to handle retries properly with transactions
+        var strategy = _context.Database.CreateExecutionStrategy();
+        
+        return await strategy.ExecuteAsync(async () =>
         {
-            var nextPublicId = await _context.Database
-                .SqlQueryRaw<int>("SELECT ISNULL(MAX(PublicId), 0) + 1 AS Value FROM Tickets WITH (UPDLOCK, HOLDLOCK)")
-                .SingleAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var nextPublicId = await _context.Database
+                    .SqlQueryRaw<int>("SELECT ISNULL(MAX(PublicId), 0) + 1 AS Value FROM Tickets WITH (UPDLOCK, HOLDLOCK)")
+                    .SingleAsync();
 
-            ticket.Id = Guid.NewGuid();
-            ticket.PublicId = nextPublicId;
-            ticket.CreatedAt = DateTime.UtcNow;
-            ticket.UpdatedAt = DateTime.UtcNow;
-            ticket.Status = 1; // New status ID
+                ticket.Id = Guid.NewGuid();
+                ticket.PublicId = nextPublicId;
+                ticket.CreatedAt = DateTime.UtcNow;
+                ticket.UpdatedAt = DateTime.UtcNow;
+                ticket.Status = 1; // New status ID
 
-            _context.Tickets.Add(ticket);
-            await _context.SaveChangesAsync();
+                _context.Tickets.Add(ticket);
+                await _context.SaveChangesAsync();
 
-            await transaction.CommitAsync();
+                await transaction.CommitAsync();
 
-            return ticket;
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                return ticket;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        });
     }
 
     public async Task<Ticket?> GetTicketByIdAsync(Guid id)

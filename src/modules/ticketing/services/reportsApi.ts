@@ -79,6 +79,15 @@ export type ReportStatistics = Record<string, unknown>;
 
 const API_BASE = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/reports`;
 
+// Helper function to get auth headers
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+}
+
 export const reportsApi = {
   // Resolution & Response Time Report
   async getResolutionResponseReport(filters?: ReportFilters): Promise<ResolutionResponseReport[]> {
@@ -90,7 +99,9 @@ export const reportsApi = {
     if (filters?.agent) params.append('agent', filters.agent);
     if (filters?.department) params.append('department', filters.department);
     
-    const response = await fetch(`${API_BASE}/resolution-response?${params}`);
+    const response = await fetch(`${API_BASE}/resolution-response?${params}`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get resolution response report: ${response.statusText}`);
     }
@@ -104,7 +115,9 @@ export const reportsApi = {
     if (filters?.endDate) params.append('endDate', filters.endDate);
     if (filters?.department) params.append('department', filters.department);
     
-    const response = await fetch(`${API_BASE}/agent-performance?${params}`);
+    const response = await fetch(`${API_BASE}/agent-performance?${params}`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get agent performance report: ${response.statusText}`);
     }
@@ -120,7 +133,9 @@ export const reportsApi = {
     if (filters?.department) params.append('department', filters.department);
     if (filters?.searchTerm) params.append('search', filters.searchTerm);
     
-    const response = await fetch(`${API_BASE}/unresolved?${params}`);
+    const response = await fetch(`${API_BASE}/unresolved?${params}`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get unresolved tickets report: ${response.statusText}`);
     }
@@ -139,7 +154,9 @@ export const reportsApi = {
     if (filters?.department) params.append('department', filters.department);
     if (filters?.searchTerm) params.append('search', filters.searchTerm);
     
-    const response = await fetch(`${API_BASE}/all-tickets?${params}`);
+    const response = await fetch(`${API_BASE}/all-tickets?${params}`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get all tickets report: ${response.statusText}`);
     }
@@ -162,7 +179,9 @@ export const reportsApi = {
     if (filters?.department) params.append('department', filters.department);
     if (filters?.searchTerm) params.append('search', filters.searchTerm);
     
-    const response = await fetch(`${API_BASE}/export?${params}`);
+    const response = await fetch(`${API_BASE}/export?${params}`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to export report: ${response.statusText}`);
     }
@@ -176,7 +195,9 @@ export const reportsApi = {
     if (filters?.endDate) params.append('endDate', filters.endDate);
     if (filters?.department) params.append('department', filters.department);
     
-    const response = await fetch(`${API_BASE}/statistics?${params}`);
+    const response = await fetch(`${API_BASE}/statistics?${params}`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get report statistics: ${response.statusText}`);
     }

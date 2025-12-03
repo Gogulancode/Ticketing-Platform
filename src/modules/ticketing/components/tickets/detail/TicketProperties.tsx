@@ -10,6 +10,7 @@ import {
   type CustomField,
   type Agent as SettingsAgent,
 } from '../../../../../shared/services/api/settingsApi';
+import { settingsApi as advancedSettingsApi } from '../../../../../api/settingsApi';
 import { ticketsV2Api, TicketUpdateRequest } from '../../../services/ticketsV2Api';
 
 type FormValue = string | number | undefined;
@@ -41,9 +42,10 @@ interface TicketReference {
 interface TicketPropertiesProps {
   ticket: TicketReference;
   agents?: SettingsAgent[]; // Optional filtered agents from parent
+  isAgent?: boolean; // Whether current user is admin/agent
 }
 
-const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) => {
+const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents, isAgent = false }) => {
   const queryClient = useQueryClient();
 
   const extractId = (
@@ -52,13 +54,32 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
     if (entity === null || entity === undefined) {
       return '';
     }
-    if (typeof entity === 'number' || typeof entity === 'string') {
+    if (typeof entity === 'number') {
+      return entity; // Return number as-is for priority/status
+    }
+    if (typeof entity === 'string') {
       return entity;
     }
     if (typeof entity === 'object' && 'id' in entity && entity.id != null) {
-      return entity.id ?? '';
+      return entity.id;
     }
     return '';
+  };
+
+  // Convert priority enum value (0-3) to database ID (1-4)
+  // Enum: Low=0, Medium=1, High=2, Critical=3
+  // DB:   Low=1, Medium=2, High=3, Critical=4
+  const convertPriorityEnumToDbId = (priority: number | string | { id?: number | null } | null | undefined): FormValue => {
+    const value = extractId(priority);
+    if (value === '' || value === null || value === undefined) return '';
+    const numValue = typeof value === 'number' ? value : parseInt(String(value), 10);
+    if (isNaN(numValue)) return '';
+    // If value is 0-3 (enum), convert to 1-4 (database ID)
+    // If value is already 1-4, keep as-is
+    if (numValue >= 0 && numValue <= 3) {
+      return numValue + 1; // Convert enum to database ID
+    }
+    return numValue; // Already a database ID
   };
 
   const toNumericId = (value: FormValue): number | undefined => {
@@ -73,23 +94,11 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
     value !== undefined && value !== null ? String(value) : '';
 
   const [hasChanges, setHasChanges] = useState(false);
-  
-  // Debug: Log the ticket data structure
-  console.log('🎫 TicketProperties received ticket:', {
-    ticket,
-    category: ticket?.category,
-    categoryId: ticket?.categoryId,
-    subCategory: ticket?.subCategory,
-    subcategoryId: ticket?.subcategoryId,
-    priority: ticket?.priority,
-    status: ticket?.status,
-    assignedToUserId: ticket?.assignedToUserId
-  });
 
   const [formData, setFormData] = useState<TicketFormData>(() => ({
     categoryId: extractId(ticket?.categoryId ?? ticket?.category),
     subcategoryId: extractId(ticket?.subcategoryId ?? ticket?.subCategory),
-    priorityId: extractId(ticket?.priorityId ?? ticket?.priority),
+    priorityId: convertPriorityEnumToDbId(ticket?.priorityId ?? ticket?.priority),
     statusId: extractId(ticket?.statusId ?? ticket?.status),
     assignedAgentId: ticket?.assignedToUserId || ticket?.assignedAgentId || ticket?.assignedToUser?.id || '',
   }));
@@ -97,27 +106,6 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
   // Update form data when ticket changes - only on initial mount or when ticket ID changes
   useEffect(() => {
     if (ticket && !hasChanges) {
-      console.log('🔄 Updating formData with new ticket:', JSON.stringify(ticket, null, 2));
-      console.log('🔍 Raw ticket field values:', {
-        categoryId: ticket?.categoryId,
-        category: ticket?.category,
-        subcategoryId: ticket?.subcategoryId,
-        subCategory: ticket?.subCategory,
-        priorityId: ticket?.priorityId,
-        priority: ticket?.priority,
-        statusId: ticket?.statusId,
-        status: ticket?.status,
-        assignedToUserId: ticket?.assignedToUserId,
-        assignedAgentId: ticket?.assignedAgentId,
-        assignedToUser: ticket?.assignedToUser
-      });
-      console.log('🔍 Ticket structure check:', {
-        hasCustomFieldValues: !!ticket?.customFieldValues,
-        customFieldValuesType: typeof ticket?.customFieldValues,
-        isArray: Array.isArray(ticket?.customFieldValues),
-        customFieldValuesData: JSON.stringify(ticket?.customFieldValues, null, 2),
-        customFieldValuesLength: ticket?.customFieldValues?.length
-      });
       
       const fallbackStatus = (() => {
         if (ticket?.statusId !== undefined && ticket?.statusId !== null) {
@@ -136,54 +124,29 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
       const newFormData: TicketFormData = {
         categoryId: extractId(ticket?.categoryId ?? ticket?.category),
         subcategoryId: extractId(ticket?.subcategoryId ?? ticket?.subCategory),
-        priorityId: extractId(ticket?.priorityId ?? ticket?.priority),
+        priorityId: convertPriorityEnumToDbId(ticket?.priorityId ?? ticket?.priority),
         statusId: fallbackStatus,
         assignedAgentId: ticket?.assignedToUserId || ticket?.assignedAgentId || ticket?.assignedToUser?.id || '',
       };
       
-      console.log('🔍 Parsed field values:', {
-        categoryId: newFormData.categoryId,
-        subcategoryId: newFormData.subcategoryId,
-        priorityId: newFormData.priorityId,
-        statusId: newFormData.statusId,
-        assignedAgentId: newFormData.assignedAgentId
-      });
-      
       // Add existing custom field values if they exist
       if (ticket?.customFieldValues) {
-        console.log('📋 Loading existing custom field values:', JSON.stringify(ticket.customFieldValues, null, 2));
-        
         if (Array.isArray(ticket.customFieldValues)) {
           // Array format from V2 API
           ticket.customFieldValues.forEach((fieldValue) => {
-            console.log('🔍 Processing array field value:', JSON.stringify(fieldValue, null, 2));
             const fieldId = fieldValue.customFieldId || fieldValue.fieldId || fieldValue.id;
             if (fieldId) {
               newFormData[`customField_${fieldId}`] = fieldValue.value;
-              console.log(`✅ Set customField_${fieldId} = ${fieldValue.value}`);
             }
           });
         } else if (typeof ticket.customFieldValues === 'object') {
           // Object format - handle both formats
           Object.entries(ticket.customFieldValues).forEach(([key, value]) => {
-            console.log(`🔍 Processing object field: ${key} = ${value}`);
             const fieldKey = key.startsWith('customField_') ? key : `customField_${key}`;
             newFormData[fieldKey] = value as FormValue;
-            console.log(`✅ Set ${fieldKey} = ${value}`);
           });
         }
-      } else {
-        console.warn('⚠️ No custom field values found in ticket data');
       }
-      
-      console.log('📝 Final formData:', JSON.stringify(newFormData, null, 2));
-      console.log('🎯 Status check:', {
-        statusId: newFormData.statusId,
-        statusIdType: typeof newFormData.statusId,
-        isDefined: newFormData.statusId !== undefined,
-        isNotNull: newFormData.statusId !== null,
-        stringValue: String(newFormData.statusId)
-      });
       setFormData(newFormData);
     }
   }, [ticket, hasChanges]);
@@ -194,31 +157,10 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
   const { data: customFields } = useQuery<CustomField[]>({
     queryKey: ['custom-fields', formData.categoryId, formData.subcategoryId],
     queryFn: async () => {
-      console.log('🔧 Custom Fields Query:', {
-        categoryId: formData.categoryId,
-        subcategoryId: formData.subcategoryId,
-        categoryType: typeof formData.categoryId,
-        subcategoryType: typeof formData.subcategoryId
-      });
-
       const fields = await settingsApi.getCustomFields(
         numericCategoryId,
         numericSubcategoryId
       );
-
-      console.log('📋 Custom Fields Result:', {
-        count: fields.length,
-        fields: fields.map(f => ({
-          id: f.id,
-          name: f.name,
-          label: f.label,
-          type: f.type,
-          categoryId: f.categoryId,
-          subCategoryId: f.subCategoryId,
-          isActive: f.isActive
-        }))
-      });
-
       return fields;
     },
     enabled: !!(numericCategoryId && numericSubcategoryId),
@@ -245,36 +187,68 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
     queryFn: () => settingsApi.getTicketStatuses(),
   });
 
-  // Debug: Log when statuses load and what the current statusId is
-  React.useEffect(() => {
-    if (statuses && statuses.length > 0) {
-      console.log('✅ Statuses loaded:', {
-        count: statuses.length,
-        statusesList: statuses.map((s) => ({ id: s.id, idType: typeof s.id, name: s.name })),
-        currentStatusId: formData.statusId,
-        currentStatusIdType: typeof formData.statusId,
-        hasMatchingStatus: statuses.some((s) => s.id === formData.statusId || String(s.id) === String(formData.statusId))
-      });
-    }
-  }, [statuses, formData.statusId]);
 
-  // Use agents from props if provided (filtered), otherwise query all agents
-  const { data: queriedAgents } = useQuery<SettingsAgent[]>({
-    queryKey: ['agents', formData.categoryId, formData.subcategoryId],
+
+  // Query all agents
+  const { data: allAgents } = useQuery<SettingsAgent[]>({
+    queryKey: ['agents'],
     queryFn: () => settingsApi.getAgents(),
-    enabled: !!(numericCategoryId && numericSubcategoryId) && !agents,
   });
-  
-  const effectiveAgents = agents || queriedAgents;
-  
-  // Debug logging for agent filtering
-  console.log('👥 TicketProperties agents:', {
-    propsAgents: agents?.length || 0,
-    queriedAgents: queriedAgents?.length || 0,
-    effectiveAgents: effectiveAgents?.length || 0,
-    usingFiltered: !!agents,
-    agentsList: effectiveAgents?.map(a => ({ id: a.id, userId: a.userId, name: a.name }))
+
+  // Query agent groups to filter agents by category/subcategory
+  // Use the advanced API which includes categoryId, subcategoryId, and assignedAgentIds
+  const { data: agentGroups } = useQuery({
+    queryKey: ['advanced-ticket-groups'],
+    queryFn: () => advancedSettingsApi.getAdvancedTicketGroups(),
   });
+
+  // Filter agents based on category and subcategory using agent groups
+  const filteredAgentsByCategory = React.useMemo(() => {
+    if (!allAgents || allAgents.length === 0) return [];
+    
+    // If no category selected yet, don't show any agents
+    if (!numericCategoryId) {
+      return [];
+    }
+    
+    // If agent groups haven't loaded yet, show empty (loading state)
+    if (!agentGroups) {
+      return [];
+    }
+
+    // Find matching agent groups based on selected category and subcategory
+    const matchingGroups = agentGroups.filter(group => {
+      const categoryMatch = group.categoryId === numericCategoryId;
+      const subcategoryMatch = !numericSubcategoryId || // No subcategory selected
+                              !group.subcategoryId || // Group applies to all subcategories
+                              group.subcategoryId === numericSubcategoryId; // Exact match
+      const isMatch = categoryMatch && subcategoryMatch && group.isActive;
+      
+      return isMatch;
+    });
+
+    if (matchingGroups.length === 0) {
+      // No matching groups for this category - show empty list
+      return [];
+    }
+
+    // Get all agent IDs from matching groups
+    const allowedAgentIds = new Set<number>();
+    matchingGroups.forEach(group => {
+      group.assignedAgentIds?.forEach((agentId: number) => allowedAgentIds.add(agentId));
+    });
+
+    // Filter agents to only show those in matching groups
+    const filtered = allAgents.filter(agent => {
+      const agentIdNumber = typeof agent.id === 'number' ? agent.id : parseInt(String(agent.id));
+      return allowedAgentIds.has(agentIdNumber);
+    });
+
+    return filtered;
+  }, [allAgents, agentGroups, numericCategoryId, numericSubcategoryId]);
+
+  // Always use locally filtered agents based on current form values
+  const effectiveAgents = filteredAgentsByCategory;
 
   const handleInputChange = (field: string, value: FormValue) => {
     setFormData(prev => {
@@ -294,14 +268,14 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
 
   const updateMutation = useMutation({
     mutationFn: async (updates: TicketFormData) => {
-      console.log('🚀 Updating ticket with data:', updates);
-      
-      // Extract custom fields from form data
-      const customFields: Record<string, FormValue> = {};
+      // Extract custom fields from form data - convert to proper types
+      const customFields: Record<string, string | number | boolean | null> = {};
       Object.keys(updates).forEach(key => {
         if (key.startsWith('customField_')) {
           const fieldId = key.replace('customField_', '');
-          customFields[fieldId] = updates[key];
+          const value = updates[key];
+          // Convert undefined to null for the API
+          customFields[fieldId] = value === undefined ? null : value;
         }
       });
       
@@ -327,22 +301,9 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
         }
       });
 
-      console.log('📤 Sending update request:', updateRequest);
-      console.log('🔧 Custom fields to update:', customFields);
-      console.log('🎯 Field mapping verification:', {
-        originalFormData: updates,
-        mappedRequest: updateRequest,
-        categoryMapping: `${updates.categoryId} → category: ${updateRequest.category}, categoryId: ${updateRequest.categoryId}`,
-        priorityMapping: `${updates.priorityId} → priority: ${updateRequest.priority}`,
-        statusMapping: `${updates.statusId} → status: ${updateRequest.status}`,
-        agentMapping: `${updates.assignedAgentId} → assignedToUserId: ${updateRequest.assignedToUserId}`
-      });
-      
       return await ticketsV2Api.updateTicket(ticket.id, updateRequest);
     },
-    onSuccess: (result) => {
-      console.log('✅ Ticket updated successfully:', result);
-      
+    onSuccess: () => {
       setHasChanges(false);
       
       // Invalidate queries to refetch fresh data - this will reload the ticket with updated values
@@ -360,16 +321,16 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold mb-4">Ticket Properties</h3>
+    <div className="bg-white rounded-lg border border-gray-200 p-3">
+      <h3 className="text-base font-semibold mb-3">Ticket Properties</h3>
       
-      <div className="space-y-4 mb-6">
+      <div className="space-y-3 mb-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
           <select
             value={toInputValue(formData.categoryId)}
             onChange={(e) => handleInputChange('categoryId', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select Category</option>
             {categories?.map((category) => (
@@ -379,11 +340,11 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Sub Category</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category</label>
           <select
             value={toInputValue(formData.subcategoryId)}
             onChange={(e) => handleInputChange('subcategoryId', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={!formData.categoryId}
           >
             <option value="">Select Sub Category</option>
@@ -397,7 +358,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
           <>
             {customFields.map((field) => (
               <div key={field.id}>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   {field.label || field.name}
                   {field.isRequired && <span className="text-red-500 ml-1">*</span>}
                 </label>
@@ -406,7 +367,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
                   <select
                     value={toInputValue(formData[`customField_${field.id}`])}
                     onChange={(e) => handleInputChange(`customField_${field.id}`, e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Not set</option>
                     {field.options?.map((option: string, index: number) => (
@@ -419,7 +380,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
                     value={toInputValue(formData[`customField_${field.id}`])}
                     onChange={(e) => handleInputChange(`customField_${field.id}`, e.target.value)}
                     placeholder={field.placeholder}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 )}
               </div>
@@ -428,11 +389,11 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
           <select
             value={toInputValue(formData.priorityId)}
             onChange={(e) => handleInputChange('priorityId', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select Priority</option>
             {priorities?.map((priority) => (
@@ -441,46 +402,55 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents }) =
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-          <select
-            value={(() => {
-              const val = toInputValue(formData.statusId);
-              console.log('🎯 Status dropdown value:', {
-                formDataStatusId: formData.statusId,
-                calculatedValue: val,
-                statusesLoaded: !!statuses,
-                statusesCount: statuses?.length || 0
-              });
-              return val;
-            })()}
-            onChange={(e) => handleInputChange('statusId', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select Status</option>
-            {statuses?.map((status) => (
-              <option key={status.id} value={String(status.id)}>{status.name}</option>
-            ))}
-          </select>
-        </div>
+        {/* Status - Only visible to Admin/Agent */}
+        {isAgent && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select
+              value={toInputValue(formData.statusId)}
+              onChange={(e) => handleInputChange('statusId', e.target.value)}
+              className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Status</option>
+              {statuses?.map((status) => (
+                <option key={status.id} value={String(status.id)}>{status.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Agent</label>
-          <select
-            value={toInputValue(formData.assignedAgentId)}
-            onChange={(e) => handleInputChange('assignedAgentId', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={!formData.categoryId || !formData.subcategoryId}
-          >
-            <option value="">Select Agent</option>
-            {effectiveAgents?.map((agent) => (
-              <option key={agent.id} value={agent.userId}>{agent.name || agent.email || `Agent ${agent.id}`}</option>
-            ))}
-          </select>
-        </div>
+        {/* Agent - Only visible to Admin/Agent */}
+        {isAgent && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Agent</label>
+            <select
+              value={toInputValue(formData.assignedAgentId)}
+              onChange={(e) => handleInputChange('assignedAgentId', e.target.value)}
+              className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={!formData.categoryId || !formData.subcategoryId || effectiveAgents.length === 0}
+            >
+              {effectiveAgents.length === 0 ? (
+                <option value="">No agents configured for this category</option>
+              ) : (
+                <>
+                  <option value="">Select Agent</option>
+                  {effectiveAgents.map((agent) => (
+                    <option key={agent.id} value={agent.userId}>{agent.name || agent.email || `Agent ${agent.id}`}</option>
+                  ))}
+                </>
+              )}
+            </select>
+            {effectiveAgents.length === 0 && formData.categoryId && formData.subcategoryId && (
+              <p className="text-xs text-amber-600 mt-1">
+                ⚠️ Configure agent groups in Settings → Groups
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
-      {hasChanges && (
+      {/* Only show update button if user has changes AND is an agent/admin */}
+      {hasChanges && isAgent && (
         <div className="flex justify-end pt-4 border-t border-gray-200">
           <button
             onClick={handleUpdate}

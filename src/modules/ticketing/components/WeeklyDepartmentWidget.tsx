@@ -2,6 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Building, TrendingUp } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
 
+// Helper function to get auth headers
+const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+};
+
 interface DepartmentData {
   departmentName: string;
   totalTickets: number;
@@ -23,7 +32,9 @@ const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ departm
   const fetchDepartmentData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/department-analytics?days=7`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/department-analytics?days=7`, {
+        headers: getAuthHeaders()
+      });
       if (!response.ok) throw new Error('Failed to fetch department data');
       const result = await response.json();
       

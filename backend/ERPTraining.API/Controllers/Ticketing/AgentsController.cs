@@ -1,6 +1,8 @@
 using ERPTraining.Core.Ticketing.Settings.DTOs;
 using ERPTraining.Core.Ticketing.Settings.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using AgentEntity = ERPTraining.Core.Entities.Ticketing.Agent;
 using TicketGroupEntity = ERPTraining.Core.Entities.Ticketing.TicketGroup;
 
@@ -8,6 +10,8 @@ namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
 [Route("api/tickets/settings/agents")]
+[Authorize]
+[EnableRateLimiting("api")]  // Enterprise: API rate limiting
 public class AgentsController : ControllerBase
 {
     private readonly IA_TicketSettingsService _service;

@@ -14,13 +14,59 @@ import {
   LogOut
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { getCurrentUser } from '../../../shared/services/api/auth';
 
 const TicketingLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAgent, setIsAgent] = useState(false);
   const { logout: authLogout } = useAuth();
+
+  // Check user role on mount
+  useEffect(() => {
+    const loadUserRole = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        const adminRoles = ['Admin', 'SuperAdmin', 'Administrator'];
+        const singleRole = (currentUser.role || '').toString().toLowerCase();
+        const roles = Array.isArray(currentUser.roles)
+          ? currentUser.roles
+              .map((role: unknown) => {
+                if (!role) return '';
+                if (typeof role === 'string') return role;
+                if (typeof role === 'object' && role !== null && 'name' in role && typeof (role as { name: unknown }).name === 'string') {
+                  return (role as { name: string }).name;
+                }
+                return String(role);
+              })
+              .filter(Boolean)
+          : [];
+        const normalizedRoles = roles.map((role: string) => role.toLowerCase());
+        
+        const userIsAdmin = adminRoles.some(role => 
+          singleRole.includes(role.toLowerCase()) || normalizedRoles.some((r: string) => r.includes(role.toLowerCase()))
+        );
+        setIsAdmin(userIsAdmin);
+
+        const userIsAgent = Boolean(
+          currentUser.isAgent ||
+          singleRole.includes('agent') ||
+          normalizedRoles.some((role: string) => role.includes('agent'))
+        );
+        setIsAgent(userIsAgent);
+        
+        console.log(`👤 TicketingLayout - User role: Admin=${userIsAdmin}, Agent=${userIsAgent}`);
+      } catch {
+        console.warn('⚠️ Could not fetch user info for role check');
+        setIsAdmin(false);
+        setIsAgent(false);
+      }
+    };
+    loadUserRole();
+  }, []);
 
   const handleLogout = () => {
     // Use auth context to clear state
@@ -67,14 +113,25 @@ const TicketingLayout: React.FC = () => {
     }
   };
 
-  const navigationItems = [
-    { icon: Home, label: 'Dashboard', path: '/tickets', exact: true },
-    { icon: Ticket, label: 'My Tickets', path: '/tickets/my' },
-    { icon: Plus, label: 'New Ticket', path: '/tickets/new' },
-    { icon: BarChart3, label: 'Reports', path: '/tickets/reports' },
-    { icon: Users, label: 'User Management', path: '/tickets/users' },
-    { icon: Settings, label: 'Settings', path: '/tickets/settings' },
+  // Define all navigation items with role requirements
+  // adminOnly: only admins can see (Settings, Users)
+  // agentOrAdmin: agents and admins can see (Reports)
+  const allNavigationItems = [
+    { icon: Home, label: 'Dashboard', path: '/tickets', exact: true, requiresRole: 'all' },
+    { icon: Ticket, label: 'My Tickets', path: '/tickets/my', requiresRole: 'all' },
+    { icon: Plus, label: 'New Ticket', path: '/tickets/new', requiresRole: 'all' },
+    { icon: BarChart3, label: 'Reports', path: '/tickets/reports', requiresRole: 'agentOrAdmin' },
+    { icon: Users, label: 'User Management', path: '/tickets/users', requiresRole: 'adminOnly' },
+    { icon: Settings, label: 'Settings', path: '/tickets/settings', requiresRole: 'adminOnly' },
   ];
+
+  // Filter navigation items based on user role
+  const navigationItems = allNavigationItems.filter(item => {
+    if (item.requiresRole === 'all') return true;
+    if (item.requiresRole === 'adminOnly') return isAdmin;
+    if (item.requiresRole === 'agentOrAdmin') return isAdmin || isAgent;
+    return true;
+  });
 
   const isActive = (path: string, exact: boolean = false) => {
     if (exact) {

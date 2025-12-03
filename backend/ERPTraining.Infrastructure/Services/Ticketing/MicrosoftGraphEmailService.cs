@@ -303,7 +303,9 @@ public class MicrosoftGraphEmailService : IEmailService
         string reopenButton = "";
         if (newStatus.Equals("Resolved", StringComparison.OrdinalIgnoreCase))
         {
-            string reopenUrl = $"{_configuration["ExternalApis:BsBaseUrl"]}/api/tickets/reopen/{ticket.Id}";
+            // Use frontend URL for reopen - user clicks and is taken to ticket detail page
+            string baseUrl = _configuration["ExternalApis:FrontendBaseUrl"] ?? _configuration["ExternalApis:BsBaseUrl"] ?? "http://localhost:5178";
+            string reopenUrl = $"{baseUrl}/tickets/{ticket.Id}?action=reopen";
             reopenButton = $@"
                 <div style='margin: 20px 0; text-align: center;'>
                     <p style='margin-bottom: 10px;'>Not satisfied with the resolution?</p>
@@ -407,6 +409,125 @@ public class MicrosoftGraphEmailService : IEmailService
             Importance.Low => 1,
             _ => 2
         };
+    }
+
+    /// <summary>
+    /// Sends email notification when a ticket is created to the customer
+    /// </summary>
+    public async Task SendTicketCreatedNotificationAsync(Ticket ticket, ApplicationUser creator, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(creator.Email))
+            {
+                _logger.LogWarning("Cannot send ticket creation notification - creator has no email for ticket {TicketId}", ticket.Id);
+                return;
+            }
+
+            var ticketNumber = ticket.PublicId?.ToString() ?? ticket.Id.ToString().Substring(0, 8);
+            var subject = $"[Ticket #{ticketNumber}] Your Support Request Has Been Created - {ticket.Title}";
+            
+            var priorityColor = ticket.Priority switch
+            {
+                ERPTraining.Core.Entities.Ticketing.TicketPriority.Critical => "#dc2626",
+                ERPTraining.Core.Entities.Ticketing.TicketPriority.High => "#ea580c",
+                ERPTraining.Core.Entities.Ticketing.TicketPriority.Medium => "#ca8a04",
+                ERPTraining.Core.Entities.Ticketing.TicketPriority.Low => "#16a34a",
+                _ => "#6b7280"
+            };
+
+            var priorityName = ticket.Priority switch
+            {
+                ERPTraining.Core.Entities.Ticketing.TicketPriority.Critical => "Critical",
+                ERPTraining.Core.Entities.Ticketing.TicketPriority.High => "High",
+                ERPTraining.Core.Entities.Ticketing.TicketPriority.Medium => "Medium",
+                ERPTraining.Core.Entities.Ticketing.TicketPriority.Low => "Low",
+                _ => "Normal"
+            };
+            
+            var body = $@"
+<html>
+<body style='font-family: Arial, sans-serif; background-color: #f9fafb; padding: 20px;'>
+    <div style='max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+        <div style='background-color: #2563eb; color: white; padding: 20px; border-radius: 8px 8px 0 0;'>
+            <h2 style='margin: 0;'>📩 Support Ticket Created</h2>
+        </div>
+        
+        <div style='padding: 30px;'>
+            <p>Dear {creator.FirstName} {creator.LastName},</p>
+            
+            <p>Thank you for contacting our support team. Your support request has been successfully created and our team will review it shortly.</p>
+            
+            <div style='background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;'>
+                <table style='width: 100%; border-collapse: collapse;'>
+                    <tr>
+                        <td style='padding: 8px 0; font-weight: bold; color: #374151;'>Ticket Number:</td>
+                        <td style='padding: 8px 0; color: #2563eb; font-weight: bold; font-size: 18px;'>#{ticketNumber}</td>
+                    </tr>
+                    <tr>
+                        <td style='padding: 8px 0; font-weight: bold; color: #374151;'>Subject:</td>
+                        <td style='padding: 8px 0;'>{ticket.Title}</td>
+                    </tr>
+                    <tr>
+                        <td style='padding: 8px 0; font-weight: bold; color: #374151;'>Priority:</td>
+                        <td style='padding: 8px 0;'>
+                            <span style='background-color: {priorityColor}; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;'>{priorityName}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style='padding: 8px 0; font-weight: bold; color: #374151;'>Status:</td>
+                        <td style='padding: 8px 0;'>
+                            <span style='background-color: #3b82f6; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;'>Open</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style='padding: 8px 0; font-weight: bold; color: #374151;'>Created:</td>
+                        <td style='padding: 8px 0;'>{ticket.CreatedAt:dddd, MMMM dd, yyyy 'at' hh:mm tt}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <p><strong>Your Message:</strong></p>
+            <div style='background-color: #ffffff; border-left: 4px solid #2563eb; padding: 15px; margin: 15px 0; border: 1px solid #e5e7eb; border-radius: 4px;'>
+                {ticket.Description?.Replace("\n", "<br/>")}
+            </div>
+            
+            <div style='background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 8px; margin: 20px 0;'>
+                <p style='margin: 0; color: #1e40af;'><strong>💡 What's Next?</strong></p>
+                <ul style='margin: 10px 0 0 0; color: #1e40af; padding-left: 20px;'>
+                    <li>Our support team will review your request</li>
+                    <li>You will receive an email when an agent is assigned</li>
+                    <li>You can reply to this email to add more information</li>
+                    <li>Use ticket number <strong>#{ticketNumber}</strong> for any follow-up</li>
+                </ul>
+            </div>
+            
+            <p style='margin-top: 30px;'>
+                Thank you for your patience.<br/>
+                <br/>
+                Best regards,<br/>
+                <strong>IT Support Team</strong>
+            </p>
+        </div>
+        
+        <div style='background-color: #f3f4f6; padding: 15px; border-radius: 0 0 8px 8px; text-align: center;'>
+            <p style='font-size: 12px; color: #6b7280; margin: 0;'>
+                This is an automated notification from the IT Help Desk system.<br/>
+                Please keep this email for your records.
+            </p>
+        </div>
+    </div>
+</body>
+</html>";
+
+            await SendEmailAsync(creator.Email, subject, body, true, attachments: null, cancellationToken: cancellationToken);
+            _logger.LogInformation("✅ Sent ticket creation notification to {CreatorEmail} for ticket #{TicketNumber}", creator.Email, ticketNumber);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to send ticket creation notification to {CreatorEmail} for ticket {TicketId}", creator.Email, ticket.Id);
+            // Don't throw - ticket creation should succeed even if email fails
+        }
     }
 
     /// <summary>
@@ -527,8 +648,9 @@ public class MicrosoftGraphEmailService : IEmailService
             var ticketNumber = ticket.PublicId?.ToString() ?? ticket.Id.ToString().Substring(0, 8);
             var subject = $"[Ticket #{ticketNumber}] Resolved - {ticket.Title}";
             
-            // Generate reopen link (will be handled by a new endpoint)
-            var reopenLink = $"http://localhost:5015/api/tickets-v2/{ticket.Id}/reopen";
+            // Use frontend URL for reopen - user clicks and is taken to ticket detail page with reopen action
+            var baseUrl = _configuration["ExternalApis:FrontendBaseUrl"] ?? _configuration["ExternalApis:BsBaseUrl"] ?? "http://localhost:5178";
+            var reopenLink = $"{baseUrl}/tickets/{ticket.Id}?action=reopen";
             
             var body = $@"
 <html>
