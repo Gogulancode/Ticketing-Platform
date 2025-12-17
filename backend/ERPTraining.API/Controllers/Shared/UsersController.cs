@@ -33,6 +33,52 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
+    /// Search users for autocomplete - returns minimal user info for selection
+    /// </summary>
+    [HttpGet("search")]
+    public async Task<ActionResult<IEnumerable<object>>> SearchUsers([FromQuery] string q = "", [FromQuery] int limit = 20)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+            {
+                return Ok(Array.Empty<object>());
+            }
+
+            var searchLower = q.ToLower();
+
+            var users = await _context.Users
+                .Where(u => u.IsActive)
+                .Where(u => 
+                    (u.FirstName != null && u.FirstName.ToLower().Contains(searchLower)) ||
+                    (u.LastName != null && u.LastName.ToLower().Contains(searchLower)) ||
+                    (u.Email != null && u.Email.ToLower().Contains(searchLower)) ||
+                    (u.UserName != null && u.UserName.ToLower().Contains(searchLower)))
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
+                .Take(limit)
+                .Select(u => new
+                {
+                    id = u.Id,
+                    name = (u.FirstName ?? "") + " " + (u.LastName ?? ""),
+                    firstName = u.FirstName ?? "",
+                    lastName = u.LastName ?? "",
+                    email = u.Email ?? "",
+                    department = u.Department ?? "",
+                    position = u.Position ?? ""
+                })
+                .ToListAsync();
+
+            return Ok(users);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching users");
+            return StatusCode(500, new { message = "Error searching users", error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Get all users with pagination support
     /// </summary>
     [HttpGet]
@@ -60,19 +106,6 @@ public class UsersController : ControllerBase
                     (u.UserName != null && u.UserName.Contains(search)));
             }
 
-            // Apply user type filter
-            if (!string.IsNullOrEmpty(userTypeFilter))
-            {
-                if (userTypeFilter == "erp")
-                {
-                    query = query.Where(u => u.IsERPUser);
-                }
-                else if (userTypeFilter == "local")
-                {
-                    query = query.Where(u => !u.IsERPUser);
-                }
-            }
-
             // Apply status filter
             if (!string.IsNullOrEmpty(statusFilter))
             {
@@ -91,6 +124,7 @@ public class UsersController : ControllerBase
 
             // Apply pagination and get users
             var usersQuery = await query
+                .Include(u => u.Branch)
                 .OrderBy(u => u.LastName)
                 .ThenBy(u => u.FirstName)
                 .Skip((page - 1) * pageSize)
@@ -111,14 +145,15 @@ public class UsersController : ControllerBase
                     lastName = u.LastName ?? "",
                     phone = u.PhoneNumber ?? "",
                     isActive = u.IsActive,
-                    isERPUser = u.IsERPUser,
-                    erpUserId = u.ERPUserId.HasValue ? u.ERPUserId.Value.ToString() : "",
                     isAgent = u.IsAgent,
                     roles = userRoles.ToArray(),
                     createdAt = u.CreatedAt.ToString("yyyy-MM-dd"),
                     lastLogin = "", // Not available in current User entity
                     department = u.Department ?? "",
-                    position = u.Position ?? ""
+                    position = u.Position ?? "",
+                    branchId = u.BranchId,
+                    branchName = u.Branch?.Name ?? "",
+                    branchCode = u.Branch?.Code ?? ""
                 });
             }
 
@@ -267,44 +302,41 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Get user synchronization status
+    /// Get user statistics
     /// </summary>
     [HttpGet("sync/status")]
     public async Task<ActionResult<object>> GetSyncStatus()
     {
         try
         {
-            _logger.LogInformation("Getting user sync status");
+            _logger.LogInformation("Getting user statistics");
 
             // Get actual counts from database
             var totalUsers = await _context.Users.CountAsync();
-            var erpUsers = await _context.Users.CountAsync(u => u.IsERPUser);
             var activeUsers = await _context.Users.CountAsync(u => u.IsActive);
-            var lastSyncedUser = await _context.Users
-                .Where(u => u.IsERPUser)
-                .OrderByDescending(u => u.UpdatedAt)
-                .FirstOrDefaultAsync();
+            var agentUsers = await _context.Users.CountAsync(u => u.IsAgent);
 
             var status = new
             {
-                isRunning = false, // Would need to track actual sync status in a service
+                isRunning = false,
                 isConnected = true,
-                lastSync = lastSyncedUser?.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss") ?? "Never",
+                lastSync = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
                 totalUsers = totalUsers,
-                syncedUsers = erpUsers,
+                syncedUsers = 0,
                 activeUsers = activeUsers,
-                errors = new string[0] // Would need to track actual errors
+                agentUsers = agentUsers,
+                errors = new string[0]
             };
 
-            _logger.LogInformation("Sync status - Total: {Total}, ERP: {ERP}, Active: {Active}", 
-                totalUsers, erpUsers, activeUsers);
+            _logger.LogInformation("User stats - Total: {Total}, Active: {Active}, Agents: {Agents}", 
+                totalUsers, activeUsers, agentUsers);
 
             return Ok(status);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user sync status");
-            return StatusCode(500, new { message = "Error getting user sync status", error = ex.Message });
+            _logger.LogError(ex, "Error getting user statistics");
+            return StatusCode(500, new { message = "Error getting user statistics", error = ex.Message });
         }
     }
 
@@ -340,9 +372,8 @@ public class UsersController : ControllerBase
                 LastName = request.LastName ?? "",
                 PhoneNumber = request.Phone,
                 Department = request.Department ?? "",
+                BranchId = request.BranchId,
                 IsActive = true,
-                IsERPUser = false,
-                ERPSource = "Local",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -384,8 +415,8 @@ public class UsersController : ControllerBase
                 lastName = user.LastName,
                 phone = user.PhoneNumber,
                 isActive = user.IsActive,
-                isERPUser = user.IsERPUser,
                 department = user.Department,
+                branchId = user.BranchId,
                 roles = request.Roles ?? new List<string>(),
                 createdAt = user.CreatedAt.ToString("yyyy-MM-dd"),
                 success = true,
@@ -496,6 +527,38 @@ public class UsersController : ControllerBase
                 if (newPosition != null && !string.Equals(user.Position, newPosition, StringComparison.Ordinal))
                 {
                     user.Position = newPosition;
+                    hasChanges = true;
+                }
+            }
+
+            if (updateData.ContainsKey("branchId"))
+            {
+                int? newBranchId = null;
+                var branchIdValue = updateData["branchId"];
+                
+                if (branchIdValue is System.Text.Json.JsonElement jsonElement)
+                {
+                    if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.Number)
+                    {
+                        newBranchId = jsonElement.GetInt32();
+                    }
+                    else if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.Null)
+                    {
+                        newBranchId = null;
+                    }
+                }
+                else if (branchIdValue is int intVal)
+                {
+                    newBranchId = intVal;
+                }
+                else if (int.TryParse(branchIdValue?.ToString(), out int parsedInt))
+                {
+                    newBranchId = parsedInt;
+                }
+
+                if (user.BranchId != newBranchId)
+                {
+                    user.BranchId = newBranchId;
                     hasChanges = true;
                 }
             }
@@ -641,6 +704,68 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
+    /// Admin reset password for a user
+    /// </summary>
+    /// <remarks>
+    /// Allows an admin to reset a user's password without knowing their current password.
+    /// Only accessible by users with Admin role.
+    /// </remarks>
+    /// <param name="id">The user ID</param>
+    /// <param name="request">New password details</param>
+    /// <returns>Success message</returns>
+    [HttpPost("{id}/reset-password")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<object>> ResetUserPassword(string id, [FromBody] AdminResetPasswordRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Admin resetting password for user {UserId}", id);
+
+            // Validate new password
+            if (string.IsNullOrEmpty(request.NewPassword))
+            {
+                return BadRequest(new { message = "New password is required" });
+            }
+
+            if (request.NewPassword.Length < 6)
+            {
+                return BadRequest(new { message = "Password must be at least 6 characters long" });
+            }
+
+            // Find the user
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound(new { message = $"User with ID {id} not found" });
+            }
+
+            // Generate password reset token and reset password
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
+
+            if (!result.Succeeded)
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                _logger.LogWarning("Failed to reset password for user {UserId}: {Errors}", id, errors);
+                return BadRequest(new { message = "Failed to reset password", errors = errors });
+            }
+
+            _logger.LogInformation("Password reset successfully for user {UserId}", id);
+
+            return Ok(new 
+            { 
+                success = true, 
+                message = "Password has been reset successfully" 
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting password for user {UserId}", id);
+            return StatusCode(500, new { message = "Error resetting password", error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Delete a user
     /// </summary>
     [HttpDelete("{id}")]
@@ -675,4 +800,10 @@ public class CreateUserRequest
     public List<string> Roles { get; set; } = new List<string>();
     public string? Department { get; set; }
     public string? Position { get; set; }
+    public int? BranchId { get; set; }
+}
+
+public class AdminResetPasswordRequest
+{
+    public string NewPassword { get; set; } = string.Empty;
 }

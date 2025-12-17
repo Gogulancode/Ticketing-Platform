@@ -4,6 +4,536 @@
         <name>ERPTraining.API</name>
     </assembly>
     <members>
+        <member name="T:ERPTraining.API.Controllers.AIController">
+            <summary>
+            AI-powered ticket assistance features
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AIController.GetStatus">
+            <summary>
+            Get AI service status and configuration
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AIController.CategorizeTicket(ERPTraining.Core.DTOs.AI.CategorizationRequest)">
+            <summary>
+            Auto-suggest category and priority for a ticket
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AIController.SuggestResponses(ERPTraining.Core.DTOs.AI.ResponseSuggestionRequest)">
+            <summary>
+            Generate response suggestions for agents
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AIController.SummarizeTicket(ERPTraining.Core.DTOs.AI.SummarizationRequest)">
+            <summary>
+            Summarize a ticket thread
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AIController.SearchKnowledgeBase(ERPTraining.Core.DTOs.AI.KnowledgeSearchRequest)">
+            <summary>
+            Search knowledge base for relevant articles
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AIController.QuickCategorize(ERPTraining.API.Controllers.QuickCategorizeRequest)">
+            <summary>
+            Quick categorization from ticket form (simplified endpoint)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AIController.GenerateDashboardInsights(ERPTraining.Core.DTOs.AI.DashboardInsightsRequest)">
+            <summary>
+            Generate AI insights for dashboard analytics
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AIController.GenerateReport(ERPTraining.Core.DTOs.AI.AIReportRequest)">
+            <summary>
+            Generate AI-powered weekly/monthly report
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AIController.GetBranches">
+            <summary>
+            Get available branches for report filtering
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AIController.GetBranchAnalyticsSummary(System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Get branch-wise analytics summary for AI reports
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AIController.GetReportTypes">
+            <summary>
+            Get available report types
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AIController.EnhanceText(ERPTraining.Core.DTOs.AI.EnhanceTextRequest)">
+            <summary>
+            Enhance/improve text using AI (grammar, clarity, professionalism)
+            </summary>
+        </member>
+        <member name="T:ERPTraining.API.Controllers.QuickCategorizeRequest">
+            <summary>
+            Simplified request for quick categorization
+            </summary>
+        </member>
+        <member name="T:ERPTraining.API.Controllers.BranchOption">
+            <summary>
+            Branch option for dropdown
+            </summary>
+        </member>
+        <member name="T:ERPTraining.API.Controllers.ReportTypeOption">
+            <summary>
+            Report type option
+            </summary>
+        </member>
+        <member name="T:ERPTraining.API.Controllers.AISettingsController">
+            <summary>
+            Manage AI configuration settings (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AISettingsController.GetSettings">
+            <summary>
+            Get current AI settings (API key masked)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AISettingsController.UpdateSettings(ERPTraining.Core.DTOs.AI.UpdateAISettingsRequest)">
+            <summary>
+            Update AI settings
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AISettingsController.GetProviders">
+            <summary>
+            Get list of available AI providers
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.AISettingsController.TestConnection(ERPTraining.Core.DTOs.AI.TestAIConnectionRequest)">
+            <summary>
+            Test AI connection with provided settings
+            </summary>
+        </member>
+        <member name="T:ERPTraining.API.Controllers.BranchAnalyticsController">
+            <summary>
+            Controller for branch analytics and reporting
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchAnalyticsController.GetOverallAnalytics(System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Get overall analytics across all branches
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchAnalyticsController.GetBranchAnalytics(System.Int32,System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Get analytics for a specific branch
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchAnalyticsController.GetTicketTrends(System.Nullable{System.Int32},System.Int32)">
+            <summary>
+            Get ticket trends over time
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchAnalyticsController.GetCategoryDistribution(System.Nullable{System.Int32},System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Get category distribution
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchAnalyticsController.GetPriorityDistribution(System.Nullable{System.Int32},System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Get priority distribution
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchAnalyticsController.GetAgentPerformance(System.Nullable{System.Int32},System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Get agent performance metrics
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchAnalyticsController.GetSlaPerformance(System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Get SLA performance by branch
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchAnalyticsController.GetBranchComparison(System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Get branch comparison metrics
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchController.GetBranches(System.Boolean,System.String)">
+            <summary>
+            Get all branches
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchController.GetBranch(System.Int32)">
+            <summary>
+            Get branch by ID
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchController.CreateBranch(ERPTraining.API.Controllers.CreateBranchRequest)">
+            <summary>
+            Create a new branch
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchController.UpdateBranch(System.Int32,ERPTraining.API.Controllers.UpdateBranchRequest)">
+            <summary>
+            Update an existing branch
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchController.DeleteBranch(System.Int32)">
+            <summary>
+            Delete (deactivate) a branch
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchController.GetBranchStats">
+            <summary>
+            Get branch statistics for analytics
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.BranchController.GetBranchLookup">
+            <summary>
+            Get branches for dropdown/select (minimal data)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.GetConversations(System.Boolean)">
+            <summary>
+            Get all conversations for the current user
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.GetConversation(System.Int32)">
+            <summary>
+            Get a specific conversation
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.CreateDirectConversation(ERPTraining.API.Controllers.CreateDirectConversationRequest)">
+            <summary>
+            Start or get an existing direct conversation with another user
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.CreateGroupConversation(ERPTraining.API.Controllers.CreateGroupConversationRequest)">
+            <summary>
+            Create a group conversation
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.UpdateConversation(System.Int32,ERPTraining.Core.Interfaces.Chat.UpdateConversationDto)">
+            <summary>
+            Update a conversation (name, avatar)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.ArchiveConversation(System.Int32)">
+            <summary>
+            Archive a conversation
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.AddParticipants(System.Int32,ERPTraining.API.Controllers.AddParticipantsRequest)">
+            <summary>
+            Add participants to a group conversation
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.RemoveParticipant(System.Int32,System.String)">
+            <summary>
+            Remove a participant from a group conversation
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.LeaveConversation(System.Int32)">
+            <summary>
+            Leave a group conversation
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.UpdateParticipantSettings(System.Int32,ERPTraining.Core.Interfaces.Chat.UpdateParticipantDto)">
+            <summary>
+            Update participant settings (mute, pin, notifications)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.GetMessages(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Get messages for a conversation
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.GetMessagesSince(System.Int32,System.DateTime)">
+            <summary>
+            Get messages since a timestamp (for syncing)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.SearchMessages(System.String,System.Nullable{System.Int32})">
+            <summary>
+            Search messages
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.SendMessage(System.Int32,ERPTraining.Core.Interfaces.Chat.SendMessageDto)">
+            <summary>
+            Send a message (alternative to SignalR for fallback)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.EditMessage(System.Int32,ERPTraining.API.Controllers.EditMessageRequest)">
+            <summary>
+            Edit a message
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.DeleteMessage(System.Int32)">
+            <summary>
+            Delete a message
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.MarkAsRead(System.Int32,ERPTraining.API.Controllers.MarkAsReadRequest)">
+            <summary>
+            Mark conversation as read
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.AddReaction(System.Int32,ERPTraining.API.Controllers.AddReactionRequest)">
+            <summary>
+            Add a reaction to a message
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.RemoveReaction(System.Int32,System.String)">
+            <summary>
+            Remove a reaction from a message
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.UploadAttachment(System.Int32,Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Upload a file attachment
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.ConvertToTicket(System.Int32,ERPTraining.Core.Interfaces.Chat.ConvertToTicketDto)">
+            <summary>
+            Convert a conversation to a ticket
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.GetOnlineUsers">
+            <summary>
+            Get online users
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.GetPresences(System.Collections.Generic.List{System.String})">
+            <summary>
+            Get presence for specific users
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.GetCannedResponses(System.String)">
+            <summary>
+            Get user's canned responses
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.CreateCannedResponse(ERPTraining.Core.Interfaces.Chat.CreateCannedResponseDto)">
+            <summary>
+            Create a canned response
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.UpdateCannedResponse(System.Int32,ERPTraining.Core.Interfaces.Chat.CreateCannedResponseDto)">
+            <summary>
+            Update a canned response
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.DeleteCannedResponse(System.Int32)">
+            <summary>
+            Delete a canned response
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.SearchCannedResponses(System.String)">
+            <summary>
+            Search canned responses
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.ChatController.GetChatUsers(System.String)">
+            <summary>
+            Get users available to chat with
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetDashboard">
+            <summary>
+            Get customer dashboard with profile, tickets, announcements, and featured content
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetProfile">
+            <summary>
+            Get current user's profile
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.UpdateProfile(ERPTraining.Core.DTOs.CustomerPortal.UpdateCustomerProfileDto)">
+            <summary>
+            Update current user's profile
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetTicketSummary">
+            <summary>
+            Get customer's ticket summary
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetTickets(System.Int32,System.Int32,System.String)">
+            <summary>
+            Get customer's tickets with pagination
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetKnowledgeBaseCategories">
+            <summary>
+            Get all knowledge base categories
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetCategoryBySlug(System.String)">
+            <summary>
+            Get a specific category by slug
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetArticles(System.Nullable{System.Int32},System.Int32,System.Int32)">
+            <summary>
+            Get published articles with optional category filter
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetFeaturedArticles(System.Int32)">
+            <summary>
+            Get featured articles
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetArticleBySlug(System.String)">
+            <summary>
+            Get article by slug
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.SubmitArticleFeedback(System.Int32,ERPTraining.Core.DTOs.CustomerPortal.ArticleFeedbackDto)">
+            <summary>
+            Submit feedback for an article
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.CreateCategory(ERPTraining.Core.DTOs.CustomerPortal.CreateKnowledgeBaseCategoryDto)">
+            <summary>
+            Create a new category (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.UpdateCategory(System.Int32,ERPTraining.Core.DTOs.CustomerPortal.CreateKnowledgeBaseCategoryDto)">
+            <summary>
+            Update a category (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.DeleteCategory(System.Int32)">
+            <summary>
+            Delete a category (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.CreateArticle(ERPTraining.Core.DTOs.CustomerPortal.CreateKnowledgeBaseArticleDto)">
+            <summary>
+            Create a new article (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.UpdateArticle(System.Int32,ERPTraining.Core.DTOs.CustomerPortal.UpdateKnowledgeBaseArticleDto)">
+            <summary>
+            Update an article (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.DeleteArticle(System.Int32)">
+            <summary>
+            Delete an article (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetFAQs(System.Nullable{System.Int32})">
+            <summary>
+            Get active FAQs
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetFeaturedFAQs(System.Int32)">
+            <summary>
+            Get featured FAQs
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetFAQ(System.Int32)">
+            <summary>
+            Get FAQ by ID
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.CreateFAQ(ERPTraining.Core.DTOs.CustomerPortal.CreateFAQDto)">
+            <summary>
+            Create a new FAQ (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.UpdateFAQ(System.Int32,ERPTraining.Core.DTOs.CustomerPortal.CreateFAQDto)">
+            <summary>
+            Update a FAQ (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.DeleteFAQ(System.Int32)">
+            <summary>
+            Delete a FAQ (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetAnnouncements">
+            <summary>
+            Get active announcements
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.CreateAnnouncement(ERPTraining.Core.DTOs.CustomerPortal.CreatePortalAnnouncementDto)">
+            <summary>
+            Create announcement (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.UpdateAnnouncement(System.Int32,ERPTraining.Core.DTOs.CustomerPortal.CreatePortalAnnouncementDto)">
+            <summary>
+            Update announcement (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.DeleteAnnouncement(System.Int32)">
+            <summary>
+            Delete announcement (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetSystemStatus">
+            <summary>
+            Get system status summary
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetServices">
+            <summary>
+            Get all services status
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetActiveIncidents">
+            <summary>
+            Get active incidents
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetIncident(System.Int32)">
+            <summary>
+            Get incident details
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.CreateService(ERPTraining.API.Controllers.CreateServiceRequest)">
+            <summary>
+            Create a new service (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.UpdateServiceStatus(System.Int32,ERPTraining.API.Controllers.UpdateServiceStatusRequest)">
+            <summary>
+            Update service status (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.CreateIncident(ERPTraining.Core.DTOs.CustomerPortal.CreateServiceIncidentDto)">
+            <summary>
+            Create a new incident (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.AddIncidentUpdate(System.Int32,ERPTraining.Core.DTOs.CustomerPortal.AddIncidentUpdateDto)">
+            <summary>
+            Add incident update (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.ResolveIncident(System.Int32,ERPTraining.API.Controllers.ResolveIncidentRequest)">
+            <summary>
+            Resolve an incident (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.SubmitContactForm(ERPTraining.Core.DTOs.CustomerPortal.CreateContactSubmissionDto)">
+            <summary>
+            Submit contact form (Public)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.GetContactSubmissions(System.Nullable{System.Boolean},System.Int32,System.Int32)">
+            <summary>
+            Get contact submissions (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.ConvertToTicket(System.Int32)">
+            <summary>
+            Convert contact submission to ticket (Admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CustomerPortalController.Search(System.String,System.Int32)">
+            <summary>
+            Search knowledge base and FAQs
+            </summary>
+        </member>
         <member name="T:ERPTraining.API.Controllers.AuthController">
             <summary>
             Authentication and authorization controller for user management operations
@@ -171,6 +701,38 @@
             <response code="200">Token successfully refreshed</response>
             <response code="401">Unauthorized - Invalid or missing token</response>
         </member>
+        <member name="M:ERPTraining.API.Controllers.AuthController.ChangePassword(ERPTraining.API.Controllers.ChangePasswordRequest)">
+            <summary>
+            Changes the current user's password
+            </summary>
+            <param name="request">Current password and new password</param>
+            <returns>Success or error message</returns>
+            <remarks>
+            Allows authenticated users to change their own password.
+            Requires the current password for verification.
+            
+            <para><strong>Password Requirements:</strong></para>
+            <list type="bullet">
+            <item><description>Minimum 6 characters</description></item>
+            <item><description>At least one uppercase letter</description></item>
+            <item><description>At least one lowercase letter</description></item>
+            <item><description>At least one digit</description></item>
+            </list>
+            
+            Sample request:
+            
+                POST /api/auth/change-password
+                {
+                  "currentPassword": "OldPassword123!",
+                  "newPassword": "NewPassword456!",
+                  "confirmPassword": "NewPassword456!"
+                }
+            
+            </remarks>
+            <response code="200">Password changed successfully</response>
+            <response code="400">Validation failed or passwords don't match</response>
+            <response code="401">Current password is incorrect</response>
+        </member>
         <member name="T:ERPTraining.API.Controllers.HealthController">
             <summary>
             Health check controller for API monitoring
@@ -188,6 +750,11 @@
             </summary>
             <returns>Test response</returns>
         </member>
+        <member name="M:ERPTraining.API.Controllers.UsersController.SearchUsers(System.String,System.Int32)">
+            <summary>
+            Search users for autocomplete - returns minimal user info for selection
+            </summary>
+        </member>
         <member name="M:ERPTraining.API.Controllers.UsersController.GetUsers(System.Int32,System.Int32,System.String,System.String,System.String,System.String)">
             <summary>
             Get all users with pagination support
@@ -200,7 +767,7 @@
         </member>
         <member name="M:ERPTraining.API.Controllers.UsersController.GetSyncStatus">
             <summary>
-            Get user synchronization status
+            Get user statistics
             </summary>
         </member>
         <member name="M:ERPTraining.API.Controllers.UsersController.CreateUser(ERPTraining.API.Controllers.CreateUserRequest)">
@@ -213,9 +780,181 @@
             Update an existing user
             </summary>
         </member>
+        <member name="M:ERPTraining.API.Controllers.UsersController.ResetUserPassword(System.String,ERPTraining.API.Controllers.AdminResetPasswordRequest)">
+            <summary>
+            Admin reset password for a user
+            </summary>
+            <remarks>
+            Allows an admin to reset a user's password without knowing their current password.
+            Only accessible by users with Admin role.
+            </remarks>
+            <param name="id">The user ID</param>
+            <param name="request">New password details</param>
+            <returns>Success message</returns>
+        </member>
         <member name="M:ERPTraining.API.Controllers.UsersController.DeleteUser(System.String)">
             <summary>
             Delete a user
+            </summary>
+        </member>
+        <member name="T:ERPTraining.API.Controllers.TicketEnhancementsController">
+            <summary>
+            Controller for enhanced ticket features
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.GetWatchers(System.Guid)">
+            <summary>
+            Get all watchers for a ticket
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.AddWatcher(System.Guid,ERPTraining.Core.DTOs.Ticketing.AddWatcherDto)">
+            <summary>
+            Add a watcher to a ticket
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.WatchTicket(System.Guid)">
+            <summary>
+            Watch a ticket (current user)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.UnwatchTicket(System.Guid)">
+            <summary>
+            Unwatch a ticket (current user)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.IsWatching(System.Guid)">
+            <summary>
+            Check if current user is watching a ticket
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.RemoveWatcher(System.Guid,System.String)">
+            <summary>
+            Remove a watcher from a ticket
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.GetTimeEntries(System.Guid)">
+            <summary>
+            Get all time entries for a ticket
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.GetTimeSummary(System.Guid)">
+            <summary>
+            Get time summary for a ticket
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.CreateTimeEntry(System.Guid,ERPTraining.Core.DTOs.Ticketing.CreateTimeEntryDto)">
+            <summary>
+            Add a time entry to a ticket
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.UpdateTimeEntry(System.Int32,ERPTraining.Core.DTOs.Ticketing.UpdateTimeEntryDto)">
+            <summary>
+            Update a time entry
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.DeleteTimeEntry(System.Int32)">
+            <summary>
+            Delete a time entry
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.GetSatisfaction(System.Guid)">
+            <summary>
+            Get satisfaction rating for a ticket
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.CreateSatisfaction(System.Guid,ERPTraining.Core.DTOs.Ticketing.CreateSatisfactionRatingDto)">
+            <summary>
+            Submit satisfaction rating for a ticket
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.GetSatisfactionSummary(System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Nullable{System.Int32})">
+            <summary>
+            Get satisfaction summary (CSAT metrics)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.GetRelatedTickets(System.Guid)">
+            <summary>
+            Get related tickets
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.CreateRelation(System.Guid,ERPTraining.Core.DTOs.Ticketing.CreateTicketRelationDto)">
+            <summary>
+            Link tickets together
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketEnhancementsController.DeleteRelation(System.Int32)">
+            <summary>
+            Remove a ticket relation
+            </summary>
+        </member>
+        <member name="T:ERPTraining.API.Controllers.TicketTemplatesController">
+            <summary>
+            Controller for ticket templates
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketTemplatesController.GetTemplates(System.Boolean,System.Boolean)">
+            <summary>
+            Get all ticket templates
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketTemplatesController.GetTemplate(System.Int32)">
+            <summary>
+            Get a specific template
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketTemplatesController.CreateTemplate(ERPTraining.Core.DTOs.Ticketing.CreateTicketTemplateDto)">
+            <summary>
+            Create a new template
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketTemplatesController.UpdateTemplate(System.Int32,ERPTraining.Core.DTOs.Ticketing.UpdateTicketTemplateDto)">
+            <summary>
+            Update a template
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.TicketTemplatesController.DeleteTemplate(System.Int32)">
+            <summary>
+            Delete a template
+            </summary>
+        </member>
+        <member name="T:ERPTraining.API.Controllers.CannedResponsesController">
+            <summary>
+            Controller for canned responses
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CannedResponsesController.GetCannedResponses(System.Nullable{System.Int32})">
+            <summary>
+            Get all canned responses
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CannedResponsesController.GetByShortCode(System.String)">
+            <summary>
+            Get a canned response by short code
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CannedResponsesController.GetCannedResponse(System.Int32)">
+            <summary>
+            Get a specific canned response
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CannedResponsesController.CreateCannedResponse(ERPTraining.Core.DTOs.Ticketing.CreateCannedResponseDto)">
+            <summary>
+            Create a new canned response
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CannedResponsesController.UpdateCannedResponse(System.Int32,ERPTraining.Core.DTOs.Ticketing.UpdateCannedResponseDto)">
+            <summary>
+            Update a canned response
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CannedResponsesController.DeleteCannedResponse(System.Int32)">
+            <summary>
+            Delete a canned response
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.CannedResponsesController.IncrementUsage(System.Int32)">
+            <summary>
+            Increment usage count when a canned response is used
             </summary>
         </member>
         <member name="M:ERPTraining.API.Controllers.Ticketing.AutoAssignmentController.GetSubcategoryKeywords(System.Int32)">
@@ -236,6 +975,96 @@
         <member name="M:ERPTraining.API.Controllers.Ticketing.AutoAssignmentController.DeleteSubcategoryKeyword(System.Int32)">
             <summary>
             Delete a keyword
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.BrandingController.GetBrandingSettings">
+            <summary>
+            Get branding settings (public - no auth required for login page)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.BrandingController.UpdateBrandingSettings(ERPTraining.Core.DTOs.Ticketing.UpdateBrandingSettingsRequest)">
+            <summary>
+            Update branding settings (admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.BrandingController.UploadLogo(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Upload logo image (admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.BrandingController.DeleteLogo">
+            <summary>
+            Delete logo (admin only)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.BrandingController.UploadFavicon(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Upload favicon (admin only)
+            </summary>
+        </member>
+        <member name="T:ERPTraining.API.Controllers.Ticketing.CategoryAdminController">
+            <summary>
+            API controller for managing Category Admins
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.CategoryAdminController.GetAll">
+            <summary>
+            Get all category admins
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.CategoryAdminController.GetById(System.Int32)">
+            <summary>
+            Get category admin by ID
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.CategoryAdminController.GetByUserId(System.String)">
+            <summary>
+            Get all category admins for a specific user
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.CategoryAdminController.GetByCategoryId(System.Int32)">
+            <summary>
+            Get all admins for a specific category
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.CategoryAdminController.GetMyPermissions">
+            <summary>
+            Get category admin permissions for the current user
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.CategoryAdminController.GetUserPermissions(System.String)">
+            <summary>
+            Get category admin permissions for a specific user
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.CategoryAdminController.CheckIsCategoryAdmin(System.String)">
+            <summary>
+            Check if a user is a category admin
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.CategoryAdminController.Create(ERPTraining.Core.Interfaces.Ticketing.CategoryAdminCreateRequest)">
+            <summary>
+            Create a new category admin assignment
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.CategoryAdminController.Update(System.Int32,ERPTraining.Core.Interfaces.Ticketing.CategoryAdminUpdateRequest)">
+            <summary>
+            Update category admin permissions
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.CategoryAdminController.Delete(System.Int32)">
+            <summary>
+            Delete a category admin assignment
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.CategoryAdminController.GetAvailableUsers">
+            <summary>
+            Get available users who can be assigned as category admins
+            </summary>
+        </member>
+        <member name="T:ERPTraining.API.Controllers.Ticketing.CategoryAdminDto">
+            <summary>
+            DTO for Category Admin
             </summary>
         </member>
         <member name="M:ERPTraining.API.Controllers.Ticketing.GraphEmailConfigController_Disabled.GetAll">
@@ -508,6 +1337,60 @@
             Get user's role status in ticketing system
             </summary>
         </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketsController.ReopenTicket(System.Guid,ERPTraining.API.Controllers.Ticketing.ReopenTicketRequest)">
+            <summary>
+            Reopen a resolved ticket within the 48-hour window.
+            Users can only reopen tickets within 48 hours of resolution.
+            After 48 hours, the ticket will be automatically closed.
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketsController.GetReopenInfo(System.Guid)">
+            <summary>
+            Get reopen eligibility information for a ticket.
+            Returns whether the ticket can be reopened and time remaining.
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketSettingsController.TriggerEmailProcessing(System.Threading.CancellationToken)">
+            <summary>
+            Manually trigger email processing for debugging purposes
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketSettingsController.GetQuickTemplates(System.Boolean)">
+            <summary>
+            Get all quick templates
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketSettingsController.GetQuickTemplate(System.Int32)">
+            <summary>
+            Get a single quick template by ID
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketSettingsController.CreateQuickTemplate(ERPTraining.API.Controllers.Ticketing.CreateQuickTemplateRequest,System.Threading.CancellationToken)">
+            <summary>
+            Create a new quick template
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketSettingsController.UpdateQuickTemplate(System.Int32,ERPTraining.API.Controllers.Ticketing.UpdateQuickTemplateRequest,System.Threading.CancellationToken)">
+            <summary>
+            Update an existing quick template
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketSettingsController.DeleteQuickTemplate(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Delete a quick template (soft delete)
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketSettingsController.ReorderQuickTemplates(System.Collections.Generic.List{ERPTraining.API.Controllers.Ticketing.ReorderQuickTemplateRequest},System.Threading.CancellationToken)">
+            <summary>
+            Reorder quick templates
+            </summary>
+        </member>
+        <member name="M:ERPTraining.API.Controllers.Ticketing.TicketsV2Controller.DetermineSubcategoryFromEmailAsync(System.String,System.String,Microsoft.Data.SqlClient.SqlConnection)">
+            <summary>
+            Determines subcategory based on keywords in email subject and body.
+            Returns null if no matching keywords are found (subcategory should be "Select" option).
+            </summary>
+        </member>
         <member name="M:ERPTraining.API.Controllers.Ticketing.TicketTagController.GetAll(System.Boolean)">
             <summary>
             Get all ticket tags (with optional inactive tags)
@@ -538,477 +1421,118 @@
             Get all tags for a specific subcategory
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPController.TestConnection">
+        <member name="T:ERPTraining.API.Hubs.ChatHub">
             <summary>
-            Test ERP API connection
+            SignalR Hub for real-time chat functionality
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPController.SyncModules">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.SendMessage(System.Int32,System.String,ERPTraining.Core.Entities.Chat.MessageType,System.Nullable{System.Int32})">
             <summary>
-            Sync modules from ERP
+            Send a message to a conversation
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPController.SyncSections">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.EditMessage(System.Int32,System.String)">
             <summary>
-            Sync sections from ERP
+            Edit an existing message
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPController.SyncUsers">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.DeleteMessage(System.Int32,System.Int32)">
             <summary>
-            Sync users from ERP
+            Delete a message
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPController.SyncRoles">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.StartTyping(System.Int32)">
             <summary>
-            Sync roles from ERP
+            Notify others that user is typing
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPController.SyncAll">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.StopTyping(System.Int32)">
             <summary>
-            Sync all data from ERP (modules, sections, users, roles)
+            Notify others that user stopped typing
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPController.GetERPModules">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.MarkAsRead(System.Int32,System.Nullable{System.Int32})">
             <summary>
-            Get ERP modules data (for testing)
+            Mark messages as read
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPController.GetERPSections">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.AddReaction(System.Int32,System.Int32,System.String)">
             <summary>
-            Get ERP sections data (for testing)
+            Add a reaction to a message
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPController.GetAuthStatus">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.RemoveReaction(System.Int32,System.Int32,System.String)">
             <summary>
-            Get current ERP authentication status
+            Remove a reaction from a message
             </summary>
         </member>
-        <member name="T:ERPTraining.API.Controllers.ERPSyncController">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.UpdateStatus(ERPTraining.Core.Entities.Chat.PresenceStatus,System.String,System.String)">
             <summary>
-            Controller for ERP data synchronization operations
+            Update user's presence status
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPSyncController.SyncAllData">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.GetOnlineUsers">
             <summary>
-            Synchronizes all data from ERP system
+            Get online status of users
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPSyncController.SyncModules">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.JoinConversation(System.Int32)">
             <summary>
-            Synchronizes modules from ERP system
+            Join a conversation group (called when creating/joining a conversation)
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPSyncController.SyncSections">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.LeaveConversation(System.Int32)">
             <summary>
-            Synchronizes sections from ERP system
+            Leave a conversation group
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPSyncController.SyncUsers">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.NotifyParticipantJoined(System.Int32,System.String,System.String)">
             <summary>
-            Synchronizes users from ERP system
+            Notify users when a new participant joins
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPSyncController.SyncRoles">
+        <member name="M:ERPTraining.API.Hubs.ChatHub.NotifyParticipantLeft(System.Int32,System.String,System.String)">
             <summary>
-            Synchronizes roles from ERP system
+            Notify users when a participant leaves
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPSyncController.SyncERPUsers">
+        <member name="T:ERPTraining.API.Middleware.InputSanitizationMiddleware">
             <summary>
-            Synchronizes ERP users from UserMasterList endpoint with role assignment
+            Enterprise-grade input sanitization middleware.
+            Validates and sanitizes incoming requests without changing application behavior.
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPSyncController.TestERPConnection">
+        <member name="T:ERPTraining.API.Middleware.InputSanitizationMiddlewareExtensions">
             <summary>
-            Tests ERP API connectivity
+            Extension method to register the input sanitization middleware.
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPSyncController.GetTokenStatus">
+        <member name="T:ERPTraining.API.Middleware.RequestLoggingMiddleware">
             <summary>
-            Gets current ERP token status
+            Enterprise-grade request logging middleware.
+            Logs request details for monitoring and debugging without changing application behavior.
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPTestController.TestAuthentication">
+        <member name="T:ERPTraining.API.Middleware.RequestLoggingMiddlewareExtensions">
             <summary>
-            Test ERP authentication
+            Extension method to register the request logging middleware.
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPTestController.TestUserRetrieval">
+        <member name="T:ERPTraining.API.Middleware.SecurityHeadersMiddleware">
             <summary>
-            Test ERP user data retrieval
+            Middleware that adds OWASP recommended security headers to all responses.
+            These headers help protect against common web vulnerabilities.
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.ERPTestController.TestRoleRetrieval">
-            <summary>
-            Test ERP role data retrieval
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.ERPTestController.TestAll">
-            <summary>
-            Test overall ERP connectivity
-            </summary>
-        </member>
-        <member name="T:ERPTraining.API.Controllers.ModulesController">
-            <summary>
-            Training modules management controller
-            </summary>
-            <remarks>
-            This controller manages training modules within the ERP Training system. It provides
-            comprehensive CRUD operations for training modules, module progression tracking,
-            and learning objective management.
-            
-            <para><strong>Key Features:</strong></para>
-            <list type="bullet">
-            <item><description>Module Creation and Management</description></item>
-            <item><description>Learning Progress Tracking</description></item>
-            <item><description>Module Content Organization</description></item>
-            <item><description>Prerequisites and Dependencies</description></item>
-            <item><description>Learning Objectives Management</description></item>
-            </list>
-            
-            <para><strong>Available Modules:</strong></para>
-            <para>The system includes comprehensive training modules covering all aspects of ERP systems:</para>
-            <list type="number">
-            <item><description>Data Models &amp; Security</description></item>
-            <item><description>SAP Basics &amp; ERP Fundamentals</description></item>
-            <item><description>Order to Cash Process</description></item>
-            <item><description>Production Planning &amp; Material Management</description></item>
-            <item><description>Finance &amp; Controlling</description></item>
-            <item><description>Sales &amp; Distribution</description></item>
-            <item><description>Project Management &amp; Resource Planning</description></item>
-            <item><description>Workflow &amp; Business Process Management</description></item>
-            <item><description>Integration &amp; System Management</description></item>
-            <item><description>Mobile Solutions &amp; Cloud Integration</description></item>
-            <item><description>Analytics &amp; Business Intelligence</description></item>
-            <item><description>Training Management &amp; Learning Analytics</description></item>
-            </list>
-            
-            <para><strong>Security:</strong></para>
-            <para>All endpoints require JWT Bearer token authentication. Access levels vary by user role.</para>
-            </remarks>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.ModulesController.GetAllModules">
-            <summary>
-            Retrieves all available training modules for the authenticated user
-            </summary>
-            <returns>List of training modules with progress information</returns>
-            <remarks>
-            Returns a comprehensive list of all training modules available to the authenticated user,
-            including their progress status, completion percentage, and access permissions.
-            
-            <para><strong>Returned Data Includes:</strong></para>
-            <list type="bullet">
-            <item><description>Module basic information (ID, title, description)</description></item>
-            <item><description>User progress tracking (completion %, last accessed)</description></item>
-            <item><description>Learning objectives and prerequisites</description></item>
-            <item><description>Estimated duration and difficulty level</description></item>
-            <item><description>Section count and structure</description></item>
-            </list>
-            
-            <para><strong>Module Categories:</strong></para>
-            <para>Modules are organized into comprehensive categories covering:</para>
-            <list type="bullet">
-            <item><description>Foundational ERP concepts and data management</description></item>
-            <item><description>Core business processes (O2C, P2P, R2R)</description></item>
-            <item><description>Advanced functionality and integration</description></item>
-            <item><description>Analytics and reporting capabilities</description></item>
-            </list>
-            
-            Sample response:
-            
-                [
-                  {
-                    "id": 1,
-                    "title": "Data Models &amp; Security",
-                    "description": "Learn fundamental data structures and security concepts...",
-                    "completionPercentage": 75,
-                    "estimatedDuration": "4 hours",
-                    "sectionCount": 52,
-                    "isCompleted": false,
-                    "lastAccessedAt": "2024-07-29T10:30:00Z"
-                  }
-                ]
-            
-            </remarks>
-            <response code="200">Modules retrieved successfully</response>
-            <response code="401">Unauthorized - Invalid or missing token</response>
-            <response code="403">Forbidden - Insufficient permissions</response>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.ModulesController.GetModuleById(System.Int32)">
-            <summary>
-            Retrieves detailed information for a specific training module
-            </summary>
-            <param name="id">The unique identifier of the module</param>
-            <returns>Detailed module information including sections and progress</returns>
-            <remarks>
-            Returns comprehensive details for a specific training module, including all sections,
-            user progress, learning objectives, and prerequisites. This endpoint provides the
-            complete module structure needed for the learning interface.
-            
-            <para><strong>Detailed Information Includes:</strong></para>
-            <list type="bullet">
-            <item><description>Complete module metadata and structure</description></item>
-            <item><description>All sections with content organization</description></item>
-            <item><description>User-specific progress and completion status</description></item>
-            <item><description>Learning objectives and outcomes</description></item>
-            <item><description>Prerequisites and recommended preparation</description></item>
-            <item><description>Assessment information and requirements</description></item>
-            </list>
-            
-            <para><strong>Progress Tracking:</strong></para>
-            <para>The response includes detailed progress information:</para>
-            <list type="bullet">
-            <item><description>Overall module completion percentage</description></item>
-            <item><description>Section-by-section progress status</description></item>
-            <item><description>Time spent in module and sections</description></item>
-            <item><description>Last accessed timestamps</description></item>
-            </list>
-            
-            Sample response:
-            
-                {
-                  "id": 1,
-                  "title": "Data Models &amp; Security",
-                  "description": "Comprehensive training on data structures...",
-                  "completionPercentage": 75,
-                  "sections": [
-                    {
-                      "id": 1,
-                      "title": "Introduction to Data Models",
-                      "order": 1,
-                      "isCompleted": true
-                    }
-                  ],
-                  "learningObjectives": ["Understand data structures", "..."],
-                  "prerequisites": ["Basic computer knowledge"]
-                }
-            
-            </remarks>
-            <response code="200">Module details retrieved successfully</response>
-            <response code="401">Unauthorized - Invalid or missing token</response>
-            <response code="404">Module not found or access denied</response>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.ModulesController.GetModulesForPermissions">
-            <summary>
-            Get modules formatted for permission assignment
-            </summary>
-            <returns>Modules with sections for role permission management</returns>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.ModulesController.ToggleModuleStatus(System.Int32,ERPTraining.API.Controllers.ToggleStatusRequest)">
-            <summary>
-            Enable or disable a module (Admin only)
-            </summary>
-            <param name="id">Module ID</param>
-            <param name="request">Toggle status request containing IsActive flag</param>
-            <returns>Success message</returns>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.ModulesController.ToggleSectionStatus(System.Int32,System.Int32,ERPTraining.API.Controllers.ToggleStatusRequest)">
-            <summary>
-            Enable or disable a section (Admin only)
-            </summary>
-            <param name="moduleId">Module ID</param>
-            <param name="sectionId">Section ID</param>
-            <param name="request">Toggle status request containing IsActive flag</param>
-            <returns>Success message</returns>
-        </member>
-        <member name="T:ERPTraining.API.Controllers.ToggleStatusRequest">
-            <summary>
-            Request model for toggling status
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleMappingsController.GetRoleMappings">
-            <summary>
-            Get all role to module mappings
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleMappingsController.CreateRoleMapping(System.Object)">
-            <summary>
-            Create a new role to module mapping
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleMappingsController.UpdateRoleMapping(System.String,System.Object)">
-            <summary>
-            Update an existing role to module mapping
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleMappingsController.DeleteRoleMapping(System.String)">
-            <summary>
-            Delete a role to module mapping
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleMappingsController.GetMappingsByRole(System.String)">
-            <summary>
-            Get role mappings for a specific role
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleMappingsController.GetMappingsByModule(System.String)">
-            <summary>
-            Get role mappings for a specific module
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleMastersController.GetAllRoleMasters">
-            <summary>
-            Get all role masters
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleMastersController.GetRoleMasterById(System.Int32)">
-            <summary>
-            Get role master by ID
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleMastersController.CreateRoleMaster(System.Object)">
-            <summary>
-            Create a new role master
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleModuleImportController.ImportFromJson(Microsoft.AspNetCore.Http.IFormFile)">
-            <summary>
-            Import role-module access from JSON file
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleModuleImportController.ImportFromJsonString(ERPTraining.API.Controllers.JsonImportRequest)">
-            <summary>
-            Import role-module access from JSON string
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleModuleImportController.ImportUserRoleSections(System.Collections.Generic.List{ERPTraining.Core.DTOs.UserRoleModuleSectionDto})">
-            <summary>
-            Import user role module section data (your specific format)
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleModuleImportController.ValidateJson(System.String)">
-            <summary>
-            Validate JSON structure before import
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleModuleImportController.GetRoleModuleAccess(System.String,System.Nullable{System.Int32})">
-            <summary>
-            Get role module access data
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleModuleImportController.UpdateRoleModuleAccess(System.Int32,ERPTraining.API.Controllers.UpdateRoleModuleAccessDto)">
-            <summary>
-            Update role module access
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleModuleImportController.DeleteRoleModuleAccess(System.Int32)">
-            <summary>
-            Delete role module access
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleSyncController.GetSyncStatus">
-            <summary>
-            Get the current synchronization status
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleSyncController.TestConnection">
-            <summary>
-            Test connection to the external API
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleSyncController.TestERPConnection">
-            <summary>
-            Test connection to the ERP system (alternative endpoint)
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleSyncController.ManualSync">
-            <summary>
-            Perform manual synchronization with external API
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleSyncController.GetSyncLogs(System.Int32)">
-            <summary>
-            Get synchronization history logs
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleSyncController.GetRoles">
-            <summary>
-            Get all roles from local role master table
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleSyncController.GetRole(System.Int32)">
-            <summary>
-            Get role by ID from local role master table
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleSyncController.GetSyncStatistics">
-            <summary>
-            Get detailed sync statistics
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleSyncController.CreateRole(ERPTraining.Core.Entities.RoleMaster)">
-            <summary>
-            Create or update a role locally (for manual role management)
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleSyncController.UpdateRole(System.Int32,ERPTraining.Core.Entities.RoleMaster)">
-            <summary>
-            Update an existing role locally
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.RoleSyncController.DeleteRole(System.Int32)">
-            <summary>
-            Delete a role locally
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.SectionsController.GetAllSections">
-            <summary>
-            Get all sections
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.SectionsController.GetSectionsByModule(System.Int32)">
-            <summary>
-            Get sections by module ID
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.SectionsController.GetSectionById(System.Int32)">
-            <summary>
-            Get section by ID
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.SectionsController.CreateSection(ERPTraining.Core.DTOs.CreateSectionDto)">
-            <summary>
-            Create a new section
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.SectionsController.UpdateSection(System.Int32,ERPTraining.Core.DTOs.UpdateSectionDto)">
-            <summary>
-            Update an existing section
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.SectionsController.DeleteSection(System.Int32)">
-            <summary>
-            Delete a section
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.SectionsController.SectionExists(System.Int32)">
-            <summary>
-            Check if section exists
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.UserSyncController.GetSyncStatus">
-            <summary>
-            Get the current user synchronization status
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.UserSyncController.TestConnection(ERPTraining.API.Controllers.TestConnectionRequest)">
-            <summary>
-            Test connection to the external user API
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.UserSyncController.ManualSync(ERPTraining.API.Controllers.SyncUsersRequest)">
-            <summary>
-            Perform manual user synchronization with external API
-            </summary>
-        </member>
-        <member name="M:ERPTraining.API.Controllers.UserSyncController.GetUsers">
+        <member name="T:ERPTraining.API.Middleware.SecurityHeadersMiddlewareExtensions">
             <summary>
-            Get all users with ERP integration
+            Extension method to add SecurityHeadersMiddleware to the pipeline.
             </summary>
         </member>
-        <member name="M:ERPTraining.API.Controllers.UserSyncController.PreviewUsers">
+        <member name="T:ERPTraining.API.Services.TicketAutoCloseService">
             <summary>
-            Get preview of users from ERP system
+            Background service that automatically closes resolved tickets after 48 hours
+            if the user has not reopened them.
             </summary>
         </member>
         <member name="M:ERPTraining.APIng.EmailConfigurationController_Disabled.GetEmailConfiguration">

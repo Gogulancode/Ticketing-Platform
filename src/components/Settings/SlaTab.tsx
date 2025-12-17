@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   PlusIcon,
   PencilIcon,
@@ -6,6 +6,7 @@ import {
   ClockIcon,
   UserGroupIcon,
   XMarkIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -22,6 +23,18 @@ import {
 } from '../../hooks/useAdvancedSettings';
 import { settingsApi } from '../../api/settingsApi';
 import type { SlaPolicyDto, SlaEscalationContactDto } from '../../api/settingsApi';
+import { debounce } from 'lodash';
+
+// User search result type
+interface UserSearchResult {
+  id: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  department: string;
+  position: string;
+}
 
 // Form validation schema
 const slaPolicySchema = yup.object({
@@ -72,6 +85,58 @@ const SlaTab: React.FC = () => {
     contactEmail: '',
     isActive: true
   });
+
+  // User search state
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState<UserSearchResult[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [isManualEntry, setIsManualEntry] = useState(false);
+
+  // Debounced user search function
+  const searchUsers = useCallback(
+    debounce(async (query: string) => {
+      if (query.length < 2) {
+        setUserSearchResults([]);
+        setShowUserDropdown(false);
+        return;
+      }
+      
+      setIsSearchingUsers(true);
+      try {
+        const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}&limit=10`);
+        if (response.ok) {
+          const results = await response.json();
+          setUserSearchResults(results);
+          setShowUserDropdown(results.length > 0);
+        }
+      } catch (error) {
+        console.error('Error searching users:', error);
+      } finally {
+        setIsSearchingUsers(false);
+      }
+    }, 300),
+    []
+  );
+
+  // Handle user selection from dropdown
+  const handleUserSelect = (user: UserSearchResult) => {
+    setContactForm(prev => ({
+      ...prev,
+      contactName: user.name.trim(),
+      contactEmail: user.email
+    }));
+    setUserSearchQuery(user.name.trim());
+    setShowUserDropdown(false);
+    setIsManualEntry(false);
+  };
+
+  // Handle manual entry toggle
+  const handleSwitchToManualEntry = () => {
+    setIsManualEntry(true);
+    setShowUserDropdown(false);
+    setUserSearchResults([]);
+  };
 
   // React Query hooks
   const { data: slaPolicies = [], isLoading: loadingPolicies } = useSlaPolicies(showInactivePolicies);
@@ -276,14 +341,14 @@ const SlaTab: React.FC = () => {
     <div className="max-w-full overflow-hidden">
       <div className="space-y-6 p-2 sm:p-4">
         {/* Intro */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
           <div className="flex items-start">
-            <ClockIcon className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+            <ClockIcon className="h-5 w-5 text-gray-600 mt-0.5 mr-3 flex-shrink-0" />
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-medium text-blue-900">
+              <h3 className="text-sm font-medium text-gray-900">
                 SLA Policies & Escalations
               </h3>
-              <p className="mt-1 text-sm text-blue-700">
+              <p className="mt-1 text-sm text-gray-700">
                 Configure SLA targets and escalation rules. Notifications will be
                 sent automatically if SLAs are breached.
               </p>
@@ -298,7 +363,7 @@ const SlaTab: React.FC = () => {
           <label className="inline-flex items-center text-sm text-gray-600">
             <input
               type="checkbox"
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-2"
+              className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded mr-2"
               checked={showInactivePolicies}
               onChange={(event) => setShowInactivePolicies(event.target.checked)}
             />
@@ -306,7 +371,7 @@ const SlaTab: React.FC = () => {
           </label>
           <button
             onClick={openCreate}
-            className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
           >
             <PlusIcon className="h-4 w-4 mr-1.5" />
             Add SLA Policy
@@ -318,7 +383,7 @@ const SlaTab: React.FC = () => {
       {loadingPolicies ? (
         <div className="bg-white shadow rounded-lg p-8">
           <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
           </div>
         </div>
       ) : (
@@ -391,7 +456,7 @@ const SlaTab: React.FC = () => {
                           </span>
                         )}
                         {p.escalationLevel3Minutes && (
-                          <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                          <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-gray-800">
                             L3: {formatDuration(p.escalationLevel3Minutes)}
                           </span>
                         )}
@@ -405,7 +470,7 @@ const SlaTab: React.FC = () => {
                         className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
                           p.isActive
                             ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                            : 'bg-red-100 text-gray-800'
                         }`}
                       >
                         {p.isActive ? 'Active' : 'Inactive'}
@@ -415,14 +480,14 @@ const SlaTab: React.FC = () => {
                       <div className="flex justify-end space-x-1 sm:space-x-2">
                         <button
                           onClick={() => openEdit(p)}
-                          className="text-blue-600 hover:text-blue-900 p-1"
+                          className="text-gray-600 hover:text-gray-900 p-1"
                           disabled={updatePolicyMutation.isPending}
                         >
                           <PencilIcon className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(p.id)}
-                          className="text-red-600 hover:text-red-900 p-1"
+                          className="text-gray-600 hover:text-gray-900 p-1"
                           disabled={deletePolicyMutation.isPending}
                         >
                           <TrashIcon className="h-4 w-4" />
@@ -504,7 +569,7 @@ const SlaTab: React.FC = () => {
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           contact.level === 1 ? 'bg-yellow-100 text-yellow-800' :
                           contact.level === 2 ? 'bg-orange-100 text-orange-800' :
-                          'bg-red-100 text-red-800'
+                          'bg-red-100 text-gray-800'
                         }`}>
                           Level {contact.level}
                         </span>
@@ -518,7 +583,7 @@ const SlaTab: React.FC = () => {
                       <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         <div className="space-x-2">
                           {contact.notifyByEmail && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-gray-800">
                               Email
                             </span>
                           )}
@@ -533,13 +598,13 @@ const SlaTab: React.FC = () => {
                         <div className="flex justify-end space-x-2">
                           <button
                             onClick={() => openEditContact(contact)}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-gray-600 hover:text-gray-900"
                           >
                             <PencilIcon className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteContact(contact.id)}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-gray-600 hover:text-gray-900"
                           >
                             <TrashIcon className="h-4 w-4" />
                           </button>
@@ -580,11 +645,11 @@ const SlaTab: React.FC = () => {
                 </label>
                 <input
                   {...register('name')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                   placeholder="e.g., Standard Support SLA"
                 />
                 {errors.name && (
-                  <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                  <p className="mt-1 text-sm text-gray-600">{errors.name.message}</p>
                 )}
               </div>
 
@@ -599,7 +664,7 @@ const SlaTab: React.FC = () => {
                   render={({ field }) => (
                     <select
                       {...field}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                     >
                       <option value="">Select Priority</option>
                       {priorities.map(priority => (
@@ -611,7 +676,7 @@ const SlaTab: React.FC = () => {
                   )}
                 />
                 {errors.priorityId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.priorityId.message}</p>
+                  <p className="mt-1 text-sm text-gray-600">{errors.priorityId.message}</p>
                 )}
               </div>
 
@@ -624,11 +689,11 @@ const SlaTab: React.FC = () => {
                     type="number"
                     min="1"
                     {...register('responseTimeMinutes', { valueAsNumber: true })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                     placeholder="60"
                   />
                   {errors.responseTimeMinutes && (
-                    <p className="mt-1 text-sm text-red-600">{errors.responseTimeMinutes.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.responseTimeMinutes.message}</p>
                   )}
                 </div>
 
@@ -640,11 +705,11 @@ const SlaTab: React.FC = () => {
                     type="number"
                     min="1"
                     {...register('resolutionTimeMinutes', { valueAsNumber: true })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                     placeholder="240"
                   />
                   {errors.resolutionTimeMinutes && (
-                    <p className="mt-1 text-sm text-red-600">{errors.resolutionTimeMinutes.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.resolutionTimeMinutes.message}</p>
                   )}
                 </div>
               </div>
@@ -663,11 +728,11 @@ const SlaTab: React.FC = () => {
                         valueAsNumber: true,
                         setValueAs: (value) => value === '' ? null : Number(value)
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                       placeholder="480"
                     />
                     {errors.escalationLevel1Minutes && (
-                      <p className="mt-1 text-sm text-red-600">{errors.escalationLevel1Minutes.message}</p>
+                      <p className="mt-1 text-sm text-gray-600">{errors.escalationLevel1Minutes.message}</p>
                     )}
                   </div>
 
@@ -682,11 +747,11 @@ const SlaTab: React.FC = () => {
                         valueAsNumber: true,
                         setValueAs: (value) => value === '' ? null : Number(value)
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                       placeholder="720"
                     />
                     {errors.escalationLevel2Minutes && (
-                      <p className="mt-1 text-sm text-red-600">{errors.escalationLevel2Minutes.message}</p>
+                      <p className="mt-1 text-sm text-gray-600">{errors.escalationLevel2Minutes.message}</p>
                     )}
                   </div>
 
@@ -701,11 +766,11 @@ const SlaTab: React.FC = () => {
                         valueAsNumber: true,
                         setValueAs: (value) => value === '' ? null : Number(value)
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                       placeholder="960"
                     />
                     {errors.escalationLevel3Minutes && (
-                      <p className="mt-1 text-sm text-red-600">{errors.escalationLevel3Minutes.message}</p>
+                      <p className="mt-1 text-sm text-gray-600">{errors.escalationLevel3Minutes.message}</p>
                     )}
                   </div>
                 </div>
@@ -723,7 +788,7 @@ const SlaTab: React.FC = () => {
                       onBlur={onBlur}
                       name={name}
                       ref={ref}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                     />
                   )}
                 />
@@ -736,7 +801,7 @@ const SlaTab: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsPolicyModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   disabled={isSubmitting}
                 >
                   Cancel
@@ -744,7 +809,7 @@ const SlaTab: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting || createPolicyMutation.isPending || updatePolicyMutation.isPending}
-                  className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {(isSubmitting || createPolicyMutation.isPending || updatePolicyMutation.isPending) ? (
                     <>
@@ -778,6 +843,10 @@ const SlaTab: React.FC = () => {
                   onClick={() => {
                     setIsContactModalOpen(false);
                     setEditingContact(null);
+                    setUserSearchQuery('');
+                    setUserSearchResults([]);
+                    setShowUserDropdown(false);
+                    setIsManualEntry(false);
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
@@ -794,7 +863,7 @@ const SlaTab: React.FC = () => {
                     value={contactForm.slaPolicyId}
                     onChange={(e) => handleContactInputChange('slaPolicyId', e.target.value)}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                   >
                     <option value="">Select SLA Policy</option>
                     {slaPolicies.map(policy => (
@@ -813,7 +882,7 @@ const SlaTab: React.FC = () => {
                     value={contactForm.escalationLevel}
                     onChange={(e) => handleContactInputChange('escalationLevel', e.target.value)}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                   >
                     <option value="">Select Level</option>
                     <option value="1">Level 1</option>
@@ -822,30 +891,93 @@ const SlaTab: React.FC = () => {
                   </select>
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Contact Name
+                    {!isManualEntry && (
+                      <span className="text-xs text-gray-500 ml-2">(Search users or <button type="button" onClick={handleSwitchToManualEntry} className="text-gray-600 hover:underline">enter manually</button>)</span>
+                    )}
+                    {isManualEntry && (
+                      <span className="text-xs text-gray-500 ml-2">(<button type="button" onClick={() => setIsManualEntry(false)} className="text-gray-600 hover:underline">search users</button>)</span>
+                    )}
                   </label>
-                  <input
-                    type="text"
-                    value={contactForm.contactName}
-                    onChange={(e) => handleContactInputChange('contactName', e.target.value)}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter contact name"
-                  />
+                  {!isManualEntry ? (
+                    <div className="relative">
+                      <div className="relative">
+                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={userSearchQuery}
+                          onChange={(e) => {
+                            const query = e.target.value;
+                            setUserSearchQuery(query);
+                            setContactForm(prev => ({ ...prev, contactName: query }));
+                            searchUsers(query);
+                          }}
+                          onFocus={() => {
+                            if (userSearchResults.length > 0) {
+                              setShowUserDropdown(true);
+                            }
+                          }}
+                          className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                          placeholder="Search by name or email..."
+                          autoComplete="off"
+                        />
+                        {isSearchingUsers && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* User search dropdown */}
+                      {showUserDropdown && userSearchResults.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                          {userSearchResults.map((user) => (
+                            <button
+                              key={user.id}
+                              type="button"
+                              onClick={() => handleUserSelect(user)}
+                              className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                            >
+                              <div className="font-medium text-sm text-gray-900">{user.name}</div>
+                              <div className="text-xs text-gray-500">{user.email}</div>
+                              {user.department && (
+                                <div className="text-xs text-gray-400">{user.department} {user.position && `• ${user.position}`}</div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={contactForm.contactName}
+                      onChange={(e) => handleContactInputChange('contactName', e.target.value)}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      placeholder="Enter contact name"
+                    />
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email Address
+                    {!isManualEntry && contactForm.contactEmail && (
+                      <span className="text-xs text-green-600 ml-2">✓ Auto-filled from user</span>
+                    )}
                   </label>
                   <input
                     type="email"
                     value={contactForm.contactEmail}
                     onChange={(e) => handleContactInputChange('contactEmail', e.target.value)}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                     placeholder="Enter email address"
                   />
                 </div>
@@ -863,6 +995,10 @@ const SlaTab: React.FC = () => {
                         contactEmail: '',
                         isActive: true
                       });
+                      setUserSearchQuery('');
+                      setUserSearchResults([]);
+                      setShowUserDropdown(false);
+                      setIsManualEntry(false);
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
                   >
@@ -871,7 +1007,7 @@ const SlaTab: React.FC = () => {
                   <button
                     type="submit"
                     disabled={createContactMutation.isPending || updateContactMutation.isPending}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
                   >
                     {createContactMutation.isPending || updateContactMutation.isPending ? (
                       <>

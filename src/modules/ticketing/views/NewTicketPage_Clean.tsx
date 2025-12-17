@@ -31,6 +31,26 @@ const mapCategoryToEnum = (categoryId: string): TicketCategory => {
   }
 };
 
+// Helper function to map priority name to backend enum value
+const mapPriorityNameToEnum = (priorityName: string): TicketPriority => {
+  const normalizedName = priorityName.toLowerCase().trim();
+  switch (normalizedName) {
+    case 'low':
+    case 'very low':
+      return TicketPriority.Low;
+    case 'medium':
+    case 'normal':
+      return TicketPriority.Medium;
+    case 'high':
+      return TicketPriority.High;
+    case 'critical':
+    case 'urgent':
+      return TicketPriority.Critical;
+    default:
+      return TicketPriority.Medium;
+  }
+};
+
 const NewTicketPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -162,16 +182,16 @@ const NewTicketPage: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 text-red-700 flex items-center space-x-2">
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 text-gray-700 flex items-center space-x-2">
             <AlertCircle className="h-5 w-5" />
             <span>{error}</span>
           </div>
         )}
 
         {/* Help Text */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-800 mb-2">💡 Settings Integration</h3>
-          <p className="text-sm text-blue-700">
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <h3 className="text-sm font-medium text-gray-800 mb-2">💡 Settings Integration</h3>
+          <p className="text-sm text-gray-700">
             All dropdown options below are automatically loaded from your Settings page configuration. 
             Visit <span className="font-mono">Settings → Ticket Settings</span> to manage departments, categories, priorities, and statuses.
           </p>
@@ -182,14 +202,14 @@ const NewTicketPage: React.FC = () => {
           <div className="space-y-6">
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                Title <span className="text-red-500">*</span>
+                Title <span className="text-gray-500">*</span>
               </label>
               <input
                 type="text"
                 id="title"
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="Enter a brief title for your ticket"
                 disabled={loading}
                 required
@@ -198,14 +218,14 @@ const NewTicketPage: React.FC = () => {
 
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                Description <span className="text-red-500">*</span>
+                Description <span className="text-gray-500">*</span>
               </label>
               <textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-vertical"
                 placeholder="Provide a detailed description of your issue or request"
                 disabled={loading}
                 maxLength={2000}
@@ -218,7 +238,7 @@ const NewTicketPage: React.FC = () => {
               {/* Category */}
               <div>
                 <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 mb-2">
-                  Category <span className="text-red-500">*</span>
+                  Category <span className="text-gray-500">*</span>
                   {settingsLoading ? (
                     <span className="text-sm text-gray-500 ml-2">(Loading...)</span>
                   ) : (
@@ -229,7 +249,7 @@ const NewTicketPage: React.FC = () => {
                   id="categoryId"
                   value={formData.categoryId}
                   onChange={(e) => handleInputChange('categoryId', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   disabled={loading || settingsLoading}
                   required
                 >
@@ -248,14 +268,14 @@ const NewTicketPage: React.FC = () => {
               {formData.categoryId && (
                 <div>
                   <label htmlFor="subcategoryId" className="block text-sm font-medium text-gray-700 mb-2">
-                    Subcategory <span className="text-red-500">*</span>
+                    Subcategory <span className="text-gray-500">*</span>
                     <span className="text-sm text-gray-500 ml-2">({availableSubcategories.length} available)</span>
                   </label>
                   <select
                     id="subcategoryId"
                     value={formData.subcategoryId}
                     onChange={(e) => handleInputChange('subcategoryId', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     disabled={loading}
                     required
                   >
@@ -272,7 +292,7 @@ const NewTicketPage: React.FC = () => {
               {/* Department */}
               <div>
                 <label htmlFor="departmentId" className="block text-sm font-medium text-gray-700 mb-2">
-                  Department <span className="text-red-500">*</span>
+                  Department <span className="text-gray-500">*</span>
                   {settingsLoading ? (
                     <span className="text-sm text-gray-500 ml-2">(Loading...)</span>
                   ) : (
@@ -283,7 +303,7 @@ const NewTicketPage: React.FC = () => {
                   id="departmentId"
                   value={formData.departmentId}
                   onChange={(e) => handleInputChange('departmentId', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   disabled={loading || settingsLoading}
                   required
                 >
@@ -313,22 +333,22 @@ const NewTicketPage: React.FC = () => {
                     id="priority"
                     value={formData.priority}
                     onChange={(e) => handleInputChange('priority', parseInt(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     disabled={loading || settingsLoading}
                   >
                     {settingsLoading ? (
                       <option>Loading priorities...</option>
                     ) : (
                       priorities.map((priority) => (
-                        <option key={priority.id} value={priority.level}>
+                        <option key={priority.id} value={mapPriorityNameToEnum(priority.name)}>
                           {priority.name}
                         </option>
                       ))
                     )}
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    Current priority: <span style={{ color: priorities.find(p => p.level === formData.priority)?.color || '#6b7280' }}>
-                      {priorities.find(p => p.level === formData.priority)?.name || 'Medium'}
+                    Current priority: <span style={{ color: priorities.find(p => mapPriorityNameToEnum(p.name) === formData.priority)?.color || '#6b7280' }}>
+                      {priorities.find(p => mapPriorityNameToEnum(p.name) === formData.priority)?.name || 'Medium'}
                     </span>
                   </p>
                 </div>
@@ -336,7 +356,7 @@ const NewTicketPage: React.FC = () => {
                 {/* Status */}
                 <div>
                   <label htmlFor="statusId" className="block text-sm font-medium text-gray-700 mb-2">
-                    Status <span className="text-red-500">*</span>
+                    Status <span className="text-gray-500">*</span>
                     {settingsLoading ? (
                       <span className="text-sm text-gray-500 ml-2">(Loading...)</span>
                     ) : (
@@ -347,7 +367,7 @@ const NewTicketPage: React.FC = () => {
                     id="statusId"
                     value={formData.statusId}
                     onChange={(e) => handleInputChange('statusId', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     disabled={loading || settingsLoading}
                     required
                   >
@@ -383,7 +403,7 @@ const NewTicketPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading || settingsLoading || !formData.title.trim() || !formData.description.trim() || !formData.categoryId || !formData.subcategoryId || !formData.departmentId || !formData.statusId}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>

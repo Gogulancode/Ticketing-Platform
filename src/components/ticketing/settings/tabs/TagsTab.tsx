@@ -142,14 +142,14 @@ const TagsTab: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <div className="flex items-start">
-          <TagIcon className="h-5 w-5 text-blue-600 mt-0.5 mr-3" />
+          <TagIcon className="h-5 w-5 text-gray-600 mt-0.5 mr-3" />
           <div>
-            <h3 className="text-sm font-medium text-blue-900">
+            <h3 className="text-sm font-medium text-gray-900">
               Email Auto-Assignment Tags
             </h3>
-            <p className="mt-1 text-sm text-blue-700">
+            <p className="mt-1 text-sm text-gray-700">
               Create keyword tags that automatically assign incoming emails to
               specific subcategories.
             </p>
@@ -162,7 +162,7 @@ const TagsTab: React.FC = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
           >
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Add Tag
@@ -183,7 +183,7 @@ const TagsTab: React.FC = () => {
               type="checkbox"
               checked={showInactive}
               onChange={(e) => setShowInactive(e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
             />
             <span>Show inactive only</span>
           </label>
@@ -198,7 +198,7 @@ const TagsTab: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
             placeholder="Search tags..."
           />
         </div>
@@ -207,7 +207,7 @@ const TagsTab: React.FC = () => {
       {/* Tags Table */}
       {loading ? (
         <div className="bg-white shadow rounded-md p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
           <p className="mt-2 text-sm text-gray-500">Loading tags...</p>
         </div>
       ) : (
@@ -232,7 +232,7 @@ const TagsTab: React.FC = () => {
                           filteredTags.length > 0
                         }
                         onChange={handleSelectAll}
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                        className="h-4 w-4 text-gray-600 border-gray-300 rounded"
                       />
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -266,7 +266,7 @@ const TagsTab: React.FC = () => {
                                 : selectedTags.filter((id) => id !== tag.id)
                             )
                           }
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                          className="h-4 w-4 text-gray-600 border-gray-300 rounded"
                         />
                       </td>
                       <td className={`px-6 py-4 ${!tag.isActive ? 'text-gray-400' : ''}`}>
@@ -280,7 +280,7 @@ const TagsTab: React.FC = () => {
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             tag.isActive
                               ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
+                              : "bg-red-100 text-gray-800"
                           }`}
                         >
                           {tag.isActive ? "Active" : "Inactive"}
@@ -292,13 +292,13 @@ const TagsTab: React.FC = () => {
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => handleEdit(tag)}
-                          className="text-blue-600 hover:text-blue-900 mr-3"
+                          className="text-gray-600 hover:text-gray-900 mr-3"
                         >
                           <PencilIcon className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(tag.id)}
-                          className="text-red-600 hover:text-red-900"
+                          className="text-gray-600 hover:text-gray-900"
                         >
                           <TrashIcon className="h-4 w-4" />
                         </button>

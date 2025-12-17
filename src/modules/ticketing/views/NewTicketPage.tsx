@@ -1,10 +1,29 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, AlertCircle, Paperclip, X, Zap, Bug, HelpCircle, CheckCircle, Users, DollarSign, Megaphone, FileText } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, Paperclip, X, Zap, Bug, HelpCircle, CheckCircle, Users, DollarSign, Megaphone, FileText, Image, Briefcase, Settings, Mail, Phone, Calendar, Clock, Globe, Shield, Database, Server, Wifi, Monitor, Printer, Headphones, MessageSquare, BookOpen, Award, Target, TrendingUp, PieChart, BarChart, Activity, Heart, Star, Flag, Bookmark, Tag, Folder, Archive, Trash, Edit, Copy, Link, ExternalLink, Download, Upload, Share, Lock, Unlock, Eye, EyeOff, Bell, BellOff, Search, Filter, List, Grid, Layers, Package, Box, Gift, Truck, MapPin, Navigation, Compass, Map, Home, Building, Store, ShoppingCart, CreditCard, Wallet, Receipt, FileCheck, FilePlus, FileSearch, FileMinus, FileWarning, FileX, LucideIcon, Sparkles, Loader2 } from 'lucide-react';
 import { ticketsApi, TicketPriority, TicketCategory, TicketCustomFieldValues, CustomFieldPrimitive } from '../services/ticketsApi';
-import { settingsApi, Department, TicketCategoryConfig, SubCategory, PriorityLevel, TicketStatusConfig, CustomField } from '../../../shared/services/api/settingsApi';
-import { useQuery } from '@tanstack/react-query';
+import { settingsApi, Department, TicketCategoryConfig, SubCategory, PriorityLevel, TicketStatusConfig, CustomField, QuickTemplate } from '../../../shared/services/api/settingsApi';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AuthService from '../../../shared/services/api/auth';
+import { enhanceText } from '../../../api/aiApi';
+import { toast } from 'react-hot-toast';
+
+// Icon mapping for dynamic template icons
+const iconMap: Record<string, LucideIcon> = {
+  Bug, Zap, HelpCircle, CheckCircle, Users, DollarSign, Megaphone, FileText, Image, Briefcase, 
+  Settings, Mail, Phone, Calendar, Clock, Globe, Shield, Database, Server, Wifi, Monitor, 
+  Printer, Headphones, MessageSquare, BookOpen, Award, Target, TrendingUp, PieChart, BarChart,
+  Activity, Heart, Star, Flag, Bookmark, Tag, Folder, Archive, Trash, Edit, Copy, Link,
+  ExternalLink, Download, Upload, Share, Lock, Unlock, Eye, EyeOff, Bell, BellOff, Search,
+  Filter, List, Grid, Layers, Package, Box, Gift, Truck, MapPin, Navigation, Compass, Map,
+  Home, Building, Store, ShoppingCart, CreditCard, Wallet, Receipt, FileCheck, FilePlus,
+  FileSearch, FileMinus, FileWarning, FileX, AlertCircle, Paperclip, X, Save, ArrowLeft
+};
+
+// Helper function to get icon component from string name
+const getIconComponent = (iconName: string): LucideIcon => {
+  return iconMap[iconName] || FileText;
+};
 
 type TicketFormData = {
   title: string;
@@ -34,6 +53,26 @@ const mapCategoryToEnum = (categoryId: string): TicketCategory => {
   }
 };
 
+// Helper function to map priority name to backend enum value
+const mapPriorityNameToEnum = (priorityName: string): TicketPriority => {
+  const normalizedName = priorityName.toLowerCase().trim();
+  switch (normalizedName) {
+    case 'low':
+    case 'very low':
+      return TicketPriority.Low;
+    case 'medium':
+    case 'normal':
+      return TicketPriority.Medium;
+    case 'high':
+      return TicketPriority.High;
+    case 'critical':
+    case 'urgent':
+      return TicketPriority.Critical;
+    default:
+      return TicketPriority.Medium;
+  }
+};
+
 const sortByOrder = <T extends { order?: number; name?: string }>(items: T[]): T[] => {
   return [...items].sort((a, b) => {
     const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
@@ -55,10 +94,12 @@ const sortByOrder = <T extends { order?: number; name?: string }>(items: T[]): T
 
 const NewTicketPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAgent, setIsAgent] = useState(false);
+  const [isEnhancingDescription, setIsEnhancingDescription] = useState(false);
   
   // Settings data
   const [categories, setCategories] = useState<TicketCategoryConfig[]>([]);
@@ -81,6 +122,42 @@ const NewTicketPage: React.FC = () => {
 
   const [attachments, setAttachments] = useState<File[]>([]);
 
+  // AI Enhance Description handler
+  const handleEnhanceDescription = async () => {
+    if (!formData.description.trim() || formData.description.trim().length < 10) {
+      toast.error('Please write at least 10 characters before enhancing');
+      return;
+    }
+
+    setIsEnhancingDescription(true);
+    try {
+      const result = await enhanceText({
+        text: formData.description,
+        context: 'ticket description',
+        tone: 'professional',
+        fixGrammar: true,
+        improveClarity: true,
+        makeMoreConcise: false
+      });
+
+      if (result.success && result.enhancedText) {
+        setFormData(prev => ({ ...prev, description: result.enhancedText! }));
+        if (result.improvements && result.improvements.length > 0) {
+          toast.success(`✨ Enhanced: ${result.improvements.slice(0, 2).join(', ')}`);
+        } else {
+          toast.success('✨ Description enhanced!');
+        }
+      } else {
+        toast.error(result.errorMessage || 'Failed to enhance text');
+      }
+    } catch (err) {
+      console.error('Error enhancing description:', err);
+      toast.error('Failed to enhance description. Please try again.');
+    } finally {
+      setIsEnhancingDescription(false);
+    }
+  };
+
   // Query for custom fields based on category and subcategory
   const { data: customFields = [] } = useQuery({
     queryKey: ['customFields', formData.categoryId, formData.subcategoryId],
@@ -99,94 +176,12 @@ const NewTicketPage: React.FC = () => {
     [customFields]
   );
 
-  // Quick action templates
-  const quickActions = [
-    // IT Department
-    { 
-      icon: Bug, 
-      label: 'IT - Bug Report', 
-      title: 'Bug Report: ',
-      description: 'I encountered a bug with the following:\n\n• What happened:\n• Expected behavior:\n• Steps to reproduce:\n1. \n2. \n3. \n\n• Browser/System info:',
-      category: 'bug-report',
-      priority: TicketPriority.High
-    },
-    { 
-      icon: Zap, 
-      label: 'IT - Technical Issue', 
-      title: 'Technical Support: ',
-      description: 'I need technical assistance with:\n\n• Issue description:\n• Error messages (if any):\n• When did this start:\n• What I\'ve tried:',
-      category: 'technical-support',
-      priority: TicketPriority.Medium
-    },
-    // HR Department
-    { 
-      icon: Users, 
-      label: 'HR - Leave Request', 
-      title: 'Leave Request: ',
-      description: 'I would like to request leave for:\n\n• Leave type (Annual/Sick/Personal):\n• Start date:\n• End date:\n• Number of days:\n• Reason:\n• Contact during leave:',
-      category: 'general-inquiry',
-      priority: TicketPriority.Low
-    },
-    { 
-      icon: Users, 
-      label: 'HR - Payroll Issue', 
-      title: 'Payroll Inquiry: ',
-      description: 'I have a payroll-related issue:\n\n• Issue description:\n• Pay period affected:\n• Expected amount vs received:\n• Supporting documents attached:',
-      category: 'general-inquiry',
-      priority: TicketPriority.High
-    },
-    // Accounts/Finance Department
-    { 
-      icon: DollarSign, 
-      label: 'Finance - Expense Claim', 
-      title: 'Expense Reimbursement: ',
-      description: 'I would like to claim reimbursement for:\n\n• Expense type:\n• Amount:\n• Date incurred:\n• Business purpose:\n• Receipts attached:',
-      category: 'general-inquiry',
-      priority: TicketPriority.Medium
-    },
-    { 
-      icon: DollarSign, 
-      label: 'Finance - Invoice Query', 
-      title: 'Invoice Inquiry: ',
-      description: 'I have a question about an invoice:\n\n• Invoice number:\n• Vendor/Client name:\n• Issue description:\n• Amount in question:\n• Required action:',
-      category: 'general-inquiry',
-      priority: TicketPriority.Medium
-    },
-    // Marketing Department
-    { 
-      icon: Megaphone, 
-      label: 'Marketing - Campaign Request', 
-      title: 'Marketing Campaign: ',
-      description: 'I would like to request marketing support for:\n\n• Campaign objective:\n• Target audience:\n• Timeline:\n• Budget (if applicable):\n• Required deliverables:\n• Success metrics:',
-      category: 'feature-request',
-      priority: TicketPriority.Low
-    },
-    { 
-      icon: Megaphone, 
-      label: 'Marketing - Design Request', 
-      title: 'Design/Creative Request: ',
-      description: 'I need design/creative support for:\n\n• Type (Banner/Poster/Social media/Email):\n• Purpose:\n• Deadline:\n• Dimensions/Specifications:\n• Brand guidelines:\n• Reference materials:',
-      category: 'feature-request',
-      priority: TicketPriority.Medium
-    },
-    // General
-    { 
-      icon: FileText, 
-      label: 'General - Document Request', 
-      title: 'Document Request: ',
-      description: 'I need the following document(s):\n\n• Document type:\n• Purpose:\n• Required by (date):\n• Delivery format (PDF/Word/Email):\n• Additional notes:',
-      category: 'general-inquiry',
-      priority: TicketPriority.Low
-    },
-    { 
-      icon: HelpCircle, 
-      label: 'General - Question', 
-      title: 'General Inquiry: ',
-      description: 'I have a question about:\n\n• Department/Topic:\n• Specific question:\n• Context or background:\n• Urgency level:',
-      category: 'general-inquiry',
-      priority: TicketPriority.Low
-    }
-  ];
+  // Query for quick templates from API
+  const { data: quickTemplates = [], isLoading: templatesLoading } = useQuery({
+    queryKey: ['quickTemplates'],
+    queryFn: () => settingsApi.getQuickTemplates(false),
+    staleTime: 5 * 60 * 1000 // Cache for 5 minutes
+  });
 
   // Load settings data on component mount
   useEffect(() => {
@@ -219,17 +214,25 @@ const NewTicketPage: React.FC = () => {
         }
 
         // Pre-select user's department if available
+        console.log('🔍 Current user:', currentUser);
+        console.log('🔍 Departments:', deptResponse);
         if (currentUser?.department && deptResponse.length > 0) {
           const userDepartment = deptResponse.find(
             (dept: Department) => dept.name.toLowerCase() === currentUser.department?.toLowerCase()
           );
+          console.log('🔍 User department match:', userDepartment);
           if (userDepartment) {
             setFormData(prev => ({ ...prev, departmentId: userDepartment.id.toString() }));
+            console.log('✅ Pre-selected department:', userDepartment.name);
           }
         }
 
-        // Check if user is an Agent (has Agent role)
-        if (currentUser?.role && currentUser.role.toLowerCase() === 'agent') {
+        // Check if user is an Agent (has Agent role) - check both role (string) and roles (array)
+        const userRoles = currentUser?.roles || [];
+        const userRole = currentUser?.role || '';
+        const isAgentRole = userRole.toLowerCase().includes('agent') || 
+          userRoles.some((r: string) => r.toLowerCase().includes('agent'));
+        if (isAgentRole) {
           setIsAgent(true);
         }
       } catch (error) {
@@ -305,6 +308,10 @@ const NewTicketPage: React.FC = () => {
       
       await ticketsApi.createTicket(ticketData);
       
+      // Invalidate the my-tickets cache to ensure fresh data is fetched
+      await queryClient.invalidateQueries({ queryKey: ['my-tickets'] });
+      await queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      
       navigate('/tickets/my');
     } catch (err) {
       setError('Failed to create ticket. Please try again.');
@@ -359,26 +366,44 @@ const NewTicketPage: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const handleQuickAction = (action: typeof quickActions[0]) => {
-    setFormData(prev => ({
-      ...prev,
+  // Type for quick action
+  type QuickActionType = {
+    icon: LucideIcon;
+    label: string;
+    title: string;
+    description: string;
+    category: string;
+    priority: TicketPriority;
+    categoryId?: number;
+  };
+
+  const handleQuickAction = (action: QuickActionType) => {
+    // Start building the new form data
+    const newFormData: Partial<TicketFormData> = {
       title: action.title,
       description: action.description,
       priority: action.priority,
-    }));
-    
-    // Try to find matching category by name pattern
-    const matchingCategory = categories.find(cat => 
-      cat.name.toLowerCase().includes(action.category) ||
-      action.category.includes(cat.name.toLowerCase())
-    );
-    
-    if (matchingCategory) {
-      setFormData(prev => ({
-        ...prev,
-        categoryId: matchingCategory.id.toString(),
-      }));
+    };
+
+    // If template has specific categoryId, use it directly
+    if (action.categoryId) {
+      newFormData.categoryId = action.categoryId.toString();
+    } else {
+      // Fall back to matching category by name pattern
+      const matchingCategory = categories.find(cat => 
+        cat.name.toLowerCase().includes(action.category) ||
+        action.category.includes(cat.name.toLowerCase())
+      );
+      
+      if (matchingCategory) {
+        newFormData.categoryId = matchingCategory.id.toString();
+      }
     }
+
+    setFormData(prev => ({
+      ...prev,
+      ...newFormData,
+    }));
   };
 
   // Handle custom field value changes
@@ -410,7 +435,7 @@ const NewTicketPage: React.FC = () => {
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
             placeholder={field.placeholder}
             required={field.isRequired}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
           />
         );
       
@@ -422,7 +447,7 @@ const NewTicketPage: React.FC = () => {
             placeholder={field.placeholder}
             required={field.isRequired}
             rows={3}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
           />
         );
       
@@ -436,7 +461,7 @@ const NewTicketPage: React.FC = () => {
             required={field.isRequired}
             min={field.validationRules?.min}
             max={field.validationRules?.max}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
           />
         );
       
@@ -447,7 +472,7 @@ const NewTicketPage: React.FC = () => {
             value={typeof rawValue === 'string' ? rawValue : ''}
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
             required={field.isRequired}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
           />
         );
       
@@ -458,7 +483,7 @@ const NewTicketPage: React.FC = () => {
             value={typeof rawValue === 'string' ? rawValue : ''}
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
             required={field.isRequired}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
           />
         );
       
@@ -468,7 +493,7 @@ const NewTicketPage: React.FC = () => {
             value={typeof rawValue === 'string' ? rawValue : ''}
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
             required={field.isRequired}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
           >
             <option value="">Select an option</option>
             {field.options?.map((option, index) => (
@@ -495,7 +520,7 @@ const NewTicketPage: React.FC = () => {
                       : currentValues.filter(v => v !== option);
                     handleCustomFieldChange(field.id, newValues);
                   }}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                 />
                 <span className="ml-2 text-sm text-gray-700">{option}</span>
               </label>
@@ -516,7 +541,7 @@ const NewTicketPage: React.FC = () => {
                   checked={rawValue === option}
                   onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
                   required={field.isRequired}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300"
                 />
                 <span className="ml-2 text-sm text-gray-700">{option}</span>
               </label>
@@ -532,7 +557,7 @@ const NewTicketPage: React.FC = () => {
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
             placeholder={field.placeholder}
             required={field.isRequired}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
           />
         );
     }
@@ -571,7 +596,7 @@ const NewTicketPage: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-out" 
+                        className="h-full bg-red-600 rounded-full transition-all duration-300 ease-out" 
                         style={{ width: `${formProgress}%` }}
                       />
                     </div>
@@ -584,7 +609,7 @@ const NewTicketPage: React.FC = () => {
           </div>
 
           {error && (
-            <div className="mb-sm p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center space-x-2">
+            <div className="mb-sm p-3 bg-red-50 border border-red-200 rounded-lg text-gray-700 flex items-center space-x-2">
               <AlertCircle className="h-4 w-4" />
               <span className="text-sm">{error}</span>
             </div>
@@ -592,23 +617,64 @@ const NewTicketPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-sm">
             {/* Quick Actions */}
-            <div className="bg-blue-50 rounded-lg p-sm space-y-sm">
-              <h2 className="text-lg font-semibold leading-tight text-gray-900">Quick Start Templates</h2>
-              <p className="text-sm text-gray-600">Choose a template to get started quickly, or create from scratch below.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {quickActions.map((action, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => handleQuickAction(action)}
-                    className="flex items-center space-x-2 p-3 bg-white border border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-left"
-                  >
-                    <action.icon className="h-5 w-5 text-blue-600" />
-                    <span className="text-sm font-medium text-gray-900">{action.label}</span>
-                  </button>
-                ))}
+            {quickTemplates.length > 0 && (
+              <div className="bg-red-50 rounded-lg p-sm space-y-sm">
+                <h2 className="text-lg font-semibold leading-tight text-gray-900">Quick Start Templates</h2>
+                <p className="text-sm text-gray-600">Choose a template to get started quickly, or create from scratch below.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {quickTemplates.map((template) => {
+                    const IconComponent = getIconComponent(template.iconName);
+                    // Find category name for display
+                    const mappedCategory = template.categoryId 
+                      ? categories.find(c => c.id === template.categoryId)
+                      : null;
+                    return (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => handleQuickAction({
+                          icon: IconComponent,
+                          label: template.label,
+                          title: template.titleTemplate,
+                          description: template.descriptionTemplate,
+                          category: template.category,
+                          priority: template.priority as TicketPriority,
+                          categoryId: template.categoryId
+                        })}
+                        className="flex flex-col p-3 bg-white border border-red-200 rounded-lg hover:border-red-400 hover:bg-red-50 transition-colors text-left group"
+                        title={mappedCategory ? `Will auto-select: ${mappedCategory.name}` : undefined}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <IconComponent className="h-5 w-5 text-gray-600" />
+                          <span className="text-sm font-medium text-gray-900">{template.label}</span>
+                        </div>
+                        {mappedCategory && (
+                          <span className="mt-1.5 text-xs text-gray-500 truncate">
+                            → {mappedCategory.name}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Loading state for templates */}
+            {templatesLoading && (
+              <div className="bg-red-50 rounded-lg p-sm">
+                <div className="animate-pulse flex space-x-4">
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-red-200 rounded w-1/4"></div>
+                    <div className="grid grid-cols-4 gap-3">
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="h-12 bg-red-200 rounded"></div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Basic Information */}
             <div className="bg-gray-50 rounded-lg p-sm space-y-sm">
@@ -616,14 +682,14 @@ const NewTicketPage: React.FC = () => {
               
               <div>
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-xs">
-                  Title <span className="text-red-500">*</span>
+                  Title <span className="text-gray-500">*</span>
                 </label>
                 <input
                   type="text"
                   id="title"
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   placeholder="Brief description of your issue"
                   disabled={loading}
                   required
@@ -631,17 +697,38 @@ const NewTicketPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-xs">
-                  Description <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-xs">
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                    Description <span className="text-gray-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleEnhanceDescription}
+                    disabled={loading || isEnhancingDescription || formData.description.trim().length < 10}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-secondary-700 bg-secondary-50 border border-secondary-200 rounded-lg hover:bg-secondary-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title={formData.description.trim().length < 10 ? "Type at least 10 characters to enhance" : "Use AI to improve your description"}
+                  >
+                    {isEnhancingDescription ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Enhancing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Enhance with AI
+                      </>
+                    )}
+                  </button>
+                </div>
                 <textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   rows={12}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-vertical"
                   placeholder="Describe your issue in detail..."
-                  disabled={loading}
+                  disabled={loading || isEnhancingDescription}
                   maxLength={2000}
                 />
                 <div className="flex justify-between items-center mt-xs">
@@ -695,7 +782,7 @@ const NewTicketPage: React.FC = () => {
                     {attachments.map((file, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
                         <div className="flex items-center space-x-3">
-                          <Paperclip className="h-4 w-4 text-blue-500" />
+                          <Paperclip className="h-4 w-4 text-gray-500" />
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
                             <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
@@ -704,7 +791,7 @@ const NewTicketPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => removeAttachment(index)}
-                          className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
+                          className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-red-50 transition-colors"
                           disabled={loading}
                           title="Remove file"
                         >
@@ -725,13 +812,13 @@ const NewTicketPage: React.FC = () => {
                 {/* Category */}
                 <div>
                   <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 mb-xs">
-                    Category <span className="text-red-500">*</span>
+                    Category <span className="text-gray-500">*</span>
                   </label>
                   <select
                     id="categoryId"
                     value={formData.categoryId}
                     onChange={(e) => handleInputChange('categoryId', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     disabled={loading || settingsLoading}
                     required
                   >
@@ -750,13 +837,13 @@ const NewTicketPage: React.FC = () => {
                 {formData.categoryId && (
                   <div>
                     <label htmlFor="subcategoryId" className="block text-sm font-medium text-gray-700 mb-xs">
-                      Subcategory <span className="text-red-500">*</span>
+                      Subcategory <span className="text-gray-500">*</span>
                     </label>
                     <select
                       id="subcategoryId"
                       value={formData.subcategoryId}
                       onChange={(e) => handleInputChange('subcategoryId', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       disabled={loading}
                       required
                     >
@@ -779,7 +866,7 @@ const NewTicketPage: React.FC = () => {
                     {orderedCustomFields.map((field) => (
                         <div key={field.id} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
                           <label className="block text-sm font-medium text-gray-700 mb-xs">
-                            {field.label} {field.isRequired && <span className="text-red-500">*</span>}
+                            {field.label} {field.isRequired && <span className="text-gray-500">*</span>}
                           </label>
                           {renderCustomField(field)}
                           {field.validationRules?.pattern && (
@@ -797,13 +884,13 @@ const NewTicketPage: React.FC = () => {
                 {/* Department */}
                 <div>
                   <label htmlFor="departmentId" className="block text-sm font-medium text-gray-700 mb-xs">
-                    Your Department <span className="text-red-500">*</span>
+                    Your Department <span className="text-gray-500">*</span>
                   </label>
                   <select
                     id="departmentId"
                     value={formData.departmentId}
                     onChange={(e) => handleInputChange('departmentId', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     disabled={loading || settingsLoading}
                     required
                   >
@@ -827,14 +914,14 @@ const NewTicketPage: React.FC = () => {
                     id="priority"
                     value={formData.priority}
                     onChange={(e) => handleInputChange('priority', parseInt(e.target.value))}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     disabled={loading || settingsLoading}
                   >
                     {settingsLoading ? (
                       <option>Loading...</option>
                     ) : (
                       priorities.map((priority) => (
-                        <option key={priority.id} value={priority.level}>
+                        <option key={priority.id} value={mapPriorityNameToEnum(priority.name)}>
                           {priority.name}
                         </option>
                       ))
@@ -845,14 +932,14 @@ const NewTicketPage: React.FC = () => {
                 {/* Status */}
                 <div>
                   <label htmlFor="statusId" className="block text-sm font-medium text-gray-700 mb-xs">
-                    Status <span className="text-red-500">*</span>
+                    Status <span className="text-gray-500">*</span>
                   </label>
                   {isAgent ? (
                     <select
                       id="statusId"
                       value={formData.statusId}
                       onChange={(e) => handleInputChange('statusId', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       disabled={loading || settingsLoading}
                       required
                     >
@@ -890,7 +977,7 @@ const NewTicketPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading || settingsLoading || !formData.title.trim() || !formData.description.trim() || !formData.categoryId || !formData.subcategoryId || !formData.departmentId || !formData.statusId}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>

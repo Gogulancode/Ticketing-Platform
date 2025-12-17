@@ -10,6 +10,7 @@ import {
   Send,
   X,
   Forward,
+  Reply,
   StickyNote,
   XCircle,
   GitMerge,
@@ -27,6 +28,8 @@ import AssignmentModal from '../components/tickets/detail/AssignmentModal';
 import MergeModal from '../components/tickets/detail/MergeModal';
 import ForwardHistory from '../components/tickets/detail/ForwardHistory';
 import { getDisplayTicketNumber, type TicketWithPublicId } from '../utils/ticketNumber';
+import AISummaryButton from '../../../components/ticketing/ai/AISummaryButton';
+import AIReplyGenerator from '../../../components/ticketing/ai/AIReplyGenerator';
 
 // Import APIs and types
 import {
@@ -71,6 +74,8 @@ const TicketDetailPage: React.FC = () => {
   // User role state - determines what features are visible
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAgent, setIsAgent] = useState(false);
+  const [isCategoryAdmin, setIsCategoryAdmin] = useState(false);
+  const [categoryAdminCategoryIds, setCategoryAdminCategoryIds] = useState<number[]>([]);
   
   // Sidebar state - open by default
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -83,6 +88,9 @@ const TicketDetailPage: React.FC = () => {
   // Collaborators state
   const [showCollaboratorsModal, setShowCollaboratorsModal] = useState(false);
   const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>([]);
+  
+  // AI-generated comment state (to pass to Comments section)
+  const [aiGeneratedComment, setAiGeneratedComment] = useState<string>('');
 
   // Load user role on mount
   useEffect(() => {
@@ -110,24 +118,36 @@ const TicketDetailPage: React.FC = () => {
         );
         setIsAdmin(userIsAdmin);
 
+        // Check if Agent (includes Agent, Senior Agent, Team Lead)
+        const agentRoles = ['agent', 'senior agent', 'team lead'];
         const userIsAgent = Boolean(
           currentUser.isAgent ||
-          singleRole.includes('agent') ||
-          normalizedRoles.some((role: string) => role.includes('agent'))
+          agentRoles.some(agentRole => singleRole.includes(agentRole)) ||
+          normalizedRoles.some((role: string) => agentRoles.some(agentRole => role.includes(agentRole)))
         );
         setIsAgent(userIsAgent);
+
+        // Check if user is a Category Admin
+        try {
+          const categoryAdminStatus = await settingsApi.checkIsCategoryAdmin(currentUser.id);
+          setIsCategoryAdmin(categoryAdminStatus.isCategoryAdmin);
+          setCategoryAdminCategoryIds(categoryAdminStatus.categoryIds);
+        } catch (categoryAdminError) {
+          console.warn('⚠️ Could not check category admin status:', categoryAdminError);
+          setIsCategoryAdmin(false);
+          setCategoryAdminCategoryIds([]);
+        }
       } catch {
         console.warn('⚠️ Could not fetch user info for role check');
         // Default to non-admin/non-agent for safety
         setIsAdmin(false);
         setIsAgent(false);
+        setIsCategoryAdmin(false);
+        setCategoryAdminCategoryIds([]);
       }
     };
     loadUserRole();
   }, []);
-
-  // Check if user has admin/agent privileges
-  const hasAdminPrivileges = isAdmin || isAgent;
 
   const handleAddNote = async () => {
     if (!noteContent.trim()) return;
@@ -350,6 +370,10 @@ const TicketDetailPage: React.FC = () => {
         const formData = new FormData();
         
         if (emailType === 'reply') {
+          // For reply, emailTo contains comma-separated recipients
+          if (emailTo.trim()) {
+            formData.append('recipientEmails', emailTo.trim());
+          }
           formData.append('replyMessage', emailContent);
           emailAttachments.forEach((file) => {
             formData.append('attachments', file);
@@ -387,6 +411,7 @@ const TicketDetailPage: React.FC = () => {
               'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
+              recipientEmails: emailTo.trim() || undefined,
               replyMessage: emailContent
             })
           });
@@ -472,11 +497,20 @@ const TicketDetailPage: React.FC = () => {
     retryDelay: 1000
   });
 
+  // Check if current ticket belongs to category admin's managed categories
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ticketData = ticket as any;
+  const ticketCategoryId = ticketData?.categoryId ?? (typeof ticketData?.category === 'number' ? ticketData?.category : ticketData?.category?.id);
+  const isCategoryAdminForThisTicket = isCategoryAdmin && ticketCategoryId && categoryAdminCategoryIds.includes(Number(ticketCategoryId));
+
+  // Check if user has admin/agent privileges (includes category admins for their categories)
+  const hasAdminPrivileges = isAdmin || isAgent || isCategoryAdminForThisTicket;
+
   // Handle URL action parameter (e.g., ?action=reopen from email link)
   useEffect(() => {
     if (actionParam === 'reopen' && ticket && !ticketLoading) {
       // Check if ticket is in a resolved state (status 4) before auto-reopening
-      const ticketStatus = ticket.status ?? ticket.statusId;
+      const ticketStatus = ticket.status;
       if (ticketStatus === 4) {
         handleReopenTicket();
         // Clear the URL parameter after triggering
@@ -537,13 +571,18 @@ const TicketDetailPage: React.FC = () => {
     enabled: !!id
   });
 
-  // Map agents to expected format
+  // Map agents to expected format with all required properties
   const agents = agentsData?.map(agent => ({
-    id: agent.id?.toString() || '',
+    id: agent.id || 0,
     userId: agent.userId?.toString() || '',
     name: agent.name || agent.email || agent.userId || agent.id?.toString() || 'Unknown Agent',
     email: agent.email,
-    isActive: agent.isActive
+    isActive: agent.isActive,
+    maxTicketsCapacity: (agent as any).maxTicketsCapacity || 0,
+    currentTicketCount: (agent as any).currentTicketCount || 0,
+    availabilityStatus: (agent as any).availabilityStatus || 'available',
+    createdAt: (agent as any).createdAt || new Date().toISOString(),
+    updatedAt: (agent as any).updatedAt || new Date().toISOString()
   })) || [];
 
   // Filter agents based on ticket category and subcategory using agent groups
@@ -607,7 +646,7 @@ const TicketDetailPage: React.FC = () => {
     // Filter agents to only show those in matching groups
     const filteredAgents = agents.filter(agent => {
       // Try multiple ID formats to ensure we match correctly
-      const agentIdNumber = parseInt(agent.id);
+      const agentIdNumber = typeof agent.id === 'number' ? agent.id : parseInt(String(agent.id));
       const agentUserIdNumber = agent.userId ? parseInt(agent.userId) : null;
       
       return allowedAgentIds.has(agentIdNumber) || 
@@ -655,7 +694,7 @@ const TicketDetailPage: React.FC = () => {
 
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
-        <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+        <AlertCircle className="h-12 w-12 text-gray-500 mb-4" />
         <h1 className="text-xl font-semibold text-gray-900 mb-2">Ticket Not Found</h1>
         <p className="text-gray-600 mb-4">
           {ticketError 
@@ -670,13 +709,14 @@ const TicketDetailPage: React.FC = () => {
               try {
                 const result = await fetch(`${API_CONFIG.BASE_URL}/tickets/${id}`);
                 const data = await result.json();
-                alert(`Direct API test: ${result.ok ? 'Success' : 'Failed'} - Check console for details`);
+                console.log('Direct API response:', data);
+                alert(`Direct API test: ${result.ok ? 'Success' : 'Failed'} - ID: ${data?.id || 'N/A'}`);
               } catch (error) {
                 console.error('Direct API error:', error);
                 alert(`Direct API error: ${getErrorMessage(error)}`);
               }
             }}
-            className="px-3 py-1 bg-blue-500 text-white rounded text-xs mr-2"
+            className="px-3 py-1 bg-red-500 text-white rounded text-xs mr-2"
           >
             Test API Direct
           </button>
@@ -684,7 +724,8 @@ const TicketDetailPage: React.FC = () => {
             onClick={async () => {
               try {
                 const result = await ticketsApi.getTicket(id!);
-                alert('TicketsApi test: Success - Check console for details');
+                console.log('TicketsApi result:', result);
+                alert(`TicketsApi test: Success - ID: ${result?.id || 'N/A'}`);
               } catch (error) {
                 console.error('TicketsApi error:', error);
                 alert(`TicketsApi error: ${getErrorMessage(error)}`);
@@ -697,7 +738,7 @@ const TicketDetailPage: React.FC = () => {
         </div>
         <Link
           to={backUrl}
-          className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Tickets
@@ -712,14 +753,14 @@ const TicketDetailPage: React.FC = () => {
       <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center space-x-4">
-            <Link to={backUrl} className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors">
+            <Link to={backUrl} className="text-gray-600 hover:text-gray-800 p-1 rounded hover:bg-red-50 transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div className="flex items-center space-x-3">
               <span className="text-sm text-gray-500 font-medium">Ticket</span>
               <span className="text-lg font-semibold text-gray-900">#{ticketDisplayNumber || '------'}</span>
               {finalTicket?.isOverdue && (
-                <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
+                <span className="bg-red-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium">
                   Overdue
                 </span>
               )}
@@ -741,9 +782,16 @@ const TicketDetailPage: React.FC = () => {
                 Add note
               </button>
             )}
+            {/* Reply - Admin/Agent only */}
+            {hasAdminPrivileges && (
+              <button className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-red-50 rounded border border-red-200 hover:border-red-300 transition-colors whitespace-nowrap" onClick={() => { setEmailType('reply'); setEmailTo(finalTicket?.createdByUser?.email || ''); setShowEmailModal(true); }}>
+                <Reply className="h-4 w-4 mr-2" />
+                Reply
+              </button>
+            )}
             {/* Forward - Admin/Agent only */}
             {hasAdminPrivileges && (
-              <button className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-300 transition-colors whitespace-nowrap" onClick={() => { setEmailType('forward'); setShowEmailModal(true); }}>
+              <button className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-300 transition-colors whitespace-nowrap" onClick={() => { setEmailType('forward'); setEmailTo(''); setShowEmailModal(true); }}>
                 <Forward className="h-4 w-4 mr-2" />
                 Forward
               </button>
@@ -767,7 +815,7 @@ const TicketDetailPage: React.FC = () => {
             )}
             {/* Delete - Admin/Agent only */}
             {hasAdminPrivileges && (
-              <button onClick={handleDeleteTicket} className="flex items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-300 transition-colors whitespace-nowrap">
+              <button onClick={handleDeleteTicket} className="flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-300 transition-colors whitespace-nowrap">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
               </button>
@@ -776,10 +824,10 @@ const TicketDetailPage: React.FC = () => {
         </div>
         {/* Attachments Section */}
         {attachments.length > 0 && (
-          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <Paperclip className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800">Attachments ({attachments.length})</span>
+              <Paperclip className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-800">Attachments ({attachments.length})</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {attachments.map((att, idx) => (
@@ -788,10 +836,10 @@ const TicketDetailPage: React.FC = () => {
                   href={`${API_CONFIG.BASE_URL}/tickets-v2/attachments/${att.id}/download`} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="inline-flex items-center px-3 py-1.5 bg-white border border-blue-300 text-blue-700 text-sm rounded-md hover:bg-blue-100 hover:border-blue-400 transition-colors shadow-sm"
+                  className="inline-flex items-center px-3 py-1.5 bg-white border border-red-300 text-gray-700 text-sm rounded-md hover:bg-red-100 hover:border-red-400 transition-colors shadow-sm"
                 >
                   <Paperclip className="h-3.5 w-3.5 mr-1.5" />
-                  {att.fileName || att.name || `Attachment ${idx + 1}`}
+                  {String(att.fileName || att.name || `Attachment ${idx + 1}`)}
                 </a>
               ))}
             </div>
@@ -842,7 +890,7 @@ const TicketDetailPage: React.FC = () => {
             <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                  <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
                     {finalTicket.createdByUser?.firstName?.charAt(0) || 'U'}
                   </div>
                   <div>
@@ -866,6 +914,45 @@ const TicketDetailPage: React.FC = () => {
                 <div className="whitespace-pre-wrap text-sm text-gray-800 min-h-[200px] p-4 bg-gray-50 rounded-md border border-gray-200">
                   {finalTicket.description}
                 </div>
+                
+                {/* AI Summary Button - Admin/Agent only */}
+                {hasAdminPrivileges && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <AISummaryButton
+                      ticketSubject={finalTicket.title}
+                      ticketDescription={finalTicket.description}
+                      category={finalTicket.categoryName || finalTicket.category}
+                      status={finalTicket.status}
+                      comments={finalTicket.comments?.map((c: any) => ({
+                        author: c.createdByName || c.authorName || 'Unknown',
+                        isInternal: c.isInternal || false,
+                        content: c.content || c.text || '',
+                        createdAt: c.createdAt,
+                      })) || []}
+                    />
+                    <AIReplyGenerator
+                      ticketSubject={finalTicket.title}
+                      ticketDescription={finalTicket.description}
+                      category={finalTicket.categoryName || finalTicket.category}
+                      priority={finalTicket.priority}
+                      customerName={finalTicket.createdByUser?.firstName || finalTicket.createdByUser?.email}
+                      comments={finalTicket.comments?.map((c: any) => ({
+                        author: c.createdByName || c.authorName || 'Unknown',
+                        isInternal: c.isInternal || false,
+                        content: c.content || c.text || '',
+                        createdAt: c.createdAt,
+                      })) || []}
+                      onInsertResponse={(content) => {
+                        setAiGeneratedComment(content);
+                        toast.success('Response inserted into comment box below!');
+                        // Scroll to comments section
+                        setTimeout(() => {
+                          document.querySelector('textarea[placeholder="Write a comment..."]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }, 100);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -873,7 +960,7 @@ const TicketDetailPage: React.FC = () => {
             {(finalTicket.hasMergedTickets || finalTicket.wasMergedInto) && (
               <div className="bg-indigo-50 rounded-lg border border-indigo-200 p-4 mb-4">
                 <div className="flex items-center space-x-2 mb-3">
-                  <GitMerge className="h-5 w-5 text-indigo-600" />
+                  <GitMerge className="h-5 w-5 text-gray-600" />
                   <h3 className="text-sm font-semibold text-indigo-800">Merge Details</h3>
                 </div>
                 
@@ -899,7 +986,7 @@ const TicketDetailPage: React.FC = () => {
                                   <Link
                                     key={detail.id}
                                     to={`/tickets/${detail.id}`}
-                                    className="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors font-medium"
+                                    className="inline-flex items-center px-2 py-1 bg-red-100 text-gray-700 rounded hover:bg-red-200 transition-colors font-medium"
                                   >
                                     #{detail.publicId} - {detail.title?.substring(0, 30)}{detail.title?.length > 30 ? '...' : ''}
                                   </Link>
@@ -907,7 +994,7 @@ const TicketDetailPage: React.FC = () => {
                                   <Link
                                     key={ticketId}
                                     to={`/tickets/${ticketId}`}
-                                    className="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors"
+                                    className="inline-flex items-center px-2 py-1 bg-red-100 text-gray-700 rounded hover:bg-red-200 transition-colors"
                                   >
                                     View Ticket
                                   </Link>
@@ -955,7 +1042,7 @@ const TicketDetailPage: React.FC = () => {
                         <div className="mt-1">
                           <Link
                             to={`/tickets/${finalTicket.wasMergedInto.primaryTicketId}`}
-                            className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors font-medium"
+                            className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium"
                           >
                             #{finalTicket.wasMergedInto.primaryTicketPublicId} - View Primary Ticket
                           </Link>
@@ -1004,6 +1091,15 @@ const TicketDetailPage: React.FC = () => {
                 ticketTitle={finalTicket.title}
                 ticketNumber={ticketNumberForEmails || ticketDisplayNumber}
                 isAgent={hasAdminPrivileges}
+                ticketDescription={finalTicket.description}
+                ticketCategory={finalTicket.categoryName || finalTicket.category}
+                ticketPriority={finalTicket.priority}
+                customerName={finalTicket.createdByUser?.firstName || finalTicket.createdByUser?.email}
+                initialComment={aiGeneratedComment}
+                onCommentChange={() => {
+                  // Clear the AI generated comment after user starts typing
+                  if (aiGeneratedComment) setAiGeneratedComment('');
+                }}
               />
             </div>
 
@@ -1029,7 +1125,7 @@ const TicketDetailPage: React.FC = () => {
                   <h3 className="text-sm font-semibold text-gray-700">Collaborators</h3>
                   <button
                     onClick={() => setShowCollaboratorsModal(true)}
-                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    className="text-xs text-gray-600 hover:text-gray-700 font-medium"
                   >
                     + Add
                   </button>
@@ -1048,7 +1144,7 @@ const TicketDetailPage: React.FC = () => {
                         </div>
                         <button
                           onClick={() => handleRemoveCollaborator(collab.userId)}
-                          className="ml-2 text-red-600 hover:text-red-700"
+                          className="ml-2 text-gray-600 hover:text-gray-700"
                           title="Remove collaborator"
                         >
                           <X className="h-4 w-4" />
@@ -1069,7 +1165,7 @@ const TicketDetailPage: React.FC = () => {
         <AssignmentModal
           ticket={finalTicket}
           agents={agents.map(agent => ({
-            id: agent.userId || agent.id,
+            id: String(agent.userId || agent.id),
             firstName: agent.name?.split(' ')[0] || '',
             lastName: agent.name?.split(' ').slice(1).join(' ') || '',
             email: agent.email,
@@ -1082,12 +1178,14 @@ const TicketDetailPage: React.FC = () => {
         />
       )}
 
-      {/* Email Modal - Forward Only */}
+      {/* Email Modal - Reply and Forward */}
       {showEmailModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900">Forward Email</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {emailType === 'reply' ? 'Reply to Ticket' : 'Forward Email'}
+              </h3>
               <button
                 onClick={() => setShowEmailModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -1096,19 +1194,23 @@ const TicketDetailPage: React.FC = () => {
               </button>
             </div>
             <div className="p-4 space-y-4 overflow-y-auto flex-1">
-              {/* To Field - Required for Forward */}
+              {/* To Field */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  To
+                  To {emailType === 'forward' && <span className="text-gray-500">*</span>}
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   value={emailTo || ''}
                   onChange={(e) => setEmailTo(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Enter recipient email address"
-                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  placeholder={emailType === 'reply' ? "Ticket creator's email (add more with comma)" : "Enter recipient email address"}
                 />
+                {emailType === 'reply' && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Default: ticket creator's email. Add more recipients by separating with commas.
+                  </p>
+                )}
               </div>
               
               <div>
@@ -1117,7 +1219,7 @@ const TicketDetailPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={`Fwd: [Ticket #${ticketNumberForEmails}] ${finalTicket.title}`}
+                  value={emailType === 'reply' ? `Re: [Ticket #${ticketNumberForEmails}] ${finalTicket.title}` : `Fwd: [Ticket #${ticketNumberForEmails}] ${finalTicket.title}`}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600"
                   disabled
                   readOnly
@@ -1128,13 +1230,13 @@ const TicketDetailPage: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Message
+                  Message <span className="text-gray-500">*</span>
                 </label>
                 <textarea
                   value={emailContent}
                   onChange={(e) => setEmailContent(e.target.value)}
                   rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                   placeholder="Type your message..."
                 />
               </div>
@@ -1187,7 +1289,7 @@ const TicketDetailPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => removeEmailAttachment(index)}
-                          className="ml-2 text-red-500 hover:text-red-700 flex-shrink-0"
+                          className="ml-2 text-gray-500 hover:text-gray-700 flex-shrink-0"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -1212,12 +1314,16 @@ const TicketDetailPage: React.FC = () => {
               <button
                 onClick={handleSendEmail}
                 disabled={!emailContent.trim() || !emailTo.trim()}
-                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`inline-flex items-center px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed ${
+                  emailType === 'reply' ? 'bg-red-600 hover:bg-red-700' : 'bg-red-600 hover:bg-red-700'
+                }`}
               >
-                <Send className="h-4 w-4 mr-2" />
-                Forward Email
+                {emailType === 'reply' ? <Reply className="h-4 w-4 mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                {emailType === 'reply' ? 'Send Reply' : 'Forward Email'}
                 {emailAttachments.length > 0 && (
-                  <span className="ml-2 px-2 py-0.5 bg-indigo-500 text-xs rounded-full">
+                  <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                    emailType === 'reply' ? 'bg-red-500' : 'bg-red-500'
+                  }`}>
                     {emailAttachments.length} file{emailAttachments.length !== 1 ? 's' : ''}
                   </span>
                 )}
@@ -1228,9 +1334,19 @@ const TicketDetailPage: React.FC = () => {
       )}
 
       {/* Merge Modal */}
-      {showMergeModal && (
+      {showMergeModal && ticket && (
         <MergeModal
-          ticket={ticket}
+          ticket={{
+            id: String((ticket as any).id),
+            publicId: (ticket as any).publicId || 0,
+            title: String((ticket as any).title || ''),
+            status: typeof (ticket as any).status === 'number' ? (ticket as any).status : 1,
+            priority: typeof (ticket as any).priority === 'number' ? (ticket as any).priority : 1,
+            createdAt: String((ticket as any).createdAt || new Date().toISOString()),
+            createdByName: (ticket as any).createdByUser?.firstName ? `${(ticket as any).createdByUser.firstName} ${(ticket as any).createdByUser.lastName}` : 'Unknown',
+            category: (ticket as any).categoryId || (ticket as any).category,
+            categoryId: (ticket as any).categoryId
+          }}
           isOpen={showMergeModal}
           onClose={() => setShowMergeModal(false)}
         />
@@ -1278,7 +1394,7 @@ const TicketDetailPage: React.FC = () => {
                             setSelectedCollaborators(prev => prev.filter(id => id !== agent.userId));
                           }
                         }}
-                        className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="mr-3 h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">{agent.name}</p>
@@ -1316,7 +1432,7 @@ const TicketDetailPage: React.FC = () => {
               <button
                 onClick={handleAddCollaborators}
                 disabled={selectedCollaborators.length === 0}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Add {selectedCollaborators.length > 0 && `(${selectedCollaborators.length})`}
               </button>
@@ -1343,7 +1459,7 @@ const TicketDetailPage: React.FC = () => {
                 value={noteContent}
                 onChange={(e) => setNoteContent(e.target.value)}
                 rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="Type your note..."
               />
             </div>
@@ -1357,7 +1473,7 @@ const TicketDetailPage: React.FC = () => {
               <button
                 onClick={handleAddNote}
                 disabled={!noteContent.trim()}
-                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
               >
                 <StickyNote className="h-4 w-4 mr-2" />
                 Add Note

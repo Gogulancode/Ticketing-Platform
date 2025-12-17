@@ -230,8 +230,9 @@ public class TicketsV2Controller : ControllerBase
 
             using var command = new SqlCommand(sql, connection);
             command.Parameters.AddWithValue("@Limit", cappedLimit);
-            command.Parameters.AddWithValue("@ExcludeTicketId",
-                string.IsNullOrEmpty(excludeTicketId) ? DBNull.Value : Guid.Parse(excludeTicketId));
+            // Use explicit SqlDbType for nullable GUID parameter to avoid type inference issues
+            var excludeParam = command.Parameters.Add("@ExcludeTicketId", System.Data.SqlDbType.UniqueIdentifier);
+            excludeParam.Value = string.IsNullOrEmpty(excludeTicketId) ? DBNull.Value : Guid.Parse(excludeTicketId);
 
             var tickets = new List<object>();
             using var reader = await command.ExecuteReaderAsync();
@@ -282,7 +283,8 @@ public class TicketsV2Controller : ControllerBase
             var sql = @"
                 SELECT t.Id, t.PublicId, t.Title, t.Description, t.Category, t.Priority, t.Status, 
                        t.Source, t.CreatedByUserId, t.AssignedToUserId, t.CreatedAt, t.UpdatedAt,
-                       t.FirstResponseAt, t.ResolvedAt, t.IsOverdue,
+                       t.FirstResponseAt, t.ResolvedAt, 
+                       CASE WHEN t.SlaResolutionDueAt IS NOT NULL AND t.SlaResolutionDueAt < GETUTCDATE() AND t.Status NOT IN (5, 6) THEN 1 ELSE 0 END as IsOverdue,
                        t.CategoryId, t.SubcategoryId, t.DepartmentId,
                        cu.FirstName as CreatedByFirstName, cu.LastName as CreatedByLastName, cu.Email as CreatedByEmail,
                        au.FirstName as AssignedToFirstName, au.LastName as AssignedToLastName, au.Email as AssignedToEmail
@@ -314,7 +316,7 @@ public class TicketsV2Controller : ControllerBase
                     updatedAt = ((DateTime)reader["UpdatedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ"),
                     firstResponseAt = reader["FirstResponseAt"] != DBNull.Value ? ((DateTime)reader["FirstResponseAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ") : null,
                     resolvedAt = reader["ResolvedAt"] != DBNull.Value ? ((DateTime)reader["ResolvedAt"]).ToString("yyyy-MM-ddTHH:mm:ssZ") : null,
-                    isOverdue = (bool)reader["IsOverdue"],
+                    isOverdue = reader["IsOverdue"] != DBNull.Value && (int)reader["IsOverdue"] == 1,
                     categoryId = reader["CategoryId"] != DBNull.Value ? (int)reader["CategoryId"] : (int?)null,
                     subcategoryId = reader["SubcategoryId"] != DBNull.Value ? (int)reader["SubcategoryId"] : (int?)null,
                     departmentId = reader["DepartmentId"] != DBNull.Value ? (int)reader["DepartmentId"] : (int?)null,
@@ -418,11 +420,11 @@ public class TicketsV2Controller : ControllerBase
                 mergedReader.Close();
                 
                                 var customFieldSql = @"
-                                        SELECT tcfv.CustomFieldId, tcfv.Value, cf.Name as FieldName, cf.Label as FieldLabel
-                                        FROM TicketCustomFieldValues tcfv
-                                        INNER JOIN CustomFields cf ON tcfv.CustomFieldId = cf.Id
+                                        SELECT tcfv.CustomFieldId, tcfv.Value, cf.FieldName, cf.FieldName as FieldLabel
+                                        FROM TicketFieldValues tcfv
+                                        INNER JOIN TicketFieldSettings cf ON tcfv.CustomFieldId = cf.Id
                                         WHERE tcfv.TicketId = @TicketId
-                                            AND cf.IsDeleted = 0";
+                                            AND cf.IsActive = 1";
                 
                 using var customFieldCommand = new SqlCommand(customFieldSql, connection);
                 customFieldCommand.Parameters.AddWithValue("@TicketId", ticketId);
@@ -2189,12 +2191,12 @@ Support Team";
                 _logger.LogInformation("No keyword match found for email subject: {Subject} - subcategory will be null", request.Subject);
             }
             
-            // Create ticket with CategoryId and SubcategoryId
+            // Create ticket with CategoryId and SubcategoryId (IsOverdue is computed, not stored)
             var createTicketSql = @"
                 INSERT INTO Tickets (Id, PublicId, Title, Description, Category, CategoryId, SubcategoryId, Priority, Status, Source, 
-                                   CreatedByUserId, CreatedAt, UpdatedAt, IsOverdue)
+                                   CreatedByUserId, CreatedAt, UpdatedAt)
                 VALUES (@Id, @PublicId, @Title, @Description, @Category, @CategoryId, @SubcategoryId, @Priority, @Status, @Source,
-                       @CreatedByUserId, @CreatedAt, @UpdatedAt, @IsOverdue)";
+                       @CreatedByUserId, @CreatedAt, @UpdatedAt)";
             
             using var createCommand = new SqlCommand(createTicketSql, connection);
             createCommand.Parameters.AddWithValue("@Id", newTicketId);
@@ -2210,7 +2212,6 @@ Support Team";
             createCommand.Parameters.AddWithValue("@CreatedByUserId", createdByUserId); // Use found user or system
             createCommand.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
             createCommand.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
-            createCommand.Parameters.AddWithValue("@IsOverdue", false);
             
             await createCommand.ExecuteNonQueryAsync();
             
@@ -2500,7 +2501,7 @@ Support Team";
             var sql = @"
                 SELECT 
                     cf.Label as CustomFieldName,
-                    tcfv.Value as CustomFieldValue,
+                    tfv.Value as CustomFieldValue,
                     ISNULL(cat.Name, 'Uncategorized') as CategoryName,
                     ISNULL(subcat.Name, 'Uncategorized') as SubcategoryName,
                     COUNT(*) as TotalTickets,
@@ -2509,17 +2510,17 @@ Support Team";
                     SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as ResolvedCount,
                     SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ClosedCount
                 FROM Tickets t
-                INNER JOIN TicketCustomFieldValues tcfv ON t.Id = tcfv.TicketId
-                INNER JOIN CustomFields cf ON tcfv.CustomFieldId = cf.Id
+                INNER JOIN TicketFieldValues tfv ON t.Id = tfv.TicketId
+                INNER JOIN CustomFields cf ON tfv.CustomFieldId = cf.Id
                 LEFT JOIN TicketCategories cat ON t.CategoryId = cat.Id
                 LEFT JOIN TicketSubCategories subcat ON t.SubcategoryId = subcat.Id
                 WHERE t.CreatedAt >= @StartDate 
                     AND t.CreatedAt <= @EndDate
                     AND cf.IsActive = 1
                     AND cf.IsDeleted = 0
-                    AND tcfv.Value IS NOT NULL 
-                    AND tcfv.Value != ''
-                GROUP BY cf.Label, tcfv.Value, cat.Name, subcat.Name
+                    AND tfv.Value IS NOT NULL 
+                    AND tfv.Value != ''
+                GROUP BY cf.Label, tfv.Value, cat.Name, subcat.Name
                 ORDER BY CategoryName, SubcategoryName, CustomFieldName, TotalTickets DESC";
 
             using var command = new SqlCommand(sql, connection);
@@ -2636,7 +2637,7 @@ Support Team";
                     SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as ResolvedCount,
                     SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ClosedCount
                 FROM Tickets t
-                LEFT JOIN Departments d ON t.DepartmentId = d.Id
+                LEFT JOIN TicketDepartments d ON t.DepartmentId = d.Id
                 WHERE t.CreatedAt >= @StartDate 
                     AND t.CreatedAt <= @EndDate
                 GROUP BY d.Name

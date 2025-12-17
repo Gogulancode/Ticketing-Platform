@@ -73,7 +73,7 @@ const CustomFieldAnalyticsWidget: React.FC<CustomFieldAnalyticsWidgetProps> = ({
       case 'resolved':
         return <CheckCircle className="h-3 w-3 text-green-500" />;
       case 'open':
-        return <Circle className="h-3 w-3 text-blue-500" />;
+        return <Circle className="h-3 w-3 text-gray-500" />;
       case 'inProgress':
         return <Clock className="h-3 w-3 text-yellow-500" />;
       case 'closed':
@@ -88,7 +88,7 @@ const CustomFieldAnalyticsWidget: React.FC<CustomFieldAnalyticsWidgetProps> = ({
       case 'resolved':
         return 'text-green-600 bg-green-50 border-green-200';
       case 'open':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
+        return 'text-gray-600 bg-red-50 border-red-200';
       case 'inProgress':
         return 'text-yellow-600 bg-yellow-50 border-yellow-200';
       case 'closed':
@@ -103,7 +103,7 @@ const CustomFieldAnalyticsWidget: React.FC<CustomFieldAnalyticsWidgetProps> = ({
       <div className="flex items-center justify-between mb-2">
         <span className="font-semibold text-gray-800">{value.value}</span>
         <div className="text-right">
-          <div className="text-lg font-bold text-blue-600">{value.totalTickets}</div>
+          <div className="text-lg font-bold text-gray-600">{value.totalTickets}</div>
           <div className="text-xs text-gray-500">tickets</div>
         </div>
       </div>
@@ -181,17 +181,17 @@ const CustomFieldAnalyticsWidget: React.FC<CustomFieldAnalyticsWidgetProps> = ({
     return (
       <div key={subcategoryKey} className="ml-6">
         <div 
-          className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors"
+          className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200 cursor-pointer hover:bg-red-100 transition-colors"
           onClick={() => toggleSubcategory(categoryName, subcategory.subcategoryName)}
         >
           <div className="flex items-center space-x-2">
-            {isExpanded ? <ChevronDown className="h-4 w-4 text-blue-600" /> : <ChevronRight className="h-4 w-4 text-blue-600" />}
-            <FolderOpen className="h-4 w-4 text-blue-600" />
-            <span className="font-medium text-blue-900">{subcategory.subcategoryName}</span>
+            {isExpanded ? <ChevronDown className="h-4 w-4 text-gray-600" /> : <ChevronRight className="h-4 w-4 text-gray-600" />}
+            <FolderOpen className="h-4 w-4 text-gray-600" />
+            <span className="font-medium text-gray-900">{subcategory.subcategoryName}</span>
           </div>
           <div className="text-right">
-            <div className="text-lg font-bold text-blue-600">{subcategory.totalTickets}</div>
-            <div className="text-xs text-blue-500">{subcategory.customFields.length} custom fields</div>
+            <div className="text-lg font-bold text-gray-600">{subcategory.totalTickets}</div>
+            <div className="text-xs text-gray-500">{subcategory.customFields.length} custom fields</div>
           </div>
         </div>
 
@@ -238,8 +238,8 @@ const CustomFieldAnalyticsWidget: React.FC<CustomFieldAnalyticsWidgetProps> = ({
       <div className={`bg-white rounded-lg p-6 shadow-sm border border-gray-200 ${className}`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Dynamic Custom Field Analytics</h3>
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <BarChart3 className="h-5 w-5 text-blue-600" />
+          <div className="p-2 bg-red-100 rounded-lg">
+            <BarChart3 className="h-5 w-5 text-gray-600" />
           </div>
         </div>
         <div className="animate-pulse space-y-4">
@@ -257,13 +257,13 @@ const CustomFieldAnalyticsWidget: React.FC<CustomFieldAnalyticsWidgetProps> = ({
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Dynamic Custom Field Analytics</h3>
           <div className="p-2 bg-red-100 rounded-lg">
-            <AlertCircle className="h-5 w-5 text-red-600" />
+            <AlertCircle className="h-5 w-5 text-gray-600" />
           </div>
         </div>
         <div className="text-center py-8">
-          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600 mb-2">Failed to load custom field analytics</p>
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-gray-600">{error}</p>
         </div>
       </div>
     );
@@ -274,8 +274,8 @@ const CustomFieldAnalyticsWidget: React.FC<CustomFieldAnalyticsWidgetProps> = ({
       <div className={`bg-white rounded-lg p-6 shadow-sm border border-gray-200 ${className}`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Dynamic Custom Field Analytics</h3>
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <BarChart3 className="h-5 w-5 text-blue-600" />
+          <div className="p-2 bg-red-100 rounded-lg">
+            <BarChart3 className="h-5 w-5 text-gray-600" />
           </div>
         </div>
         <div className="text-center py-8">
@@ -298,16 +298,16 @@ const CustomFieldAnalyticsWidget: React.FC<CustomFieldAnalyticsWidgetProps> = ({
             {analytics.dateRange.startDate} to {analytics.dateRange.endDate} ({days} days)
           </p>
         </div>
-        <div className="p-2 bg-blue-100 rounded-lg">
-          <TrendingUp className="h-5 w-5 text-blue-600" />
+        <div className="p-2 bg-red-100 rounded-lg">
+          <TrendingUp className="h-5 w-5 text-gray-600" />
         </div>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-blue-50 rounded-lg p-3 text-center">
-          <div className="text-xl font-bold text-blue-600">{analytics.summary.totalCategories}</div>
-          <div className="text-xs text-blue-600">Categories</div>
+        <div className="bg-red-50 rounded-lg p-3 text-center">
+          <div className="text-xl font-bold text-gray-600">{analytics.summary.totalCategories}</div>
+          <div className="text-xs text-gray-600">Categories</div>
         </div>
         <div className="bg-purple-50 rounded-lg p-3 text-center">
           <div className="text-xl font-bold text-purple-600">{analytics.summary.totalCustomFields}</div>

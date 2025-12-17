@@ -2,6 +2,7 @@
 // This service processes incoming emails and converts them to ticket comments
 
 import { ticketEmailUtility } from './ticketEmailUtility';
+import { API_CONFIG } from '../../config/api';
 
 export interface EmailReply {
   ticketId: string;
@@ -184,7 +185,7 @@ class EmailIntegrationService {
         replyTo: this.generateReplyToEmail(ticketId)
       };
 
-      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/emails/send-acknowledgment`, {
+      await fetch(`${API_CONFIG.BASE_URL}/emails/send-acknowledgment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

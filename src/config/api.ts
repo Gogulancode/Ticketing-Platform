@@ -3,7 +3,7 @@
  * Handles both local development (with Vite proxy) and production deployment
  */
 
-const DEFAULT_LOCAL_API = 'http://localhost:5015/api';
+const DEFAULT_LOCAL_API = 'http://localhost:5016/api';
 
 // Normalize a port so default ports are omitted
 const normalizePort = (protocol: string, rawPort?: string) => {

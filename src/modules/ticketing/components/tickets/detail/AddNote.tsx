@@ -123,7 +123,7 @@ const AddNote: React.FC<AddNoteProps> = ({ ticketId, isAgent }) => {
 
       {/* Error display */}
       {addNoteMutation.isError && (
-        <div className="mt-2 text-xs text-red-600">
+        <div className="mt-2 text-xs text-gray-600">
           Failed to add note. Please try again.
         </div>
       )}

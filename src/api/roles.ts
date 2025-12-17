@@ -1,6 +1,7 @@
 import { Role, Permission, RoleFilter, RoleStats } from '../types';
+import { API_CONFIG } from '../config/api';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api';
+const API_BASE = API_CONFIG.BASE_URL;
 
 // Use the existing API structure from lib/api.ts
 function getToken(): string | null {

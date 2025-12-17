@@ -166,7 +166,7 @@ const FieldSettingModal: React.FC<FieldSettingModalProps> = ({
         <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <DocumentIcon className="h-5 w-5 text-blue-600" />
+              <DocumentIcon className="h-5 w-5 text-gray-600" />
               {fieldSetting ? 'Edit Field Setting' : 'Create Field Setting'}
             </h3>
             <button
@@ -189,7 +189,7 @@ const FieldSettingModal: React.FC<FieldSettingModalProps> = ({
                   </label>
                   <select
                     {...register('categoryId', { valueAsNumber: true })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   >
                     <option value={0}>Select category</option>
                     {categories.map((category) => (
@@ -199,7 +199,7 @@ const FieldSettingModal: React.FC<FieldSettingModalProps> = ({
                     ))}
                   </select>
                   {errors.categoryId && (
-                    <p className="mt-1 text-sm text-red-600">{errors.categoryId.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.categoryId.message}</p>
                   )}
                 </div>
 
@@ -210,11 +210,11 @@ const FieldSettingModal: React.FC<FieldSettingModalProps> = ({
                   <input
                     {...register('fieldName')}
                     type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     placeholder="e.g., Issue Priority, Affected System"
                   />
                   {errors.fieldName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.fieldName.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.fieldName.message}</p>
                   )}
                 </div>
 
@@ -224,7 +224,7 @@ const FieldSettingModal: React.FC<FieldSettingModalProps> = ({
                   </label>
                   <select
                     {...register('fieldType')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   >
                     {FIELD_TYPES.map((type) => (
                       <option key={type.value} value={type.value}>
@@ -236,7 +236,7 @@ const FieldSettingModal: React.FC<FieldSettingModalProps> = ({
                     <p className="mt-1 text-sm text-gray-500">{selectedFieldType.description}</p>
                   )}
                   {errors.fieldType && (
-                    <p className="mt-1 text-sm text-red-600">{errors.fieldType.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.fieldType.message}</p>
                   )}
                 </div>
 
@@ -248,10 +248,10 @@ const FieldSettingModal: React.FC<FieldSettingModalProps> = ({
                     {...register('displayOrder', { valueAsNumber: true })}
                     type="number"
                     min="1"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   />
                   {errors.displayOrder && (
-                    <p className="mt-1 text-sm text-red-600">{errors.displayOrder.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.displayOrder.message}</p>
                   )}
                 </div>
               </div>
@@ -269,11 +269,11 @@ const FieldSettingModal: React.FC<FieldSettingModalProps> = ({
                   <input
                     {...register('placeholderText')}
                     type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     placeholder="Enter placeholder text for the field"
                   />
                   {errors.placeholderText && (
-                    <p className="mt-1 text-sm text-red-600">{errors.placeholderText.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.placeholderText.message}</p>
                   )}
                 </div>
 
@@ -285,14 +285,14 @@ const FieldSettingModal: React.FC<FieldSettingModalProps> = ({
                     <textarea
                       {...register('options')}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       placeholder="Low,Medium,High,Critical"
                     />
                     <p className="mt-1 text-sm text-gray-500">
                       Enter options separated by commas. These will appear as selectable choices.
                     </p>
                     {errors.options && (
-                      <p className="mt-1 text-sm text-red-600">{errors.options.message}</p>
+                      <p className="mt-1 text-sm text-gray-600">{errors.options.message}</p>
                     )}
                   </div>
                 )}
@@ -302,7 +302,7 @@ const FieldSettingModal: React.FC<FieldSettingModalProps> = ({
                     <input
                       {...register('isMandatory')}
                       type="checkbox"
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                     />
                     <span className="ml-2 text-sm text-gray-700">Required field</span>
                   </label>
@@ -325,7 +325,7 @@ const FieldSettingModal: React.FC<FieldSettingModalProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Saving...' : (fieldSetting ? 'Update' : 'Create')}
               </button>
@@ -428,10 +428,10 @@ const TicketFieldsTab: React.FC = () => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <div className="text-red-600 mb-4">Failed to load field settings</div>
+        <div className="text-gray-600 mb-4">Failed to load field settings</div>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
         >
           Retry
         </button>
@@ -446,7 +446,7 @@ const TicketFieldsTab: React.FC = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
           >
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Add Field Setting
@@ -462,7 +462,7 @@ const TicketFieldsTab: React.FC = () => {
             id="categoryFilter"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm"
           >
             <option value={0}>All Categories</option>
             {categories.map((category) => (
@@ -475,16 +475,16 @@ const TicketFieldsTab: React.FC = () => {
       </div>
 
       {/* Info Banner */}
-      <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+      <div className="bg-red-50 border-l-4 border-red-400 p-4">
         <div className="flex">
           <div className="flex-shrink-0">
-            <DocumentIcon className="h-5 w-5 text-blue-400" />
+            <DocumentIcon className="h-5 w-5 text-gray-400" />
           </div>
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">
+            <h3 className="text-sm font-medium text-gray-800">
               Dynamic Ticket Fields
             </h3>
-            <div className="mt-2 text-sm text-blue-700">
+            <div className="mt-2 text-sm text-gray-700">
               <p className="mb-2">Create custom form fields that will appear when creating tickets in specific categories.</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Drag and drop to reorder fields within a category</li>
@@ -501,7 +501,7 @@ const TicketFieldsTab: React.FC = () => {
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         {isLoading ? (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
             <p className="mt-2 text-gray-500">Loading field settings...</p>
           </div>
         ) : sortedFieldSettings.length === 0 ? (
@@ -515,7 +515,7 @@ const TicketFieldsTab: React.FC = () => {
             </p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
             >
               <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
               Add Field Setting
@@ -559,7 +559,7 @@ const TicketFieldsTab: React.FC = () => {
                             <tr
                               ref={provided.innerRef}
                               {...provided.draggableProps}
-                              className={`${snapshot.isDragging ? 'bg-blue-50' : 'hover:bg-gray-50'} ${selectedCategory ? 'cursor-move' : ''}`}
+                              className={`${snapshot.isDragging ? 'bg-red-50' : 'hover:bg-gray-50'} ${selectedCategory ? 'cursor-move' : ''}`}
                             >
                               <td className="px-2 py-4 whitespace-nowrap">
                                 {selectedCategory && (
@@ -581,7 +581,7 @@ const TicketFieldsTab: React.FC = () => {
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-gray-800">
                                   {getFieldTypeLabel(fieldSetting.fieldType)}
                                 </span>
                               </td>
@@ -599,7 +599,7 @@ const TicketFieldsTab: React.FC = () => {
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                   fieldSetting.isActive 
                                     ? 'bg-green-100 text-green-800' 
-                                    : 'bg-red-100 text-red-800'
+                                    : 'bg-red-100 text-gray-800'
                                 }`}>
                                   {fieldSetting.isActive ? 'Active' : 'Inactive'}
                                 </span>
@@ -608,14 +608,14 @@ const TicketFieldsTab: React.FC = () => {
                                 <div className="flex items-center justify-end gap-2">
                                   <button
                                     onClick={() => handleEdit(fieldSetting)}
-                                    className="text-blue-600 hover:text-blue-900"
+                                    className="text-gray-600 hover:text-gray-900"
                                     title="Edit field setting"
                                   >
                                     <PencilIcon className="h-4 w-4" />
                                   </button>
                                   <button
                                     onClick={() => handleDelete(fieldSetting.id)}
-                                    className="text-red-600 hover:text-red-900"
+                                    className="text-gray-600 hover:text-gray-900"
                                     title="Delete field setting"
                                     disabled={deleteMutation.isPending}
                                   >
@@ -641,7 +641,7 @@ const TicketFieldsTab: React.FC = () => {
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{allFieldSettings.length}</div>
+            <div className="text-2xl font-bold text-gray-600">{allFieldSettings.length}</div>
             <div className="text-sm text-gray-500">Total Fields</div>
           </div>
           <div className="text-center">

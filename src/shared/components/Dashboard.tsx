@@ -24,7 +24,7 @@ const AnalyticsCard: React.FC<AnalyticsCardProps> = ({ title, icon, children, cl
   <div className={`bg-white rounded-lg p-6 shadow-sm border border-gray-200 ${className}`}>
     <div className="flex items-center justify-between mb-4">
       <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-      <div className="p-2 bg-blue-100 rounded-lg">
+      <div className="p-2 bg-red-100 rounded-lg">
         {icon}
       </div>
     </div>
@@ -189,14 +189,14 @@ const Dashboard: React.FC = () => {
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <div className="bg-blue-50 rounded-lg p-4 hover:bg-blue-100 transition-colors">
+          <div className="bg-red-50 rounded-lg p-4 hover:bg-red-100 transition-colors">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium text-blue-900">Total Tickets</h3>
-                <p className="text-2xl font-bold text-blue-600 mt-1">{analytics?.totalTickets || 0}</p>
-                <p className="text-xs text-blue-500 mt-1">All time</p>
+                <h3 className="font-medium text-gray-900">Total Tickets</h3>
+                <p className="text-2xl font-bold text-gray-600 mt-1">{analytics?.totalTickets || 0}</p>
+                <p className="text-xs text-gray-500 mt-1">All time</p>
               </div>
-              <Ticket className="h-8 w-8 text-blue-400" />
+              <Ticket className="h-8 w-8 text-gray-400" />
             </div>
           </div>
           <div className="bg-green-50 rounded-lg p-4 hover:bg-green-100 transition-colors">
@@ -240,7 +240,7 @@ const Dashboard: React.FC = () => {
         {/* Weekly Issue Type Count */}
         <AnalyticsCard
           title="Weekly Issue Type Count"
-          icon={<BarChart3 className="h-5 w-5 text-blue-600" />}
+          icon={<BarChart3 className="h-5 w-5 text-gray-600" />}
         >
           <div className="space-y-3">
             {analytics?.weeklyIssueTypes?.map((item, index) => (
@@ -250,7 +250,7 @@ const Dashboard: React.FC = () => {
                   <div className="text-sm text-gray-500">{item.department}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold text-blue-600">{item.count}</div>
+                  <div className="font-semibold text-gray-600">{item.count}</div>
                   <div className="text-xs text-gray-500">tickets</div>
                 </div>
               </div>
@@ -350,10 +350,10 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Link
             to="/ticketing/tickets/create"
-            className="flex items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+            className="flex items-center justify-center p-4 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
           >
-            <Ticket className="h-5 w-5 text-blue-600 mr-2" />
-            <span className="font-medium text-blue-600">Create Ticket</span>
+            <Ticket className="h-5 w-5 text-gray-600 mr-2" />
+            <span className="font-medium text-gray-600">Create Ticket</span>
           </Link>
           <Link
             to="/ticketing/tickets"

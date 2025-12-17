@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 export const EmailMappingModal = ({ mapping, categories, onSave, onClose }) => {
@@ -197,7 +197,7 @@ export const EmailMappingModal = ({ mapping, categories, onSave, onClose }) => {
               id: 'smtpUseSsl',
               checked: formData.smtpUseSsl,
               onChange: (e) => handleInputChange('smtpUseSsl', e.target.checked),
-              className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+              className: 'h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded'
             }),
             React.createElement('label', {htmlFor: 'smtpUseSsl', className: 'ml-2 block text-sm text-gray-700'}, 'Use SSL for SMTP')
           ),
@@ -207,7 +207,7 @@ export const EmailMappingModal = ({ mapping, categories, onSave, onClose }) => {
               id: 'imapUseSsl',
               checked: formData.imapUseSsl,
               onChange: (e) => handleInputChange('imapUseSsl', e.target.checked),
-              className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+              className: 'h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded'
             }),
             React.createElement('label', {htmlFor: 'imapUseSsl', className: 'ml-2 block text-sm text-gray-700'}, 'Use SSL for IMAP')
           ),
@@ -220,7 +220,7 @@ export const EmailMappingModal = ({ mapping, categories, onSave, onClose }) => {
               id: 'isActive',
               checked: formData.isActive,
               onChange: (e) => handleInputChange('isActive', e.target.checked),
-              className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+              className: 'h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded'
             }),
             React.createElement('label', {htmlFor: 'isActive', className: 'ml-2 block text-sm text-gray-700'}, 'Enable Email Processing')
           )
@@ -235,7 +235,7 @@ export const EmailMappingModal = ({ mapping, categories, onSave, onClose }) => {
           React.createElement('button', {
             type: 'submit',
             disabled: !formData.categoryId || !formData.emailAddress || !formData.displayName,
-            className: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50'
+            className: 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50'
           }, mapping ? 'Update' : 'Create')
         )
       )

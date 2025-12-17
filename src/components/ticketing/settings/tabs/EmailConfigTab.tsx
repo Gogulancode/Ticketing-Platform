@@ -112,7 +112,7 @@ const EmailConfigModal: React.FC<EmailConfigModalProps> = ({ isOpen, onClose, co
         <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <AtSymbolIcon className="h-5 w-5 text-blue-600" />
+              <AtSymbolIcon className="h-5 w-5 text-gray-600" />
               {config ? 'Edit Email Configuration' : 'Create Email Configuration'}
             </h3>
             <button
@@ -127,7 +127,7 @@ const EmailConfigModal: React.FC<EmailConfigModalProps> = ({ isOpen, onClose, co
             {/* Microsoft Graph Settings */}
             <div>
               <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
-                <CloudIcon className="h-5 w-5 text-blue-600" />
+                <CloudIcon className="h-5 w-5 text-gray-600" />
                 Microsoft Graph Configuration
               </h4>
               
@@ -139,11 +139,11 @@ const EmailConfigModal: React.FC<EmailConfigModalProps> = ({ isOpen, onClose, co
                   <input
                     {...register('email')}
                     type="email"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     placeholder="support@company.com"
                   />
                   {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.email.message}</p>
                   )}
                 </div>
 
@@ -154,11 +154,11 @@ const EmailConfigModal: React.FC<EmailConfigModalProps> = ({ isOpen, onClose, co
                   <input
                     {...register('tenantId')}
                     type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
                     placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                   />
                   {errors.tenantId && (
-                    <p className="mt-1 text-sm text-red-600">{errors.tenantId.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.tenantId.message}</p>
                   )}
                 </div>
 
@@ -169,11 +169,11 @@ const EmailConfigModal: React.FC<EmailConfigModalProps> = ({ isOpen, onClose, co
                   <input
                     {...register('clientId')}
                     type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
                     placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                   />
                   {errors.clientId && (
-                    <p className="mt-1 text-sm text-red-600">{errors.clientId.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.clientId.message}</p>
                   )}
                 </div>
 
@@ -185,7 +185,7 @@ const EmailConfigModal: React.FC<EmailConfigModalProps> = ({ isOpen, onClose, co
                     <input
                       {...register('clientSecret')}
                       type={showClientSecret ? 'text' : 'password'}
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
                       placeholder="Enter client secret"
                     />
                     <button
@@ -201,7 +201,7 @@ const EmailConfigModal: React.FC<EmailConfigModalProps> = ({ isOpen, onClose, co
                     </button>
                   </div>
                   {errors.clientSecret && (
-                    <p className="mt-1 text-sm text-red-600">{errors.clientSecret.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.clientSecret.message}</p>
                   )}
                 </div>
               </div>
@@ -218,7 +218,7 @@ const EmailConfigModal: React.FC<EmailConfigModalProps> = ({ isOpen, onClose, co
                   {...register('categoryId', { 
                     setValueAs: (value) => value === '' ? undefined : Number(value) 
                   })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 >
                   <option value="">No default category</option>
                   {categories.map((category) => (
@@ -241,7 +241,7 @@ const EmailConfigModal: React.FC<EmailConfigModalProps> = ({ isOpen, onClose, co
                   <input
                     {...register('processIncomingEmails')}
                     type="checkbox"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                   />
                   <span className="ml-2 text-sm text-gray-700">Process incoming emails</span>
                 </label>
@@ -250,7 +250,7 @@ const EmailConfigModal: React.FC<EmailConfigModalProps> = ({ isOpen, onClose, co
                   <input
                     {...register('createTicketsFromEmails')}
                     type="checkbox"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                   />
                   <span className="ml-2 text-sm text-gray-700">Automatically create tickets from emails</span>
                 </label>
@@ -259,7 +259,7 @@ const EmailConfigModal: React.FC<EmailConfigModalProps> = ({ isOpen, onClose, co
                   <input
                     {...register('sendNotifications')}
                     type="checkbox"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                   />
                   <span className="ml-2 text-sm text-gray-700">Send email notifications for ticket updates</span>
                 </label>
@@ -278,7 +278,7 @@ const EmailConfigModal: React.FC<EmailConfigModalProps> = ({ isOpen, onClose, co
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Saving...' : (config ? 'Update' : 'Create')}
               </button>
@@ -366,10 +366,10 @@ const EmailConfigTab: React.FC = () => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <div className="text-red-600 mb-4">Failed to load email configurations</div>
+        <div className="text-gray-600 mb-4">Failed to load email configurations</div>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
         >
           Retry
         </button>
@@ -383,7 +383,7 @@ const EmailConfigTab: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
         >
           <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
           Add Email Configuration
@@ -398,16 +398,16 @@ const EmailConfigTab: React.FC = () => {
       </div>
 
       {/* Info Banner */}
-      <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+      <div className="bg-red-50 border-l-4 border-red-400 p-4">
         <div className="flex">
           <div className="flex-shrink-0">
-            <AtSymbolIcon className="h-5 w-5 text-blue-400" />
+            <AtSymbolIcon className="h-5 w-5 text-gray-400" />
           </div>
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">
+            <h3 className="text-sm font-medium text-gray-800">
               Microsoft Graph Email Integration
             </h3>
-            <div className="mt-2 text-sm text-blue-700">
+            <div className="mt-2 text-sm text-gray-700">
               <p className="mb-2">Configure email accounts for automatic ticket creation and notifications.</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Automatically create tickets from incoming emails</li>
@@ -424,7 +424,7 @@ const EmailConfigTab: React.FC = () => {
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         {isLoading ? (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
             <p className="mt-2 text-gray-500">Loading email configurations...</p>
           </div>
         ) : configs.length === 0 ? (
@@ -436,7 +436,7 @@ const EmailConfigTab: React.FC = () => {
             </p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
             >
               <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
               Add Configuration
@@ -487,7 +487,7 @@ const EmailConfigTab: React.FC = () => {
                           {config.processIncomingEmails ? (
                             <CheckCircleIcon className="h-3 w-3 text-green-600" />
                           ) : (
-                            <XCircleIcon className="h-3 w-3 text-red-600" />
+                            <XCircleIcon className="h-3 w-3 text-gray-600" />
                           )}
                           <span>Process emails</span>
                         </div>
@@ -495,7 +495,7 @@ const EmailConfigTab: React.FC = () => {
                           {config.createTicketsFromEmails ? (
                             <CheckCircleIcon className="h-3 w-3 text-green-600" />
                           ) : (
-                            <XCircleIcon className="h-3 w-3 text-red-600" />
+                            <XCircleIcon className="h-3 w-3 text-gray-600" />
                           )}
                           <span>Create tickets</span>
                         </div>
@@ -503,7 +503,7 @@ const EmailConfigTab: React.FC = () => {
                           {config.sendNotifications ? (
                             <CheckCircleIcon className="h-3 w-3 text-green-600" />
                           ) : (
-                            <XCircleIcon className="h-3 w-3 text-red-600" />
+                            <XCircleIcon className="h-3 w-3 text-gray-600" />
                           )}
                           <span>Send notifications</span>
                         </div>
@@ -513,7 +513,7 @@ const EmailConfigTab: React.FC = () => {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         config.isActive 
                           ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
+                          : 'bg-red-100 text-gray-800'
                       }`}>
                         {config.isActive ? 'Active' : 'Inactive'}
                       </span>
@@ -530,14 +530,14 @@ const EmailConfigTab: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handleEdit(config)}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="text-gray-600 hover:text-gray-900"
                           title="Edit configuration"
                         >
                           <PencilIcon className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(config.id)}
-                          className="text-red-600 hover:text-red-900"
+                          className="text-gray-600 hover:text-gray-900"
                           title="Delete configuration"
                           disabled={deleteMutation.isPending}
                         >
@@ -557,7 +557,7 @@ const EmailConfigTab: React.FC = () => {
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{configs.length}</div>
+            <div className="text-2xl font-bold text-gray-600">{configs.length}</div>
             <div className="text-sm text-gray-500">Total Configurations</div>
           </div>
           <div className="text-center">

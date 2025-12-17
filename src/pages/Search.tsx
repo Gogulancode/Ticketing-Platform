@@ -106,12 +106,12 @@ const Search: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by keyword or module..."
-            className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+            className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-lg"
           />
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-md transition-colors ${
-              showFilters ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-gray-600'
+              showFilters ? 'text-gray-600 bg-red-50' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
             <Filter className="h-5 w-5" />
@@ -126,7 +126,7 @@ const Search: React.FC = () => {
             <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
             <button
               onClick={clearFilters}
-              className="text-sm text-blue-600 hover:text-blue-700"
+              className="text-sm text-gray-600 hover:text-gray-700"
             >
               Clear All
             </button>
@@ -139,7 +139,7 @@ const Search: React.FC = () => {
               <select
                 value={selectedModule}
                 onChange={(e) => setSelectedModule(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <option value="">All Modules</option>
                 {modules.map(module => (
@@ -154,7 +154,7 @@ const Search: React.FC = () => {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <option value="">All Types</option>
                 {documentTypes.map(type => (
@@ -173,7 +173,7 @@ const Search: React.FC = () => {
                     onClick={() => toggleTag(tag)}
                     className={`px-3 py-1 text-sm rounded-full transition-colors ${
                       selectedTags.includes(tag)
-                        ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                        ? 'bg-red-100 text-gray-800 border border-red-300'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -190,11 +190,11 @@ const Search: React.FC = () => {
       {(selectedModule || selectedType || selectedTags.length > 0) && (
         <div className="flex flex-wrap gap-2">
           {selectedModule && (
-            <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+            <span className="inline-flex items-center px-3 py-1 bg-red-100 text-gray-800 text-sm rounded-full">
               Module: {selectedModule}
               <button
                 onClick={() => setSelectedModule('')}
-                className="ml-2 text-blue-600 hover:text-blue-800"
+                className="ml-2 text-gray-600 hover:text-gray-800"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -254,7 +254,7 @@ const Search: React.FC = () => {
                         <p className="text-sm text-gray-600 mb-3">{result.description}</p>
                         
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                          <span className="px-2 py-1 bg-red-100 text-gray-800 text-xs font-medium rounded-full">
                             {result.module}
                           </span>
                           {result.tags.slice(0, 3).map(tag => (
@@ -278,7 +278,7 @@ const Search: React.FC = () => {
                       </div>
                     </div>
                     
-                    <button className="ml-4 flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
+                    <button className="ml-4 flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 hover:bg-red-50 rounded-lg transition-colors">
                       <Eye className="h-4 w-4 mr-2" />
                       View
                     </button>

@@ -64,12 +64,12 @@ const ConfigList: React.FC<ConfigListProps> = ({
           value={newItemName}
           onChange={(e) => setNewItemName(e.target.value)}
           placeholder={`New ${title.toLowerCase()}`}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
           onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
         />
         <button
           onClick={handleAdd}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center gap-2"
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2"
         >
           <Plus size={16} />
           Add
@@ -141,7 +141,7 @@ const ConfigList: React.FC<ConfigListProps> = ({
                   className={`p-2 rounded ${
                     item.isActive
                       ? 'text-green-600 hover:bg-green-50'
-                      : 'text-red-600 hover:bg-red-50'
+                      : 'text-gray-600 hover:bg-red-50'
                   }`}
                   title={item.isActive ? 'Deactivate' : 'Activate'}
                 >
@@ -149,7 +149,7 @@ const ConfigList: React.FC<ConfigListProps> = ({
                 </button>
                 <button
                   onClick={() => startEditing(item)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                  className="p-2 text-gray-600 hover:bg-red-50 rounded"
                   title="Edit"
                 >
                   <Edit2 size={16} />
@@ -157,7 +157,7 @@ const ConfigList: React.FC<ConfigListProps> = ({
                 {canDelete && (
                   <button
                     onClick={() => onDelete(item.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded"
+                    className="p-2 text-gray-600 hover:bg-red-50 rounded"
                     title="Delete"
                   >
                     <Trash2 size={16} />

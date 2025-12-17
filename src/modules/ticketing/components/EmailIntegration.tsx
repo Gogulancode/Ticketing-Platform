@@ -175,7 +175,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-2 pb-4 border-b">
-        <Mail className="text-indigo-600" size={24} />
+        <Mail className="text-gray-600" size={24} />
         <h3 className="text-lg font-semibold">Email Integration</h3>
         <span className="text-sm text-gray-500">
           Office 365 & Exchange Server Support
@@ -214,7 +214,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
           {!showAddForm && !editingId && (
             <button
               onClick={() => setShowAddForm(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center gap-2"
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2"
             >
               <Plus size={16} />
               Add Email Configuration
@@ -239,7 +239,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     placeholder="e.g., IT Help Desk, Support Team"
                   />
                 </div>
@@ -252,7 +252,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                     type="email"
                     value={formData.emailAddress}
                     onChange={(e) => setFormData(prev => ({ ...prev, emailAddress: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     placeholder="support@company.com"
                   />
                 </div>
@@ -276,7 +276,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                         ...prev,
                         server: { ...prev.server, host: e.target.value }
                       }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       placeholder="outlook.office365.com"
                     />
                   </div>
@@ -292,7 +292,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                         ...prev,
                         server: { ...prev.server, port: parseInt(e.target.value) || 993 }
                       }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     />
                   </div>
 
@@ -307,7 +307,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                         ...prev,
                         server: { ...prev.server, username: e.target.value }
                       }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       placeholder="username@company.com"
                     />
                   </div>
@@ -323,7 +323,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                         ...prev,
                         server: { ...prev.server, password: e.target.value }
                       }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       placeholder="••••••••"
                     />
                   </div>
@@ -338,7 +338,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                         ...prev,
                         server: { ...prev.server, useSSL: e.target.checked }
                       }))}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      className="rounded border-gray-300 text-gray-600 focus:ring-red-500"
                     />
                     <span className="text-sm text-gray-700 flex items-center gap-1">
                       <Shield size={14} />
@@ -457,14 +457,14 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                             type="checkbox"
                             checked={rule.isActive}
                             onChange={(e) => updateRule(rule.id, { isActive: e.target.checked })}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            className="rounded border-gray-300 text-gray-600 focus:ring-red-500"
                           />
                           <span className="text-sm text-gray-700">Active</span>
                         </label>
                         
                         <button
                           onClick={() => deleteRule(rule.id)}
-                          className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-sm"
+                          className="px-2 py-1 text-gray-600 hover:bg-red-50 rounded text-sm"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -491,7 +491,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                 </button>
                 <button
                   onClick={() => handleTestConnection()}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
                 >
                   Test Connection
                 </button>
@@ -513,8 +513,8 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                 className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg bg-white"
               >
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Mail size={20} className="text-blue-600" />
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <Mail size={20} className="text-gray-600" />
                   </div>
                 </div>
 
@@ -526,7 +526,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       config.isActive 
                         ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
+                        : 'bg-red-100 text-gray-800'
                     }`}>
                       {config.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -546,7 +546,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                 <div className="flex gap-1">
                   <button
                     onClick={() => handleTestConnection(config.id)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                    className="p-2 text-gray-600 hover:bg-red-50 rounded"
                     title="Test Connection"
                   >
                     <Server size={16} />
@@ -556,7 +556,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                     className={`p-2 rounded ${
                       config.isActive
                         ? 'text-green-600 hover:bg-green-50'
-                        : 'text-red-600 hover:bg-red-50'
+                        : 'text-gray-600 hover:bg-red-50'
                     }`}
                     title={config.isActive ? 'Deactivate' : 'Activate'}
                   >
@@ -564,14 +564,14 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                   </button>
                   <button
                     onClick={() => startEditing(config)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                    className="p-2 text-gray-600 hover:bg-red-50 rounded"
                     title="Edit"
                   >
                     <Edit2 size={16} />
                   </button>
                   <button
                     onClick={() => onDeleteConfiguration(config.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded"
+                    className="p-2 text-gray-600 hover:bg-red-50 rounded"
                     title="Delete"
                   >
                     <Trash2 size={16} />
@@ -597,7 +597,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
             <div className={`p-4 rounded-lg ${
               testResult.success 
                 ? 'bg-green-50 border border-green-200 text-green-800'
-                : 'bg-red-50 border border-red-200 text-red-800'
+                : 'bg-red-50 border border-red-200 text-gray-800'
             }`}>
               <div className="flex items-center gap-2">
                 {testResult.success ? (
@@ -617,7 +617,7 @@ const EmailIntegration: React.FC<EmailIntegrationProps> = ({
                   <h5 className="font-medium">{config.name}</h5>
                   <button
                     onClick={() => handleTestConnection(config.id)}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
                   >
                     Test
                   </button>

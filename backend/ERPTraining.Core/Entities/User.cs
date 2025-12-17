@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Identity;
 
-using ERPTraining.Core.Training.Entities;
-
 namespace ERPTraining.Core.Entities;
 
 public class User : IdentityUser
@@ -17,17 +15,11 @@ public class User : IdentityUser
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    
-    // ERP Integration properties for Infrastructure compatibility
-    public int? ERPUserId { get; set; }
-    public bool IsERPUser { get; set; } = false;
-    public DateTime? LastSyncedFromERP { get; set; }
-    public string? ERPSource { get; set; }
+
+    // Branch association for branch-wise analytics
+    public int? BranchId { get; set; }
+    public virtual Branch? Branch { get; set; }
 
     // Navigation properties
-    public virtual ICollection<UserModuleProgress> ModuleProgress { get; set; } = new List<UserModuleProgress>();
-    public virtual ICollection<AssessmentAttempt> AssessmentAttempts { get; set; } = new List<AssessmentAttempt>();
-    public virtual ICollection<UploadedContent> UploadedContents { get; set; } = new List<UploadedContent>();
-    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-    public virtual ICollection<UserPlatformRole> PlatformRoles { get; set; } = new List<UserPlatformRole>(); // Added for Infrastructure compatibility
+    public virtual ICollection<UserPlatformRole> PlatformRoles { get; set; } = new List<UserPlatformRole>();
 }

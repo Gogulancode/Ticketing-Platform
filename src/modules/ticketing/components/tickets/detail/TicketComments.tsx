@@ -1,22 +1,43 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { MessageCircle, Send, Lock, User, Clock, StickyNote, Reply, Forward, Mail, Paperclip, Download, X, FileText } from 'lucide-react';
 import { commentsApi, type Comment, type AddCommentWithAttachmentsRequest } from '../../../../../shared/services/api/commentsApi';
 import { ticketEmailUtility } from '../../../../../shared/services/ticketEmailUtility';
+import { API_CONFIG } from '@/config/api';
+import AIReplyGenerator from '../../../../../components/ticketing/ai/AIReplyGenerator';
 
 interface TicketCommentsProps {
   ticketId: string;
   ticketTitle?: string; // Add ticket title for better context
   ticketNumber?: string; // Public/Display ticket number for subjects
   isAgent?: boolean; // If true, can see internal comments and add internal comments
+  ticketDescription?: string; // Description for AI context
+  ticketCategory?: string; // Category for AI context
+  ticketPriority?: string; // Priority for AI context
+  customerName?: string; // Customer name for AI personalization
+  initialComment?: string; // Pre-populated comment from external AI generation
+  onCommentChange?: (comment: string) => void; // Callback when comment changes
 }
 
-const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, ticketNumber, isAgent = false }) => {
+const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, ticketNumber, isAgent = false, ticketDescription, ticketCategory, ticketPriority, customerName, initialComment, onCommentChange }) => {
   const queryClient = useQueryClient();
   const [newComment, setNewComment] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Handle external initial comment updates (e.g., from AI in description section)
+  useEffect(() => {
+    if (initialComment && initialComment !== newComment) {
+      setNewComment(initialComment);
+    }
+  }, [initialComment]);
+  
+  // Wrapper to also notify parent of comment changes
+  const handleCommentChange = (value: string) => {
+    setNewComment(value);
+    onCommentChange?.(value);
+  };
   
   // Attachment state for main comment
   const [commentAttachments, setCommentAttachments] = useState<File[]>([]);
@@ -172,7 +193,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
 
     setIsForwarding(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api';
+      const baseUrl = API_CONFIG.BASE_URL;
       const token = localStorage.getItem('token');
       
       // Use FormData to support file attachments
@@ -260,7 +281,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
         <Link
           key={`ticket-new-${keyIndex++}`}
           to={`/tickets/${ticketGuid}`}
-          className="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium hover:underline"
+          className="inline-flex items-center text-gray-600 hover:text-indigo-800 font-medium hover:underline"
           title={`View ticket #${ticketPublicId}`}
         >
           #{ticketPublicId}
@@ -304,7 +325,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
         <Link
           key={`ticket-old-${keyIndex++}`}
           to={`/tickets/by-public-id/${ticketPublicId}`}
-          className="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium hover:underline cursor-pointer"
+          className="inline-flex items-center text-gray-600 hover:text-indigo-800 font-medium hover:underline cursor-pointer"
           title={`View ticket #${ticketPublicId}`}
         >
           #{ticketPublicId}
@@ -339,7 +360,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
       </div>
     );
   }
@@ -347,7 +368,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-600">Failed to load comments. Please try again.</p>
+        <p className="text-gray-600">Failed to load comments. Please try again.</p>
       </div>
     );
   }
@@ -386,7 +407,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                 comment.isInternal 
                   ? 'bg-yellow-50 border-yellow-200' 
                   : hasAttachments
-                    ? 'bg-blue-50 border-blue-300 shadow-sm'
+                    ? 'bg-red-50 border-red-300 shadow-sm'
                     : 'bg-gray-50 border-gray-200'
               }`}>
                 {/* Comment Header */}
@@ -417,7 +438,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setReplyingTo(comment.id)}
-                        className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                        className="p-1 text-gray-400 hover:text-gray-600 rounded"
                         title="Reply to this comment"
                       >
                         <Reply className="h-4 w-4" />
@@ -441,8 +462,8 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
 
               {/* Comment Attachments */}
               {comment.attachments && comment.attachments.length > 0 && (
-                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2 text-sm font-medium text-blue-900">
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2 text-sm font-medium text-gray-900">
                     <Paperclip className="h-4 w-4" />
                     {comment.attachments.length} Attachment{comment.attachments.length > 1 ? 's' : ''}
                   </div>
@@ -450,10 +471,10 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                     {comment.attachments.map((attachment) => (
                       <div
                         key={attachment.id}
-                        className="flex items-center justify-between p-2 bg-white rounded border border-blue-200 hover:bg-blue-50 transition-colors"
+                        className="flex items-center justify-between p-2 bg-white rounded border border-red-200 hover:bg-red-50 transition-colors"
                       >
                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <Paperclip className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                          <Paperclip className="h-4 w-4 text-gray-600 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium text-gray-900 truncate">
                               {attachment.fileName}
@@ -464,9 +485,9 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                           </div>
                         </div>
                         <a
-                          href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets-v2/attachments/${attachment.id}/download`}
+                          href={`${API_CONFIG.BASE_URL}/tickets-v2/attachments/${attachment.id}/download`}
                           download={attachment.fileName}
-                          className="flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
+                          className="flex items-center gap-1 px-3 py-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-red-100 rounded transition-colors"
                           title="Download attachment"
                         >
                           <Download className="h-4 w-4" />
@@ -486,12 +507,33 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
       {/* Add Comment Form */}
       <form onSubmit={handleSubmitComment} className="border-t border-gray-200 pt-4">
         <div className="space-y-3">
+          {/* AI Reply Suggestions - Agent only */}
+          {isAgent && ticketTitle && (
+            <div className="mb-3">
+              <AIReplyGenerator
+                ticketSubject={ticketTitle}
+                ticketDescription={ticketDescription}
+                category={ticketCategory}
+                priority={ticketPriority}
+                customerName={customerName}
+                comments={comments?.map((c: Comment) => ({
+                  author: c.authorName || 'Unknown',
+                  isInternal: c.isInternal || false,
+                  content: c.body || '',
+                  createdAt: c.createdAt,
+                })) || []}
+                onInsertResponse={(content) => {
+                  handleCommentChange(content);
+                }}
+              />
+            </div>
+          )}
           <textarea
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
+            onChange={(e) => handleCommentChange(e.target.value)}
             placeholder="Write a comment..."
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
             disabled={isSubmitting}
           />
           
@@ -506,7 +548,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                 {commentAttachments.map((file, index) => (
                   <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <FileText className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                      <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-gray-900 truncate">{file.name}</div>
                         <div className="text-xs text-gray-500">{(file.size / 1024).toFixed(2)} KB</div>
@@ -515,7 +557,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                     <button
                       type="button"
                       onClick={() => removeAttachment(index)}
-                      className="p-1 text-red-500 hover:bg-red-50 rounded"
+                      className="p-1 text-gray-500 hover:bg-red-50 rounded"
                       title="Remove file"
                     >
                       <X className="h-4 w-4" />
@@ -535,7 +577,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                     type="checkbox"
                     checked={isInternal}
                     onChange={(e) => setIsInternal(e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-gray-600 focus:ring-red-500"
                     disabled={isSubmitting}
                   />
                   <div className="flex items-center gap-1 text-sm text-gray-600">
@@ -549,7 +591,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg border border-gray-300 transition-colors"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-600 hover:bg-red-50 rounded-lg border border-gray-300 transition-colors"
                 disabled={isSubmitting}
               >
                 <Paperclip className="h-4 w-4" />
@@ -569,7 +611,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
             <button
               type="submit"
               disabled={!newComment.trim() || isSubmitting}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
@@ -589,8 +631,8 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
 
       {/* Reply Input (when replying to a comment) */}
       {replyingTo && (
-        <div className="border-t border-gray-200 pt-4 bg-blue-50 p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-2 text-sm text-blue-700">
+        <div className="border-t border-gray-200 pt-4 bg-red-50 p-4 rounded-lg">
+          <div className="flex items-center gap-2 mb-2 text-sm text-gray-700">
             <Reply className="h-4 w-4" />
             Replying to comment
             <button
@@ -606,7 +648,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
               onChange={(e) => setReplyText(e.target.value)}
               placeholder="Write your reply..."
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
             />
             
             {/* Reply Attachment Preview */}
@@ -615,12 +657,12 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                 <div className="flex flex-wrap gap-2">
                   {replyAttachments.map((file, index) => (
                     <div key={index} className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm">
-                      <FileText className="h-3 w-3 text-blue-500" />
+                      <FileText className="h-3 w-3 text-gray-500" />
                       <span className="max-w-[120px] truncate">{file.name}</span>
                       <button
                         type="button"
                         onClick={() => removeReplyAttachment(index)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-gray-500 hover:text-gray-700"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -638,7 +680,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                       type="checkbox"
                       checked={isInternal}
                       onChange={(e) => setIsInternal(e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 text-gray-600 focus:ring-red-500"
                     />
                     <span className="text-sm text-gray-600">Internal</span>
                   </label>
@@ -648,7 +690,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                 <button
                   type="button"
                   onClick={() => replyFileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1 px-2 py-1 text-sm text-gray-600 hover:text-blue-600 hover:bg-white rounded border border-gray-300"
+                  className="inline-flex items-center gap-1 px-2 py-1 text-sm text-gray-600 hover:text-gray-600 hover:bg-white rounded border border-gray-300"
                 >
                   <Paperclip className="h-3 w-3" />
                   Attach
@@ -666,7 +708,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
               <button
                 onClick={() => handleReply(replyingTo)}
                 disabled={!replyText.trim() || isSubmitting}
-                className="inline-flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
               >
                 <Send className="h-3 w-3" />
                 Reply
@@ -697,7 +739,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                 <Reply className="h-4 w-4" />
                 Reply
               </button>
-              <button className="px-4 py-2 text-blue-600 border-b-2 border-blue-600 flex items-center gap-2">
+              <button className="px-4 py-2 text-gray-600 border-b-2 border-red-600 flex items-center gap-2">
                 <Forward className="h-4 w-4" />
                 Forward
               </button>
@@ -706,14 +748,14 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
             {/* Email Form */}
             <div className="p-4 space-y-4">
               {/* To Field - Most Important */}
-              <div className="flex items-center gap-3 bg-blue-50 p-3 rounded border">
+              <div className="flex items-center gap-3 bg-red-50 p-3 rounded border">
                 <label className="w-16 text-sm font-semibold text-gray-800">To:</label>
                 <input
                   type="email"
                   value={forwardEmail}
                   onChange={(e) => setForwardEmail(e.target.value)}
                   placeholder="Enter recipient email address (required)"
-                  className="flex-1 px-3 py-2 border-2 border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="flex-1 px-3 py-2 border-2 border-red-300 rounded focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   required
                   autoFocus
                 />
@@ -738,7 +780,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                   onChange={(e) => setForwardMessage(e.target.value)}
                   placeholder="Type your message..."
                   rows={6}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
                 />
               </div>
 
@@ -749,7 +791,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                   <button
                     type="button"
                     onClick={() => forwardFileInputRef.current?.click()}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg border border-gray-300 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-600 hover:bg-red-50 rounded-lg border border-gray-300 transition-colors"
                   >
                     <Paperclip className="h-4 w-4" />
                     Add Attachments
@@ -768,14 +810,14 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                       {forwardAttachments.map((file, index) => (
                         <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <FileText className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                            <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
                             <span className="text-sm text-gray-900 truncate">{file.name}</span>
                             <span className="text-xs text-gray-500">({(file.size / 1024).toFixed(1)} KB)</span>
                           </div>
                           <button
                             type="button"
                             onClick={() => removeForwardAttachment(index)}
-                            className="p-1 text-red-500 hover:bg-red-50 rounded"
+                            className="p-1 text-gray-500 hover:bg-red-50 rounded"
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -797,7 +839,7 @@ const TicketComments: React.FC<TicketCommentsProps> = ({ ticketId, ticketTitle, 
                 <button
                   onClick={handleForward}
                   disabled={!forwardEmail.trim() || isForwarding}
-                  className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                  className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
                 >
                   {isForwarding ? (
                     <>

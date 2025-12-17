@@ -56,7 +56,7 @@ const Settings: React.FC = () => {
   // Function to load data from API
   const checkAPIHealth = async () => {
     try {
-      const response = await fetch('http://localhost:5015/api/health');
+      const response = await fetch('http://localhost:5016/api/health');
       if (!response.ok) {
         console.warn('API health check returned non-OK status:', response.status);
         return false;
@@ -257,8 +257,8 @@ const Settings: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Shield className="h-5 w-5 text-red-500" />
-          <span className="text-sm font-medium text-red-600">Admin Only</span>
+          <Shield className="h-5 w-5 text-gray-500" />
+          <span className="text-sm font-medium text-gray-600">Admin Only</span>
         </div>
       </div>
 
@@ -278,12 +278,12 @@ const Settings: React.FC = () => {
                 className={`
                   flex items-center px-1 py-4 border-b-2 font-medium text-sm transition-colors
                   ${activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
+                    ? 'border-red-500 text-gray-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }
                 `}
               >
-                <Icon className={`mr-2 h-4 w-4 ${activeTab === tab.id ? 'text-blue-600' : 'text-gray-500'}`} />
+                <Icon className={`mr-2 h-4 w-4 ${activeTab === tab.id ? 'text-gray-600' : 'text-gray-500'}`} />
                 {tab.label}
               </button>
             );
@@ -300,7 +300,7 @@ const Settings: React.FC = () => {
               <h2 className="text-lg font-semibold text-gray-900">Module Management</h2>
               <button
                 onClick={() => setShowAddForm('module')}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Module
@@ -318,7 +318,7 @@ const Settings: React.FC = () => {
                       type="text"
                       value={newModule.title}
                       onChange={(e) => setNewModule(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                       placeholder="Module title"
                     />
                   </div>
@@ -328,7 +328,7 @@ const Settings: React.FC = () => {
                       type="text"
                       value={newModule.category}
                       onChange={(e) => setNewModule(prev => ({ ...prev, category: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                       placeholder="Module category"
                     />
                   </div>
@@ -338,7 +338,7 @@ const Settings: React.FC = () => {
                       type="text"
                       value={newModule.erpModuleId}
                       onChange={(e) => setNewModule(prev => ({ ...prev, erpModuleId: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                       placeholder="ERP Module ID (from ERP)"
                     />
                   </div>
@@ -348,7 +348,7 @@ const Settings: React.FC = () => {
                       value={newModule.description}
                       onChange={(e) => setNewModule(prev => ({ ...prev, description: e.target.value }))}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                       placeholder="Module description"
                     />
                   </div>
@@ -362,7 +362,7 @@ const Settings: React.FC = () => {
                   </button>
                   <button
                     onClick={handleAddModule}
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                   >
                     <Save className="h-4 w-4 mr-2" />
                     Save Module
@@ -392,14 +392,14 @@ const Settings: React.FC = () => {
                           <h3 className="font-semibold text-gray-900">{module.title}</h3>
                           <p className="text-sm text-gray-600">{module.description}</p>
                           <div className="flex items-center space-x-4 mt-2">
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                            <span className="text-xs bg-red-100 text-gray-800 px-2 py-1 rounded-full">
                               {module.category}
                             </span>
                             <span className="text-xs text-gray-500">
                               {module.sections.length} sections
                             </span>
                             <span className={`text-xs px-2 py-1 rounded-full ${
-                              module.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              module.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-gray-800'
                             }`}>
                               {module.isActive ? 'Active' : 'Inactive'}
                             </span>
@@ -407,12 +407,12 @@ const Settings: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <button className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">
+                        <button className="p-2 text-gray-500 hover:text-gray-600 hover:bg-red-50 rounded transition-colors">
                           <Edit className="h-4 w-4" />
                         </button>
                         <button 
                           onClick={() => handleDeleteModule(module.id)}
-                          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          className="p-2 text-gray-500 hover:text-gray-600 hover:bg-red-50 rounded transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -429,7 +429,7 @@ const Settings: React.FC = () => {
                               setNewSection(prev => ({ ...prev, moduleId: module.id }));
                               setShowAddForm('section');
                             }}
-                            className="text-sm text-blue-600 hover:text-blue-700"
+                            className="text-sm text-gray-600 hover:text-gray-700"
                           >
                             + Add Section
                           </button>
@@ -457,12 +457,12 @@ const Settings: React.FC = () => {
                                 </div>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <button className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">
+                                <button className="p-1 text-gray-500 hover:text-gray-600 hover:bg-red-50 rounded transition-colors">
                                   <Edit className="h-3 w-3" />
                                 </button>
                                 <button 
                                   onClick={() => handleDeleteSection(module.id, section.id)}
-                                  className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  className="p-1 text-gray-500 hover:text-gray-600 hover:bg-red-50 rounded transition-colors"
                                 >
                                   <Trash2 className="h-3 w-3" />
                                 </button>
@@ -494,12 +494,12 @@ const Settings: React.FC = () => {
                                         </div>
                                       </div>
                                       <div className="flex items-center space-x-1">
-                                        <button className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">
+                                        <button className="p-1 text-gray-500 hover:text-gray-600 hover:bg-red-50 rounded transition-colors">
                                           <Edit className="h-3 w-3" />
                                         </button>
                                         <button 
                                           onClick={() => handleDeleteLesson(module.id, section.id, lesson.id)}
-                                          className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                          className="p-1 text-gray-500 hover:text-gray-600 hover:bg-red-50 rounded transition-colors"
                                         >
                                           <Trash2 className="h-3 w-3" />
                                         </button>
@@ -527,7 +527,7 @@ const Settings: React.FC = () => {
               <h2 className="text-lg font-semibold text-gray-900">Section Management</h2>
               <button
                 onClick={() => setShowAddForm('section')}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Section
@@ -552,19 +552,19 @@ const Settings: React.FC = () => {
                             <div className="flex items-center space-x-4 mt-1">
                               <span className="text-xs text-gray-500">Order: {section.order}</span>
                               <span className={`text-xs px-2 py-1 rounded-full ${
-                                section.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                section.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-gray-800'
                               }`}>
                                 {section.isActive ? 'Active' : 'Inactive'}
                               </span>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <button className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">
+                            <button className="p-2 text-gray-500 hover:text-gray-600 hover:bg-red-50 rounded transition-colors">
                               <Edit className="h-4 w-4" />
                             </button>
                             <button 
                               onClick={() => handleDeleteSection(module.id, section.id)}
-                              className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              className="p-2 text-gray-500 hover:text-gray-600 hover:bg-red-50 rounded transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -591,7 +591,7 @@ const Settings: React.FC = () => {
                 <select
                   value={newSection.moduleId}
                   onChange={(e) => setNewSection(prev => ({ ...prev, moduleId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 >
                   <option value="">Select a module</option>
                   {modules.map(module => (
@@ -605,7 +605,7 @@ const Settings: React.FC = () => {
                   type="text"
                   value={newSection.title}
                   onChange={(e) => setNewSection(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                   placeholder="Section title"
                 />
               </div>
@@ -615,7 +615,7 @@ const Settings: React.FC = () => {
                   type="text"
                   value={newSection.erpSectionId}
                   onChange={(e) => setNewSection(prev => ({ ...prev, erpSectionId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                   placeholder="ERP Section ID (from ERP)"
                 />
               </div>
@@ -625,7 +625,7 @@ const Settings: React.FC = () => {
                   value={newSection.description}
                   onChange={(e) => setNewSection(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                   placeholder="Section description"
                 />
               </div>
@@ -635,7 +635,7 @@ const Settings: React.FC = () => {
                   type="number"
                   value={newSection.order}
                   onChange={(e) => setNewSection(prev => ({ ...prev, order: parseInt(e.target.value) }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                   min="1"
                 />
               </div>
@@ -649,7 +649,7 @@ const Settings: React.FC = () => {
               </button>
               <button
                 onClick={handleAddSection}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 <Save className="h-4 w-4 mr-2" />
                 Save Section

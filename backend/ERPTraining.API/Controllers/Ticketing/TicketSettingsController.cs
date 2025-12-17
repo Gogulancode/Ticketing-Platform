@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ERPTraining.Core.Entities.Tickets;
+using ERPTraining.Core.Entities.Ticketing;
 using ERPTraining.Core.DTOs.Ticketing;
 using ERPTraining.Core.Ticketing.Settings.DTOs;
 using ERPTraining.Core.Ticketing.Settings.Interfaces;
@@ -19,6 +20,9 @@ using TicketStatusDto = ERPTraining.Core.Ticketing.Settings.DTOs.TicketStatusDto
 using CreateStatusReq = ERPTraining.Core.Ticketing.Settings.DTOs.CreateTicketStatusRequest;
 using UpdateStatusReq = ERPTraining.Core.Ticketing.Settings.DTOs.UpdateTicketStatusRequest;
 using CustomField = ERPTraining.Core.Entities.Ticketing.CustomField;
+using TicketCategoryEntity = ERPTraining.Core.Entities.Tickets.TicketCategory;
+using TicketPriorityEntity = ERPTraining.Core.Entities.Tickets.TicketPriority;
+using TicketStatusEntity = ERPTraining.Core.Entities.Tickets.TicketStatus;
 // Groups endpoints moved to dedicated TicketGroupsController
 
 namespace ERPTraining.API.Controllers.Ticketing;
@@ -81,7 +85,7 @@ public class TicketSettingsController : ControllerBase
             return Conflict($"An active category with the name '{request.Name}' already exists. If you want to recreate this category, please delete the existing one first.");
         }
 
-        var entity = new TicketCategory
+        var entity = new TicketCategoryEntity
         {
             Name = request.Name.Trim(),
             Description = request.Description?.Trim(),
@@ -154,7 +158,7 @@ public class TicketSettingsController : ControllerBase
         }
     }
 
-    private static TicketCategoryDto Map(TicketCategory category) =>
+    private static TicketCategoryDto Map(TicketCategoryEntity category) =>
         new(category.Id, category.Name, category.Description, category.IsActive, category.DisplayOrder, category.Color, category.IconName);
 
     [HttpGet("subcategories")]
@@ -309,7 +313,7 @@ public class TicketSettingsController : ControllerBase
 
     // ================= Priorities =================
 
-    private static TicketPriorityDto Map(TicketPriority p) => new(p.Id, p.Name, p.Description, p.Level, p.Color, p.IsActive, p.IsDeleted, p.SortOrder);
+    private static TicketPriorityDto Map(TicketPriorityEntity p) => new(p.Id, p.Name, p.Description, p.Level, p.Color, p.IsActive, p.IsDeleted, p.SortOrder);
 
     // GET: api/tickets/settings/priorities
     [HttpGet("priorities")]
@@ -347,7 +351,7 @@ public class TicketSettingsController : ControllerBase
             return Conflict($"An active priority with the name '{request.Name}' already exists. If you want to recreate this priority, please delete the existing one first.");
         }
 
-        var entity = new TicketPriority
+        var entity = new TicketPriorityEntity
         {
             Name = request.Name.Trim(),
             Description = request.Description?.Trim(),
@@ -390,7 +394,7 @@ public class TicketSettingsController : ControllerBase
 
     // ================= Statuses =================
 
-    private static TicketStatusDto Map(TicketStatus s)
+    private static TicketStatusDto Map(TicketStatusEntity s)
     {
         var allowed = Array.Empty<int>();
         if (!string.IsNullOrWhiteSpace(s.AllowedTransitions))
@@ -439,7 +443,7 @@ public class TicketSettingsController : ControllerBase
             return Conflict($"An active status with the name '{request.Name}' already exists. If you want to recreate this status, please delete the existing one first.");
         }
 
-        var entity = new TicketStatus
+        var entity = new TicketStatusEntity
         {
             Name = request.Name.Trim(),
             WorkflowOrder = request.WorkflowOrder ?? 0,
@@ -1036,7 +1040,281 @@ public class TicketSettingsController : ControllerBase
             return StatusCode(500, new { message = "Error processing emails", error = ex.Message });
         }
     }
+
+    // ================= Quick Templates =================
+    
+    /// <summary>
+    /// Get all quick templates
+    /// </summary>
+    [HttpGet("quick-templates")]
+    public async Task<ActionResult<IEnumerable<QuickTemplateDto>>> GetQuickTemplates([FromQuery] bool includeInactive = false)
+    {
+        try
+        {
+            var query = _context.QuickTemplates
+                .Where(t => !t.IsDeleted);
+
+            if (!includeInactive)
+            {
+                query = query.Where(t => t.IsActive);
+            }
+
+            var templates = await query
+                .OrderBy(t => t.DisplayOrder)
+                .ThenBy(t => t.Label)
+                .Select(t => new QuickTemplateDto
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    Label = t.Label,
+                    TitleTemplate = t.TitleTemplate,
+                    DescriptionTemplate = t.DescriptionTemplate,
+                    IconName = t.IconName,
+                    Category = t.Category,
+                    Priority = t.Priority,
+                    CategoryId = t.CategoryId,
+                    SubcategoryId = t.SubcategoryId,
+                    DepartmentId = t.DepartmentId,
+                    DisplayOrder = t.DisplayOrder,
+                    IsActive = t.IsActive
+                })
+                .ToListAsync();
+
+            return Ok(templates);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching quick templates");
+            return StatusCode(500, new { message = "Error fetching quick templates", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get a single quick template by ID
+    /// </summary>
+    [HttpGet("quick-templates/{id:int}")]
+    public async Task<ActionResult<QuickTemplateDto>> GetQuickTemplate(int id)
+    {
+        var template = await _context.QuickTemplates
+            .Where(t => t.Id == id && !t.IsDeleted)
+            .Select(t => new QuickTemplateDto
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Label = t.Label,
+                TitleTemplate = t.TitleTemplate,
+                DescriptionTemplate = t.DescriptionTemplate,
+                IconName = t.IconName,
+                Category = t.Category,
+                Priority = t.Priority,
+                CategoryId = t.CategoryId,
+                SubcategoryId = t.SubcategoryId,
+                DepartmentId = t.DepartmentId,
+                DisplayOrder = t.DisplayOrder,
+                IsActive = t.IsActive
+            })
+            .FirstOrDefaultAsync();
+
+        if (template == null)
+            return NotFound();
+
+        return Ok(template);
+    }
+
+    /// <summary>
+    /// Create a new quick template
+    /// </summary>
+    [HttpPost("quick-templates")]
+    public async Task<ActionResult<QuickTemplateDto>> CreateQuickTemplate([FromBody] CreateQuickTemplateRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Label))
+            return BadRequest("Label is required");
+
+        var template = new QuickTemplate
+        {
+            Name = request.Name?.Trim() ?? request.Label.Trim(),
+            Label = request.Label.Trim(),
+            TitleTemplate = request.TitleTemplate?.Trim() ?? string.Empty,
+            DescriptionTemplate = request.DescriptionTemplate?.Trim() ?? string.Empty,
+            IconName = request.IconName ?? "FileText",
+            Category = request.Category ?? "general-inquiry",
+            Priority = request.Priority ?? 1,
+            CategoryId = request.CategoryId,
+            SubcategoryId = request.SubcategoryId,
+            DepartmentId = request.DepartmentId,
+            DisplayOrder = request.DisplayOrder ?? 0,
+            IsActive = request.IsActive ?? true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.QuickTemplates.Add(template);
+        await _context.SaveChangesAsync(ct);
+
+        var dto = new QuickTemplateDto
+        {
+            Id = template.Id,
+            Name = template.Name,
+            Label = template.Label,
+            TitleTemplate = template.TitleTemplate,
+            DescriptionTemplate = template.DescriptionTemplate,
+            IconName = template.IconName,
+            Category = template.Category,
+            Priority = template.Priority,
+            CategoryId = template.CategoryId,
+            SubcategoryId = template.SubcategoryId,
+            DepartmentId = template.DepartmentId,
+            DisplayOrder = template.DisplayOrder,
+            IsActive = template.IsActive
+        };
+
+        return CreatedAtAction(nameof(GetQuickTemplate), new { id = template.Id }, dto);
+    }
+
+    /// <summary>
+    /// Update an existing quick template
+    /// </summary>
+    [HttpPut("quick-templates/{id:int}")]
+    public async Task<ActionResult<QuickTemplateDto>> UpdateQuickTemplate(int id, [FromBody] UpdateQuickTemplateRequest request, CancellationToken ct)
+    {
+        var template = await _context.QuickTemplates
+            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+
+        if (template == null)
+            return NotFound();
+
+        if (request.Name != null) template.Name = request.Name.Trim();
+        if (request.Label != null) template.Label = request.Label.Trim();
+        if (request.TitleTemplate != null) template.TitleTemplate = request.TitleTemplate.Trim();
+        if (request.DescriptionTemplate != null) template.DescriptionTemplate = request.DescriptionTemplate.Trim();
+        if (request.IconName != null) template.IconName = request.IconName;
+        if (request.Category != null) template.Category = request.Category;
+        if (request.Priority.HasValue) template.Priority = request.Priority.Value;
+        if (request.CategoryId.HasValue) template.CategoryId = request.CategoryId.Value == 0 ? null : request.CategoryId;
+        if (request.SubcategoryId.HasValue) template.SubcategoryId = request.SubcategoryId.Value == 0 ? null : request.SubcategoryId;
+        if (request.DepartmentId.HasValue) template.DepartmentId = request.DepartmentId.Value == 0 ? null : request.DepartmentId;
+        if (request.DisplayOrder.HasValue) template.DisplayOrder = request.DisplayOrder.Value;
+        if (request.IsActive.HasValue) template.IsActive = request.IsActive.Value;
+        template.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(ct);
+
+        var dto = new QuickTemplateDto
+        {
+            Id = template.Id,
+            Name = template.Name,
+            Label = template.Label,
+            TitleTemplate = template.TitleTemplate,
+            DescriptionTemplate = template.DescriptionTemplate,
+            IconName = template.IconName,
+            Category = template.Category,
+            Priority = template.Priority,
+            CategoryId = template.CategoryId,
+            SubcategoryId = template.SubcategoryId,
+            DepartmentId = template.DepartmentId,
+            DisplayOrder = template.DisplayOrder,
+            IsActive = template.IsActive
+        };
+
+        return Ok(dto);
+    }
+
+    /// <summary>
+    /// Delete a quick template (soft delete)
+    /// </summary>
+    [HttpDelete("quick-templates/{id:int}")]
+    public async Task<IActionResult> DeleteQuickTemplate(int id, CancellationToken ct)
+    {
+        var template = await _context.QuickTemplates.FindAsync(id);
+
+        if (template == null || template.IsDeleted)
+            return NotFound();
+
+        template.IsDeleted = true;
+        template.IsActive = false;
+        template.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(ct);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Reorder quick templates
+    /// </summary>
+    [HttpPut("quick-templates/reorder")]
+    public async Task<IActionResult> ReorderQuickTemplates([FromBody] List<ReorderQuickTemplateRequest> reorderList, CancellationToken ct)
+    {
+        var ids = reorderList.Select(r => r.Id).ToList();
+        var templates = await _context.QuickTemplates
+            .Where(t => ids.Contains(t.Id) && !t.IsDeleted)
+            .ToListAsync();
+
+        foreach (var template in templates)
+        {
+            var order = reorderList.FirstOrDefault(r => r.Id == template.Id);
+            if (order != null)
+            {
+                template.DisplayOrder = order.DisplayOrder;
+                template.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        await _context.SaveChangesAsync(ct);
+
+        return Ok();
+    }
 }
+
+// Quick Template DTOs
+public class QuickTemplateDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public string TitleTemplate { get; set; } = string.Empty;
+    public string DescriptionTemplate { get; set; } = string.Empty;
+    public string IconName { get; set; } = "FileText";
+    public string Category { get; set; } = "general-inquiry";
+    public int Priority { get; set; } = 1;
+    public int? CategoryId { get; set; }
+    public int? SubcategoryId { get; set; }
+    public int? DepartmentId { get; set; }
+    public int DisplayOrder { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public record CreateQuickTemplateRequest(
+    string? Name,
+    string Label,
+    string? TitleTemplate,
+    string? DescriptionTemplate,
+    string? IconName,
+    string? Category,
+    int? Priority,
+    int? CategoryId,
+    int? SubcategoryId,
+    int? DepartmentId,
+    int? DisplayOrder,
+    bool? IsActive
+);
+
+public record UpdateQuickTemplateRequest(
+    string? Name,
+    string? Label,
+    string? TitleTemplate,
+    string? DescriptionTemplate,
+    string? IconName,
+    string? Category,
+    int? Priority,
+    int? CategoryId,
+    int? SubcategoryId,
+    int? DepartmentId,
+    int? DisplayOrder,
+    bool? IsActive
+);
+
+public record ReorderQuickTemplateRequest(int Id, int DisplayOrder);
 
 public record CreateEmailAccountRequest(string EmailAddress, string DisplayName, int CategoryId, bool? IsActive, string? Keywords);
 public record UpdateEmailAccountRequest(string? EmailAddress, string? DisplayName, int? CategoryId, bool? IsActive, string? Keywords);

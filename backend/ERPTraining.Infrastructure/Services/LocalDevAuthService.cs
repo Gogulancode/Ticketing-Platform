@@ -211,4 +211,42 @@ public class LocalDevAuthService : IAuthService
         var roles = await _userManager.GetRolesAsync(user);
         return roles.ToList();
     }
+
+    public async Task<PasswordChangeResult> ChangePasswordAsync(string userId, string currentPassword, string newPassword)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                _logger.LogWarning("Change password failed: User {UserId} not found", userId);
+                return PasswordChangeResult.Failed("User not found", "UserNotFound");
+            }
+
+            // Verify current password
+            var isCurrentPasswordValid = await _userManager.CheckPasswordAsync(user, currentPassword);
+            if (!isCurrentPasswordValid)
+            {
+                _logger.LogWarning("Change password failed: Invalid current password for user {UserId}", userId);
+                return PasswordChangeResult.Failed("Current password is incorrect", "InvalidCurrentPassword");
+            }
+
+            // Change password
+            var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                _logger.LogWarning("Change password failed for user {UserId}: {Errors}", userId, errors);
+                return PasswordChangeResult.Failed(errors, "ValidationFailed");
+            }
+
+            _logger.LogInformation("Password changed successfully for user {UserId}", userId);
+            return PasswordChangeResult.Succeeded();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error changing password for user {UserId}", userId);
+            return PasswordChangeResult.Failed("An error occurred while changing password", "Exception");
+        }
+    }
 }

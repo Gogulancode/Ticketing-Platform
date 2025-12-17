@@ -11,10 +11,14 @@ import {
   Users,
   Bell,
   Menu,
-  LogOut
+  LogOut,
+  Clock,
+  ShieldCheck,
+  UserCog
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getCurrentUser } from '../../../shared/services/api/auth';
+import { settingsApi } from '../../../api/settingsApi';
 
 const TicketingLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -23,6 +27,9 @@ const TicketingLayout: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAgent, setIsAgent] = useState(false);
+  const [isCategoryHead, setIsCategoryHead] = useState(false);
+  const [canManageSLA, setCanManageSLA] = useState(false);
+  const [canManageAgents, setCanManageAgents] = useState(false);
   const { logout: authLogout } = useAuth();
 
   // Check user role on mount
@@ -51,12 +58,32 @@ const TicketingLayout: React.FC = () => {
         );
         setIsAdmin(userIsAdmin);
 
+        // Check if Agent (includes Agent, Senior Agent, Team Lead)
+        const agentRoles = ['agent', 'senior agent', 'team lead'];
         const userIsAgent = Boolean(
           currentUser.isAgent ||
-          singleRole.includes('agent') ||
-          normalizedRoles.some((role: string) => role.includes('agent'))
+          agentRoles.some(agentRole => singleRole.includes(agentRole)) ||
+          normalizedRoles.some((role: string) => agentRoles.some(agentRole => role.includes(agentRole)))
         );
         setIsAgent(userIsAgent);
+        
+        // Check if user is a Category Head (Category Admin)
+        if (currentUser.id && !userIsAdmin) {
+          try {
+            const categoryAdmins = await settingsApi.getCategoryAdmins();
+            const userCategoryAdmin = categoryAdmins.find(
+              ca => ca.userId === currentUser.id && ca.isActive
+            );
+            if (userCategoryAdmin) {
+              setIsCategoryHead(true);
+              setCanManageSLA(userCategoryAdmin.canManageSLA ?? false);
+              setCanManageAgents(userCategoryAdmin.canManageAgents ?? false);
+              console.log('👤 TicketingLayout - User is Category Head with SLA permission:', userCategoryAdmin.canManageSLA, ', Agents permission:', userCategoryAdmin.canManageAgents);
+            }
+          } catch (err) {
+            console.warn('⚠️ Could not fetch category admin info:', err);
+          }
+        }
         
         console.log(`👤 TicketingLayout - User role: Admin=${userIsAdmin}, Agent=${userIsAgent}`);
       } catch {
@@ -116,11 +143,16 @@ const TicketingLayout: React.FC = () => {
   // Define all navigation items with role requirements
   // adminOnly: only admins can see (Settings, Users)
   // agentOrAdmin: agents and admins can see (Reports)
+  // agentAdminOrCategoryHead: agents, admins, and category heads can see
+  // categoryHeadSLA: category heads with SLA permission
+  // categoryHeadAgents: category heads with agent management permission
   const allNavigationItems = [
     { icon: Home, label: 'Dashboard', path: '/tickets', exact: true, requiresRole: 'all' },
     { icon: Ticket, label: 'My Tickets', path: '/tickets/my', requiresRole: 'all' },
     { icon: Plus, label: 'New Ticket', path: '/tickets/new', requiresRole: 'all' },
-    { icon: BarChart3, label: 'Reports', path: '/tickets/reports', requiresRole: 'agentOrAdmin' },
+    { icon: BarChart3, label: 'Reports', path: '/tickets/reports', requiresRole: 'agentAdminOrCategoryHead' },
+    { icon: UserCog, label: 'Manage Agents', path: '/tickets/settings/agents', requiresRole: 'categoryHeadAgents' },
+    { icon: Clock, label: 'SLA Settings', path: '/tickets/settings/sla', requiresRole: 'categoryHeadSLA' },
     { icon: Users, label: 'User Management', path: '/tickets/users', requiresRole: 'adminOnly' },
     { icon: Settings, label: 'Settings', path: '/tickets/settings', requiresRole: 'adminOnly' },
   ];
@@ -130,6 +162,9 @@ const TicketingLayout: React.FC = () => {
     if (item.requiresRole === 'all') return true;
     if (item.requiresRole === 'adminOnly') return isAdmin;
     if (item.requiresRole === 'agentOrAdmin') return isAdmin || isAgent;
+    if (item.requiresRole === 'agentAdminOrCategoryHead') return isAdmin || isAgent || isCategoryHead;
+    if (item.requiresRole === 'categoryHeadSLA') return isCategoryHead && canManageSLA && !isAdmin;
+    if (item.requiresRole === 'categoryHeadAgents') return isCategoryHead && canManageAgents && !isAdmin;
     return true;
   });
 
@@ -149,7 +184,7 @@ const TicketingLayout: React.FC = () => {
             {/* Hamburger Menu Button */}
             <button
               onClick={toggleSidebar}
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
               aria-label="Toggle sidebar"
             >
               <Menu className="h-5 w-5" />
@@ -157,13 +192,13 @@ const TicketingLayout: React.FC = () => {
             
             <div className="flex items-center space-x-3">
               {/* Ticketing Module Icon */}
-              <div className="h-8 w-8 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+              <div className="h-8 w-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
                 <Ticket className="w-5 h-5 text-white" />
               </div>
               <div className="flex flex-col">
                 <h1 className="text-lg font-bold text-gray-900">Ticketing System</h1>
                 <div className="flex items-center space-x-2">
-                  <span className="text-xs text-gray-500">Business Hub</span>
+                  <span className="text-xs text-gray-500">Nivo</span>
                   <span className="text-xs text-gray-400">•</span>
                   <span className="text-xs text-gray-500">Professional Help Desk</span>
                 </div>
@@ -171,18 +206,8 @@ const TicketingLayout: React.FC = () => {
             </div>
           </div>
           
-          {/* Training Portal Switch - Only in development */}
+          {/* User Actions */}
           <div className="flex items-center space-x-4">
-            {import.meta.env.VITE_ENABLE_TRAINING_MODULE === 'true' && (
-              <button
-                onClick={() => navigate('/training')}
-                className="flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors"
-              >
-                <BookOpen className="w-4 h-4 mr-2" />
-                Switch to Training
-              </button>
-            )}
-            
             <div className="flex items-center space-x-3">
             <button 
               onClick={() => navigate('/tickets/notifications')}
@@ -255,27 +280,6 @@ const TicketingLayout: React.FC = () => {
                 );
               })}
             </nav>
-
-            {/* Quick Stats - only show when expanded */}
-            {isSidebarOpen && (
-              <div className="mt-6 pt-3 border-t border-gray-200">
-                <h3 className="text-xs font-semibold text-gray-900 mb-2 px-1">Quick Stats</h3>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs px-1">
-                    <span className="text-gray-600">Open Tickets</span>
-                    <span className="font-medium text-orange-600">3</span>
-                  </div>
-                  <div className="flex justify-between text-xs px-1">
-                    <span className="text-gray-600">In Progress</span>
-                    <span className="font-medium text-blue-600">1</span>
-                  </div>
-                  <div className="flex justify-between text-xs px-1">
-                    <span className="text-gray-600">Resolved</span>
-                    <span className="font-medium text-green-600">12</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

@@ -103,12 +103,12 @@ const CategoryList: React.FC<CategoryListProps> = ({
           value={newItemName}
           onChange={(e) => setNewItemName(e.target.value)}
           placeholder="New category"
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
           onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
         />
         <button
           onClick={handleAdd}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center gap-2"
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2"
         >
           <Plus size={16} />
           Add Category
@@ -197,7 +197,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
                     className={`p-2 rounded ${
                       category.isActive
                         ? 'text-green-600 hover:bg-green-50'
-                        : 'text-red-600 hover:bg-red-50'
+                        : 'text-gray-600 hover:bg-red-50'
                     }`}
                     title={category.isActive ? 'Deactivate' : 'Activate'}
                   >
@@ -205,14 +205,14 @@ const CategoryList: React.FC<CategoryListProps> = ({
                   </button>
                   <button
                     onClick={() => startEditing(category)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                    className="p-2 text-gray-600 hover:bg-red-50 rounded"
                     title="Edit"
                   >
                     <Edit2 size={16} />
                   </button>
                   <button
                     onClick={() => onDelete(category.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded"
+                    className="p-2 text-gray-600 hover:bg-red-50 rounded"
                     title="Delete"
                   >
                     <Trash2 size={16} />
@@ -231,12 +231,12 @@ const CategoryList: React.FC<CategoryListProps> = ({
                     value={newSubcategoryName[category.id] || ''}
                     onChange={(e) => setNewSubcategoryName(prev => ({ ...prev, [category.id]: e.target.value }))}
                     placeholder="New subcategory"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
                     onKeyPress={(e) => e.key === 'Enter' && handleAddSubcategory(category.id)}
                   />
                   <button
                     onClick={() => handleAddSubcategory(category.id)}
-                    className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center gap-2 text-sm"
+                    className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2 text-sm"
                   >
                     <Plus size={14} />
                     Add
@@ -310,7 +310,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
                               className={`p-1 rounded ${
                                 subcategory.isActive
                                   ? 'text-green-600 hover:bg-green-50'
-                                  : 'text-red-600 hover:bg-red-50'
+                                  : 'text-gray-600 hover:bg-red-50'
                               }`}
                               title={subcategory.isActive ? 'Deactivate' : 'Activate'}
                             >
@@ -318,14 +318,14 @@ const CategoryList: React.FC<CategoryListProps> = ({
                             </button>
                             <button
                               onClick={() => startEditingSubcategory(category.id, subcategory)}
-                              className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                              className="p-1 text-gray-600 hover:bg-red-50 rounded"
                               title="Edit"
                             >
                               <Edit2 size={14} />
                             </button>
                             <button
                               onClick={() => onDeleteSubcategory(category.id, subcategory.id)}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded"
+                              className="p-1 text-gray-600 hover:bg-red-50 rounded"
                               title="Delete"
                             >
                               <Trash2 size={14} />

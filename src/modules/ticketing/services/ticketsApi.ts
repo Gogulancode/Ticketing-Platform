@@ -199,6 +199,15 @@ export const ticketsApi = {
     return apiFetch(`/tickets${query}`);
   },
 
+  // Get tickets filtered by category IDs (for Category Heads)
+  async getTicketsByCategories(categoryIds: number[]): Promise<Ticket[]> {
+    if (!categoryIds.length) return [];
+    const query = `?categoryIds=${categoryIds.join(',')}`;
+    const response = await apiFetch<Ticket[] | { tickets?: Ticket[]; items?: Ticket[] }>(`/tickets/by-categories${query}`);
+    if (Array.isArray(response)) return response;
+    return response?.tickets || response?.items || [];
+  },
+
   // Get tickets assigned to current user
   async getMyTickets(): Promise<Ticket[]> {
     // Request larger page size to get all tickets (API limits to 100 per page, but we request 500)

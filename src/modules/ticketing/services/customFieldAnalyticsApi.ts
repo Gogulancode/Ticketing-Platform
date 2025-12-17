@@ -1,6 +1,7 @@
 import { apiFetch } from '../../../utils/apiFetch';
+import { API_CONFIG } from '../../../config/api';
 
-const API_BASE = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets-v2`;
+const API_BASE = `${API_CONFIG.BASE_URL}/tickets-v2`;
 
 export interface CustomFieldValue {
   value: string;

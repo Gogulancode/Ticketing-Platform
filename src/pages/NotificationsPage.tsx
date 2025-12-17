@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Check, CheckCheck, Trash2, AlertCircle, Info, CheckCircle, AlertTriangle } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { API_CONFIG } from '@/config/api';
 
 interface Notification {
   id: number;
@@ -30,7 +31,7 @@ const NotificationsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api';
+  const API_BASE = API_CONFIG.BASE_URL;
 
   const fetchNotifications = async () => {
     try {
@@ -154,9 +155,9 @@ const NotificationsPage: React.FC = () => {
       case 'warning':
         return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
       case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return <AlertCircle className="h-5 w-5 text-gray-500" />;
       default:
-        return <Info className="h-5 w-5 text-blue-500" />;
+        return <Info className="h-5 w-5 text-gray-500" />;
     }
   };
 
@@ -169,7 +170,7 @@ const NotificationsPage: React.FC = () => {
       case 'error':
         return 'bg-red-50 border-red-200';
       default:
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-red-50 border-red-200';
     }
   };
 
@@ -201,7 +202,7 @@ const NotificationsPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Bell className="h-6 w-6 text-blue-600" />
+              <Bell className="h-6 w-6 text-gray-600" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
                 <p className="text-sm text-gray-600 mt-1">
@@ -213,7 +214,7 @@ const NotificationsPage: React.FC = () => {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 hover:bg-red-50 rounded-lg transition-colors"
               >
                 <CheckCheck className="h-4 w-4 mr-2" />
                 Mark all as read
@@ -227,7 +228,7 @@ const NotificationsPage: React.FC = () => {
               onClick={() => { setFilter('all'); setPage(1); }}
               className={`pb-3 px-1 font-medium text-sm transition-colors ${
                 filter === 'all'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  ? 'text-gray-600 border-b-2 border-red-600'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -237,7 +238,7 @@ const NotificationsPage: React.FC = () => {
               onClick={() => { setFilter('unread'); setPage(1); }}
               className={`pb-3 px-1 font-medium text-sm transition-colors ${
                 filter === 'unread'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  ? 'text-gray-600 border-b-2 border-red-600'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -249,7 +250,7 @@ const NotificationsPage: React.FC = () => {
         {/* Notifications List */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-800">{error}</p>
+            <p className="text-gray-800">{error}</p>
           </div>
         )}
 
@@ -294,7 +295,7 @@ const NotificationsPage: React.FC = () => {
                           {!notification.isRead && (
                             <button
                               onClick={() => handleMarkAsRead(notification.id)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="p-2 text-gray-600 hover:bg-red-50 rounded-lg transition-colors"
                               title="Mark as read"
                             >
                               <Check className="h-4 w-4" />
@@ -302,7 +303,7 @@ const NotificationsPage: React.FC = () => {
                           )}
                           <button
                             onClick={() => handleDelete(notification.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-2 text-gray-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Delete"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -312,7 +313,7 @@ const NotificationsPage: React.FC = () => {
                       {notification.actionUrl && (
                         <a
                           href={notification.actionUrl}
-                          className="inline-block mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                          className="inline-block mt-3 text-sm text-gray-600 hover:text-gray-700 font-medium"
                         >
                           View Details →
                         </a>

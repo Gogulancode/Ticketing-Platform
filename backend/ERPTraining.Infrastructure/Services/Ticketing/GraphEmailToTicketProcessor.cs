@@ -96,6 +96,19 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
             }
             else
             {
+                // Check if auto-create tickets is enabled in the email configuration
+                var emailConfig = await dbContext.Set<GraphEmailConfig>()
+                    .FirstOrDefaultAsync(c => c.IsActive && c.ProcessIncomingEmails, cancellationToken);
+                
+                if (emailConfig != null && !emailConfig.CreateTicketsFromEmails)
+                {
+                    // Auto-create is disabled - mark email as read but don't create ticket
+                    _logger.LogInformation("Skipping ticket creation for email {EmailId} - CreateTicketsFromEmails is disabled", email.Id);
+                    await _emailService.MarkEmailAsReadAsync(email.Id, cancellationToken);
+                    await _emailService.MoveEmailToFolderAsync(email.Id, "Skipped", cancellationToken);
+                    return;
+                }
+                
                 await CreateNewTicketAsync(email, dbContext, cancellationToken);
                 _logger.LogInformation("Created new ticket from email {EmailId}: {Subject}", email.Id, email.Subject);
             }
@@ -208,6 +221,20 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
                                  $"--- Message Content ---\n" +
                                  $"{cleanBody}";
 
+        // Auto-assign SLA policy based on ticket priority
+        Guid? slaPolicyId = null;
+        var matchingSlaPolicy = await dbContext.Set<SlaPolicy>()
+            .Where(p => p.Priority == priority && p.IsActive && !p.IsDeleted)
+            .OrderBy(p => p.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        
+        if (matchingSlaPolicy != null)
+        {
+            slaPolicyId = matchingSlaPolicy.Id;
+            _logger.LogInformation("Auto-assigned SLA policy '{PolicyName}' to email ticket based on priority {Priority}",
+                matchingSlaPolicy.Name, priority);
+        }
+
         var ticket = new Ticket
         {
             PublicId = ticketNumber,
@@ -220,6 +247,7 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
             Priority = (ERPTraining.Core.Entities.Ticketing.TicketPriority)priority,
             Status = 1, // New status ID
             Source = TicketSource.Email,
+            SlaPolicyId = slaPolicyId,
             CreatedAt = email.ReceivedDate,
             UpdatedAt = DateTime.UtcNow
         };

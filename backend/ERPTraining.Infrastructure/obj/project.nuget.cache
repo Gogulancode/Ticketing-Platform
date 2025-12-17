@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "KmRHraKMMeo=",
+  "dgSpecHash": "oVAtxZaK/3E=",
   "success": true,
-  "projectFilePath": "D:\\BabajiShivram_training\\backend\\ERPTraining.Infrastructure\\ERPTraining.Infrastructure.csproj",
+  "projectFilePath": "D:\\Ticketing Platform\\backend\\ERPTraining.Infrastructure\\ERPTraining.Infrastructure.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\fresh\\.nuget\\packages\\automapper\\12.0.1\\automapper.12.0.1.nupkg.sha512",
     "C:\\Users\\fresh\\.nuget\\packages\\automapper.extensions.microsoft.dependencyinjection\\12.0.1\\automapper.extensions.microsoft.dependencyinjection.12.0.1.nupkg.sha512",

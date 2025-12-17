@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "X+gQpGvVWLQ=",
+  "dgSpecHash": "JNkyhZkQnmI=",
   "success": true,
-  "projectFilePath": "D:\\BabajiShivram_training\\backend\\ERPTraining.Core\\ERPTraining.Core.csproj",
+  "projectFilePath": "D:\\Ticketing Platform\\backend\\ERPTraining.Core\\ERPTraining.Core.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\fresh\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\fresh\\.nuget\\packages\\microsoft.aspnetcore.cryptography.internal\\8.0.0\\microsoft.aspnetcore.cryptography.internal.8.0.0.nupkg.sha512",

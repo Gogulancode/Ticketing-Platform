@@ -43,6 +43,27 @@ public class TicketService : ITicketService
                 ticket.UpdatedAt = DateTime.UtcNow;
                 ticket.Status = 1; // New status ID
 
+                // Auto-assign SLA policy based on ticket priority
+                if (ticket.SlaPolicyId == null)
+                {
+                    var priorityValue = (int)ticket.Priority;
+                    var matchingSlaPolicy = await _context.Set<SlaPolicy>()
+                        .Where(p => p.Priority == priorityValue && p.IsActive && !p.IsDeleted)
+                        .OrderBy(p => p.CreatedAt)
+                        .FirstOrDefaultAsync();
+                    
+                    if (matchingSlaPolicy != null)
+                    {
+                        ticket.SlaPolicyId = matchingSlaPolicy.Id;
+                        _logger.LogInformation("Auto-assigned SLA policy '{PolicyName}' (ID: {PolicyId}) to ticket based on priority {Priority}",
+                            matchingSlaPolicy.Name, matchingSlaPolicy.Id, ticket.Priority);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("No SLA policy found for priority {Priority}", ticket.Priority);
+                    }
+                }
+
                 _context.Tickets.Add(ticket);
                 await _context.SaveChangesAsync();
 

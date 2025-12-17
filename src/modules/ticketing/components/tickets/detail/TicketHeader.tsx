@@ -81,7 +81,7 @@ const TicketHeader: React.FC<TicketHeaderProps> = ({
         <div className="flex items-center space-x-3">
           <button
             onClick={onEmailClick}
-            className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+            className="inline-flex items-center px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
           >
             <Send className="h-4 w-4 mr-2" />
             Email

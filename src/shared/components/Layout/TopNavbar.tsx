@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Bell, Settings, ChevronDown, User, LogOut, Menu, BookOpen, Ticket } from 'lucide-react';
+import { Bell, Settings, ChevronDown, User, LogOut, Menu, Ticket } from 'lucide-react';
 import { currentUser } from '../../data/mockData';
 import { useNavigate } from 'react-router-dom';
+import NivoLogo from '@/components/NivoLogo';
 
 interface TopNavbarProps {
   onToggleSidebar?: () => void;
@@ -35,24 +36,16 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar }) => {
         {/* Hamburger Menu Button */}
         <button
           onClick={onToggleSidebar}
-          className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
           aria-label="Toggle sidebar"
         >
           <Menu className="h-5 w-5" />
         </button>
         <div className="flex items-center space-x-3">
-          {/* Logo and Branding */}
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-lg font-semibold text-gray-900">Training Module</h1>
-              <span className="text-xs text-gray-500">Business Hub</span>
-            </div>
-          </div>
+          {/* Nivo Logo and Branding */}
+          <NivoLogo size="sm" showText />
           {/* Demo Mode Indicator */}
-          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-md">
+          <span className="px-2 py-1 bg-primary-100 text-primary-800 text-xs font-medium rounded-md">
             🎯 Demo Mode
           </span>
         </div>
@@ -62,7 +55,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar }) => {
         {/* Ticketing Portal Switch */}
         <button
           onClick={() => navigate('/tickets')}
-          className="flex items-center text-green-600 hover:text-green-800 text-sm font-medium px-4 py-2 rounded-lg border border-green-200 hover:bg-green-50 transition-colors"
+          className="flex items-center text-primary-600 hover:text-primary-800 text-sm font-medium px-4 py-2 rounded-lg border border-primary-200 hover:bg-primary-50 transition-colors"
         >
           <Ticket className="w-4 h-4 mr-2" />
           Switch to Ticketing
@@ -108,7 +101,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar }) => {
             onClick={() => setShowProfileDropdown(!showProfileDropdown)}
             className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
               <span className="text-sm font-medium text-white">
                 {currentUser.name.split(' ').map((n: string) => n[0]).join('')}
               </span>

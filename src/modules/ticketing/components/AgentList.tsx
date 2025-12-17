@@ -100,7 +100,7 @@ const AgentList: React.FC<AgentListProps> = ({
       {!showAddForm && editingId === undefined && (
         <button
           onClick={() => setShowAddForm(true)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center gap-2"
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2"
         >
           <Plus size={16} />
           Add Agent
@@ -123,7 +123,7 @@ const AgentList: React.FC<AgentListProps> = ({
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="Agent name"
               />
             </div>
@@ -136,7 +136,7 @@ const AgentList: React.FC<AgentListProps> = ({
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="agent@example.com"
               />
             </div>
@@ -148,7 +148,7 @@ const AgentList: React.FC<AgentListProps> = ({
               <select
                 value={formData.role}
                 onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value="Agent">Agent</option>
                 <option value="Senior Agent">Senior Agent</option>
@@ -164,7 +164,7 @@ const AgentList: React.FC<AgentListProps> = ({
               <select
                 value={formData.isActive ? 'active' : 'inactive'}
                 onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.value === 'active' }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
@@ -184,7 +184,7 @@ const AgentList: React.FC<AgentListProps> = ({
                     type="checkbox"
                     checked={formData.departmentIds.includes(department.id)}
                     onChange={() => handleDepartmentToggle(department.id)}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-gray-600 focus:ring-red-500"
                   />
                   <span className="text-sm">{department.name}</span>
                 </label>
@@ -223,8 +223,8 @@ const AgentList: React.FC<AgentListProps> = ({
           >
             {/* Avatar */}
             <div className="flex-shrink-0">
-              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                <User size={20} className="text-indigo-600" />
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <User size={20} className="text-gray-600" />
               </div>
             </div>
 
@@ -237,7 +237,7 @@ const AgentList: React.FC<AgentListProps> = ({
                 <span className={`px-2 py-1 text-xs rounded-full ${
                   agent.isActive 
                     ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
+                    : 'bg-red-100 text-gray-800'
                 }`}>
                   {agent.isActive ? 'Active' : 'Inactive'}
                 </span>
@@ -254,7 +254,7 @@ const AgentList: React.FC<AgentListProps> = ({
                     .map(department => (
                       <span
                         key={department!.id}
-                        className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
+                        className="px-2 py-1 text-xs bg-red-100 text-gray-800 rounded"
                       >
                         {department!.name}
                       </span>
@@ -271,7 +271,7 @@ const AgentList: React.FC<AgentListProps> = ({
                   className={`p-2 rounded ${
                     agent.isActive
                       ? 'text-green-600 hover:bg-green-50'
-                      : 'text-red-600 hover:bg-red-50'
+                      : 'text-gray-600 hover:bg-red-50'
                   }`}
                   title={agent.isActive ? 'Deactivate' : 'Activate'}
                 >
@@ -279,14 +279,14 @@ const AgentList: React.FC<AgentListProps> = ({
                 </button>
                 <button
                   onClick={() => startEditing(agent)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                  className="p-2 text-gray-600 hover:bg-red-50 rounded"
                   title="Edit"
                 >
                   <Edit2 size={16} />
                 </button>
                 <button
                   onClick={() => onDelete(agent.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded"
+                  className="p-2 text-gray-600 hover:bg-red-50 rounded"
                   title="Delete"
                 >
                   <Trash2 size={16} />

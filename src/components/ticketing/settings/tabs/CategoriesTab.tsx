@@ -84,7 +84,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, category
         <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <Squares2X2Icon className="h-5 w-5 text-blue-600" />
+              <Squares2X2Icon className="h-5 w-5 text-gray-600" />
               {category ? 'Edit Category' : 'Create Category'}
             </h3>
             <button
@@ -103,11 +103,11 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, category
               <input
                 {...register('name')}
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="e.g., Technical Issues"
               />
               {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                <p className="mt-1 text-sm text-gray-600">{errors.name.message}</p>
               )}
             </div>
 
@@ -118,11 +118,11 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, category
               <textarea
                 {...register('description')}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="Brief description of this category"
               />
               {errors.description && (
-                <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+                <p className="mt-1 text-sm text-gray-600">{errors.description.message}</p>
               )}
             </div>
 
@@ -134,7 +134,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, category
                 {...register('displayOrder', { valueAsNumber: true })}
                 type="number"
                 min="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="1"
               />
               <p className="mt-1 text-sm text-gray-500">
@@ -147,7 +147,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, category
                 <input
                   {...register('isActive')}
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                 />
                 <span className="ml-2 text-sm text-gray-700">Active category</span>
               </label>
@@ -168,7 +168,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, category
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Saving...' : (category ? 'Update' : 'Create')}
               </button>
@@ -283,7 +283,7 @@ const CategoriesTab: React.FC = () => {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
           <p className="mt-2 text-sm text-gray-500">Loading categories...</p>
         </div>
       </div>
@@ -293,11 +293,11 @@ const CategoriesTab: React.FC = () => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <div className="text-red-600 mb-4">
+        <div className="text-gray-600 mb-4">
           <Squares2X2Icon className="mx-auto h-12 w-12" />
         </div>
-        <h3 className="text-sm font-medium text-red-900 mb-2">Error Loading Categories</h3>
-        <p className="text-sm text-red-600 mb-4">{error}</p>
+        <h3 className="text-sm font-medium text-gray-900 mb-2">Error Loading Categories</h3>
+        <p className="text-sm text-gray-600 mb-4">{error}</p>
         <button
           onClick={loadCategories}
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
@@ -315,7 +315,7 @@ const CategoriesTab: React.FC = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
           >
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Add Category
@@ -327,7 +327,7 @@ const CategoriesTab: React.FC = () => {
               type="checkbox"
               checked={showInactive}
               onChange={(e) => setShowInactive(e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
             />
             <span className="ml-2 text-sm text-gray-700">Show inactive</span>
           </label>
@@ -342,7 +342,7 @@ const CategoriesTab: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm"
             placeholder="Search categories..."
           />
         </div>
@@ -361,7 +361,7 @@ const CategoriesTab: React.FC = () => {
             </p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
             >
               <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
               Add Category
@@ -374,7 +374,7 @@ const CategoriesTab: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
-                      <Squares2X2Icon className={`h-8 w-8 ${category.isActive ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <Squares2X2Icon className={`h-8 w-8 ${category.isActive ? 'text-gray-600' : 'text-gray-400'}`} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center space-x-2">
@@ -384,7 +384,7 @@ const CategoriesTab: React.FC = () => {
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           category.isActive 
                             ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
+                            : 'bg-red-100 text-gray-800'
                         }`}>
                           {category.isActive ? 'Active' : 'Inactive'}
                         </span>
@@ -406,14 +406,14 @@ const CategoriesTab: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handleEdit(category)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="text-gray-600 hover:text-gray-900"
                       title="Edit category"
                     >
                       <PencilIcon className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => handleDelete(category.id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-gray-600 hover:text-gray-900"
                       title="Delete category"
                     >
                       <TrashIcon className="h-5 w-5" />
@@ -431,7 +431,7 @@ const CategoriesTab: React.FC = () => {
         <h3 className="text-lg font-medium text-gray-900 mb-4">Category Statistics</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{categories.length}</div>
+            <div className="text-2xl font-bold text-gray-600">{categories.length}</div>
             <div className="text-sm text-gray-500">Total Categories</div>
           </div>
           <div className="text-center">

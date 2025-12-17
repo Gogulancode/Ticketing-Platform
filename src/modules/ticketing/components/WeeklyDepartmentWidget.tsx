@@ -62,7 +62,7 @@ const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ departm
     return (
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Building className="w-5 h-5 text-blue-600" />
+          <Building className="w-5 h-5 text-gray-600" />
           <h3 className="text-lg font-semibold text-gray-900">Weekly Department Analysis</h3>
         </div>
         <div className="animate-pulse space-y-4">
@@ -77,10 +77,10 @@ const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ departm
     return (
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Building className="w-5 h-5 text-red-600" />
+          <Building className="w-5 h-5 text-gray-600" />
           <h3 className="text-lg font-semibold text-gray-900">Weekly Department Analysis</h3>
         </div>
-        <div className="text-red-600 text-sm">{error}</div>
+        <div className="text-gray-600 text-sm">{error}</div>
       </div>
     );
   }
@@ -91,7 +91,7 @@ const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ departm
     <div className="bg-white rounded-lg shadow-sm border p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Building className="w-5 h-5 text-blue-600" />
+          <Building className="w-5 h-5 text-gray-600" />
           <h3 className="text-lg font-semibold text-gray-900">Weekly Department Analysis</h3>
         </div>
         <div className="flex items-center gap-1 text-sm text-gray-600">
@@ -123,7 +123,7 @@ const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ departm
                     'bg-pink-500',
                     'bg-cyan-500',
                     'bg-amber-500',
-                    'bg-rose-500'
+                    'bg-slate-500'
                   ];
                   
                   const barColor = colors[index % colors.length];
@@ -161,7 +161,7 @@ const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ departm
                 'bg-pink-500',
                 'bg-cyan-500',
                 'bg-amber-500',
-                'bg-rose-500'
+                'bg-slate-500'
               ];
               
               const dotColor = dotColors[index % dotColors.length];
@@ -173,7 +173,7 @@ const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ departm
                     <span className="font-medium text-gray-900">{dept.departmentName}</span>
                   </div>
                   <div className="flex items-center gap-4 text-sm">
-                    <span className="text-red-600">{dept.openCount} open</span>
+                    <span className="text-gray-600">{dept.openCount} open</span>
                     <span className="text-amber-600">{dept.inProgressCount} in progress</span>
                     <span className="text-green-600">{dept.resolvedCount} resolved</span>
                     <span className="font-medium text-gray-900">{dept.totalTickets} total</span>

@@ -238,4 +238,30 @@ public class AuthService : IAuthService
             Expires = DateTime.UtcNow.AddDays(7)
         };
     }
+
+    public Task<PasswordChangeResult> ChangePasswordAsync(string userId, string currentPassword, string newPassword)
+    {
+        // Find user by ID
+        var user = DummyUsers.FirstOrDefault(u => u.Id == userId);
+        if (user == null)
+        {
+            return Task.FromResult(PasswordChangeResult.Failed("User not found", "UserNotFound"));
+        }
+
+        // Check current password
+        var identifier = user.Email ?? user.UserName ?? "";
+        if (!IsPasswordValid(user, identifier, currentPassword))
+        {
+            return Task.FromResult(PasswordChangeResult.Failed("Current password is incorrect", "InvalidCurrentPassword"));
+        }
+
+        // Update password in dummy storage
+        var key = user.UserName ?? user.Email ?? "";
+        if (!string.IsNullOrEmpty(key))
+        {
+            DummyPasswords[key] = newPassword;
+        }
+
+        return Task.FromResult(PasswordChangeResult.Succeeded());
+    }
 }

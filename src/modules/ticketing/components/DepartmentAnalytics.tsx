@@ -32,10 +32,10 @@ const DepartmentAnalyticsComponent: React.FC = () => {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-red-200">
         <div className="p-6 text-center">
-          <div className="text-red-500 mb-2">
+          <div className="text-gray-500 mb-2">
             <BarChart3 className="w-8 h-8 mx-auto" />
           </div>
-          <p className="text-red-600 text-sm">{error}</p>
+          <p className="text-gray-600 text-sm">{error}</p>
         </div>
       </div>
     );
@@ -49,12 +49,12 @@ const DepartmentAnalyticsComponent: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Ticket className="w-5 h-5 text-blue-600" />
+            <div className="p-2 bg-red-100 rounded-lg">
+              <Ticket className="w-5 h-5 text-gray-600" />
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-900">Total Tickets</p>
-              <p className="text-2xl font-bold text-blue-600">{analytics.totalTickets}</p>
+              <p className="text-2xl font-bold text-gray-600">{analytics.totalTickets}</p>
             </div>
           </div>
         </div>
@@ -102,8 +102,8 @@ const DepartmentAnalyticsComponent: React.FC = () => {
             {analytics.departmentBreakdown.map((dept: DepartmentAnalytics) => (
               <div key={dept.department} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Building className="w-4 h-4 text-blue-600" />
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <Building className="w-4 h-4 text-gray-600" />
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900">{dept.department}</h4>
@@ -125,7 +125,7 @@ const DepartmentAnalyticsComponent: React.FC = () => {
                   <div className="w-24">
                     <div className="bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-red-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${Math.min(dept.percentage, 100)}%` }}
                       ></div>
                     </div>
@@ -170,7 +170,7 @@ const DepartmentAnalyticsComponent: React.FC = () => {
                     index === 0 ? 'bg-yellow-200 text-yellow-800' :
                     index === 1 ? 'bg-gray-200 text-gray-800' :
                     index === 2 ? 'bg-orange-200 text-orange-800' :
-                    'bg-blue-200 text-blue-800'
+                    'bg-red-200 text-gray-800'
                   }`}>
                     #{index + 1}
                   </span>

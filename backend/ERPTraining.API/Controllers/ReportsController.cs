@@ -20,7 +20,10 @@ namespace ERPTraining.API.Controllers
             { 2, "In Progress" },
             { 3, "Waiting on User" },
             { 4, "Resolved" },
-            { 5, "Closed" }
+            { 5, "Closed" },
+            { 6, "Waiting for Third Party" },
+            { 1007, "Reopened" },
+            { 1009, "Merged" }
         };
 
         public ReportsController(ApplicationDbContext context, ILogger<ReportsController> logger)
@@ -41,11 +44,17 @@ namespace ERPTraining.API.Controllers
             {
                 var query = ApplyCreatedDateRangeFilter(_context.Tickets.AsQueryable(), startDate, endDate);
 
-                // Apply category filter (by ID or name)
+                // Apply category filter (supports multiple comma-separated IDs for Category Admins)
                 if (!string.IsNullOrEmpty(category))
                 {
-                    if (int.TryParse(category, out var categoryId))
-                        query = query.Where(t => t.CategoryId == categoryId);
+                    var categoryIds = category.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(c => int.TryParse(c.Trim(), out var id) ? id : (int?)null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id!.Value)
+                        .ToList();
+                    
+                    if (categoryIds.Any())
+                        query = query.Where(t => t.CategoryId.HasValue && categoryIds.Contains(t.CategoryId.Value));
                 }
 
                 // Apply priority filter (by ID or name)
@@ -142,9 +151,18 @@ namespace ERPTraining.API.Controllers
                     startDate,
                     endDate);
 
-                // Apply filters
-                if (!string.IsNullOrEmpty(category) && int.TryParse(category, out var categoryId))
-                    query = query.Where(t => t.CategoryId == categoryId);
+                // Apply filters (category supports multiple comma-separated IDs for Category Admins)
+                if (!string.IsNullOrEmpty(category))
+                {
+                    var categoryIds = category.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(c => int.TryParse(c.Trim(), out var id) ? id : (int?)null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id!.Value)
+                        .ToList();
+                    
+                    if (categoryIds.Any())
+                        query = query.Where(t => t.CategoryId.HasValue && categoryIds.Contains(t.CategoryId.Value));
+                }
                 if (!string.IsNullOrEmpty(priority) && int.TryParse(priority, out var priorityId))
                     query = query.Where(t => t.Priority == (TicketPriority)priorityId);
                 if (!string.IsNullOrEmpty(agent))
@@ -196,8 +214,19 @@ namespace ERPTraining.API.Controllers
             try
             {
                 var query = ApplyCreatedDateRangeFilter(_context.Tickets.AsQueryable(), startDate, endDate);
-                if (!string.IsNullOrEmpty(category) && int.TryParse(category, out var categoryId))
-                    query = query.Where(t => t.CategoryId == categoryId);
+                
+                // Apply category filter (supports multiple comma-separated IDs for Category Admins)
+                if (!string.IsNullOrEmpty(category))
+                {
+                    var categoryIds = category.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(c => int.TryParse(c.Trim(), out var id) ? id : (int?)null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id!.Value)
+                        .ToList();
+                    
+                    if (categoryIds.Any())
+                        query = query.Where(t => t.CategoryId.HasValue && categoryIds.Contains(t.CategoryId.Value));
+                }
                 if (!string.IsNullOrEmpty(priority) && Enum.TryParse<TicketPriority>(priority, out var priorityEnum))
                     query = query.Where(t => t.Priority == priorityEnum);
                 if (!string.IsNullOrEmpty(status) && int.TryParse(status, out var statusId))

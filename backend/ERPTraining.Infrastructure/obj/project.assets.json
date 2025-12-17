@@ -6353,11 +6353,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "d:\\BabajiShivram_training\\backend\\ERPTraining.Infrastructure\\ERPTraining.Infrastructure.csproj",
+      "projectUniqueName": "D:\\Ticketing Platform\\backend\\ERPTraining.Infrastructure\\ERPTraining.Infrastructure.csproj",
       "projectName": "ERPTraining.Infrastructure",
-      "projectPath": "d:\\BabajiShivram_training\\backend\\ERPTraining.Infrastructure\\ERPTraining.Infrastructure.csproj",
+      "projectPath": "D:\\Ticketing Platform\\backend\\ERPTraining.Infrastructure\\ERPTraining.Infrastructure.csproj",
       "packagesPath": "C:\\Users\\fresh\\.nuget\\packages\\",
-      "outputPath": "d:\\BabajiShivram_training\\backend\\ERPTraining.Infrastructure\\obj\\",
+      "outputPath": "D:\\Ticketing Platform\\backend\\ERPTraining.Infrastructure\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\fresh\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -6372,8 +6372,8 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\BabajiShivram_training\\backend\\ERPTraining.Core\\ERPTraining.Core.csproj": {
-              "projectPath": "D:\\BabajiShivram_training\\backend\\ERPTraining.Core\\ERPTraining.Core.csproj"
+            "D:\\Ticketing Platform\\backend\\ERPTraining.Core\\ERPTraining.Core.csproj": {
+              "projectPath": "D:\\Ticketing Platform\\backend\\ERPTraining.Core\\ERPTraining.Core.csproj"
             }
           }
         }

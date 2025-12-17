@@ -37,13 +37,21 @@ export interface DashboardAnalytics {
   averageResolutionTime: number;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api';
+import { API_CONFIG } from '../../../config/api';
+const API_BASE = API_CONFIG.BASE_URL;
 
 export const analyticsApi = {
-  async getDashboardAnalytics(): Promise<DashboardAnalytics> {
+  async getDashboardAnalytics(categoryIds?: number[]): Promise<DashboardAnalytics> {
     try {
+      // Build query params for category filtering
+      const params = new URLSearchParams();
+      if (categoryIds && categoryIds.length > 0) {
+        params.append('categoryIds', categoryIds.join(','));
+      }
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      
       // Try the main analytics endpoint first
-      const response = await fetch(`${API_BASE}/analytics/dashboard`);
+      const response = await fetch(`${API_BASE}/analytics/dashboard${queryString}`);
       if (response.ok) {
         return response.json();
       }
@@ -60,7 +68,16 @@ export const analyticsApi = {
       if (!allTicketsResponse.ok) {
         throw new Error('Failed to fetch tickets data');
       }
-      const allTickets = await allTicketsResponse.json();
+      let allTickets = await allTicketsResponse.json();
+      
+      // Filter by category IDs if provided (for category admins)
+      if (categoryIds && categoryIds.length > 0) {
+        allTickets = allTickets.filter((ticket: any) => {
+          const ticketCategoryId = ticket.categoryId || ticket.category?.id;
+          return categoryIds.includes(ticketCategoryId);
+        });
+        console.log(`🛡️ Category Admin: Filtered to ${allTickets.length} tickets in categories: ${categoryIds.join(', ')}`);
+      }
       
       // Calculate analytics from real ticket data
       const totalTickets = allTickets.length;

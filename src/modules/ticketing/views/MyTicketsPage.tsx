@@ -1,10 +1,11 @@
-﻿import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Filter, Download, AlertCircle, Clock, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Filter, Download, AlertCircle, Clock, User, ChevronLeft, ChevronRight, ShieldCheck } from 'lucide-react';
 import { ticketsApi, Ticket, TicketCategory, TicketPriority, TicketStatus } from '../services/ticketsApi';
 import { settingsApi, TicketCategoryConfig, PriorityLevel, TicketStatusConfig, Agent } from '../../../shared/services/api/settingsApi';
 import { formatTicketDateTime } from '../../../shared/utils/dateUtils';
+import { getCurrentUser } from '../../../shared/services/api/auth';
 
 type CategoryReference = { id?: number; name?: string };
 type PriorityReference = { id?: number; name?: string; level?: number };
@@ -38,6 +39,40 @@ const MyTicketsPage: React.FC = () => {
   const [agentFilter, setAgentFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  
+  // Category Head state
+  const [isCategoryHead, setIsCategoryHead] = useState(false);
+  const [categoryHeadCategoryIds, setCategoryHeadCategoryIds] = useState<number[]>([]);
+  const [categoryHeadCategoryNames, setCategoryHeadCategoryNames] = useState<string[]>([]);
+  const [categoryHeadCheckComplete, setCategoryHeadCheckComplete] = useState(false);
+
+  // Check if user is a Category Head on mount
+  useEffect(() => {
+    const checkCategoryHead = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        console.log('🔍 Checking category head status for user:', currentUser.id);
+        const status = await settingsApi.checkIsCategoryAdmin(currentUser.id);
+        console.log('🔍 Category admin check result:', status);
+        setIsCategoryHead(status.isCategoryAdmin);
+        setCategoryHeadCategoryIds(status.categoryIds);
+        
+        if (status.isCategoryAdmin && status.categoryIds.length > 0) {
+          const allCategories = await settingsApi.getTicketCategories();
+          const names = allCategories
+            .filter(c => status.categoryIds.includes(c.id))
+            .map(c => c.name);
+          setCategoryHeadCategoryNames(names);
+          console.log('🛡️ Category Head mode enabled for:', names.join(', '), 'IDs:', status.categoryIds);
+        }
+      } catch (error) {
+        console.warn('Could not check category head status:', error);
+      } finally {
+        setCategoryHeadCheckComplete(true);
+      }
+    };
+    checkCategoryHead();
+  }, []);
 
   const toStringValue = (value?: string | number | null): string | undefined => {
     if (value == null) {
@@ -75,20 +110,27 @@ const MyTicketsPage: React.FC = () => {
     return Math.abs(hash).toString().padStart(6, '0').slice(-6);
   };
 
-  // Fetch tickets (includes assigned tickets AND tickets where user is a collaborator)
+  // Fetch tickets - Category Heads see all tickets in their categories + their own, others see assigned/collaborator tickets
   const { data: tickets, isLoading, error } = useQuery<TicketListItem[]>({
-    queryKey: ['my-tickets'],
+    queryKey: ['my-tickets', isCategoryHead, categoryHeadCategoryIds],
     queryFn: async (): Promise<TicketListItem[]> => {
-      console.log('🎫 Fetching my tickets (assigned + collaborator)...');
+      // Both Category Heads and regular users now use the same endpoint
+      // The backend /tickets/my handles the logic:
+      // - Admins see all tickets
+      // - Category Heads see their own tickets + tickets from their managed categories
+      // - Regular users see only tickets they created or are assigned to
+      console.log('📋 Fetching my tickets...', { isCategoryHead, categoryHeadCategoryIds });
       try {
         const result = await ticketsApi.getMyTickets();
-        console.log('✅ My tickets loaded:', { count: result?.length, sample: result?.[0] });
+        console.log('✅ Tickets loaded:', { count: result?.length, sample: result?.[0] });
         return result as TicketListItem[];
       } catch (err) {
-        console.error('❌ Failed to load my tickets:', err);
+        console.error('❌ Failed to load tickets:', err);
         throw err;
       }
     },
+    // Wait for category head check to complete before running query
+    enabled: categoryHeadCheckComplete,
     // Enterprise: Optimized caching strategy
     staleTime: 30000, // Data is fresh for 30 seconds
     refetchInterval: 30000, // Refresh every 30 seconds (not 5s to reduce API load)
@@ -150,8 +192,16 @@ const MyTicketsPage: React.FC = () => {
     if (ticket.priorityName) return ticket.priorityName;
     if (typeof ticket.priority === 'object' && ticket.priority?.name) return ticket.priority.name;
     
-    // Get the priority value - could be enum (0-3) or database ID (1-4)
-    const priorityValue = typeof ticket.priority === 'number' ? Number(ticket.priority) : undefined;
+    // Get the priority value - this is the enum value (0-3) from backend
+    // Handle both number and potential string values
+    let priorityValue: number | undefined;
+    if (typeof ticket.priority === 'number') {
+      priorityValue = ticket.priority;
+    } else if (typeof ticket.priority === 'string' && ticket.priority !== '') {
+      priorityValue = parseInt(ticket.priority, 10);
+      if (isNaN(priorityValue)) priorityValue = undefined;
+    }
+    
     const priorityId = ticket.priorityId ?? (typeof ticket.priority === 'object' ? ticket.priority?.id : undefined);
     
     // If we have a priorityId that's >= 1, try to look it up directly (database ID)
@@ -160,23 +210,23 @@ const MyTicketsPage: React.FC = () => {
       if (priority?.name) return priority.name;
     }
     
-    // Map backend enum values (0-3) to database IDs (1-4): enum + 1 = database ID
-    // Enum: Low=0, Medium=1, High=2, Critical=3
-    // DB:   Low=1, Medium=2, High=3, Critical=4
-    if (priorityValue != null && priorityValue >= 0 && priorityValue <= 3 && priorities?.length) {
-      const dbPriorityId = priorityValue + 1; // Convert enum to database ID
-      const priority = priorities.find((pri) => pri.id === dbPriorityId);
-      if (priority?.name) return priority.name;
+    // Map backend enum values (0-3) to priority names using hardcoded mapping
+    // The backend stores: Low=0, Medium=1, High=2, Critical=3
+    const enumNameMap: Record<number, string> = {
+      0: 'Low',
+      1: 'Medium',
+      2: 'High',
+      3: 'Critical'
+    };
+    
+    // If we have a valid priority value, use the hardcoded map directly
+    // This ensures correct display even before settings API loads
+    if (priorityValue !== undefined && priorityValue >= 0 && priorityValue <= 3) {
+      return enumNameMap[priorityValue];
     }
     
-    // Final fallback: hardcoded enum mapping
-    switch (priorityValue) {
-      case 0: return 'Low';
-      case 1: return 'Medium'; 
-      case 2: return 'High';
-      case 3: return 'Critical';
-      default: return 'Low';
-    }
+    // If priority value is still undefined, return empty or loading indicator
+    return '';
   }, [priorities]);
 
   const getStatusName = useCallback((ticket: TicketListItem) => {
@@ -212,13 +262,24 @@ const MyTicketsPage: React.FC = () => {
     if (ticket.assignedAgent?.email) return ticket.assignedAgent.email;
     if (ticket.agentName) return ticket.agentName;
     
-    // If no user is assigned, return unassigned
-    if (!ticket.assignedToUserId && !ticket.assignedAgentId) return 'Unassigned';
+    // Check for empty/null/undefined assignedToUserId - must handle all falsy cases
+    const hasAssignedUserId = ticket.assignedToUserId != null && 
+                               ticket.assignedToUserId !== '' && 
+                               ticket.assignedToUserId !== 'null' &&
+                               ticket.assignedToUserId !== 'undefined';
+    const hasAssignedAgentId = ticket.assignedAgentId != null && 
+                                ticket.assignedAgentId !== '' && 
+                                ticket.assignedAgentId !== 0;
     
-    // Look up agent by userId
-    const agent = agents?.find((a) => 
-      (ticket.assignedToUserId && a.userId === toStringValue(ticket.assignedToUserId)) || 
-      (ticket.assignedAgentId != null && a.id === toNumericValue(ticket.assignedAgentId) ) ||
+    // If no user is assigned, return unassigned
+    if (!hasAssignedUserId && !hasAssignedAgentId) return 'Unassigned';
+    
+    // Look up agent by userId - only if we have agents loaded
+    if (!agents?.length) return 'Loading...';
+    
+    const agent = agents.find((a) => 
+      (hasAssignedUserId && a.userId === toStringValue(ticket.assignedToUserId)) || 
+      (hasAssignedAgentId && a.id === toNumericValue(ticket.assignedAgentId)) ||
       (ticket.assignedAgent?.email && a.email === ticket.assignedAgent.email)
     );
     return agent?.name || agent?.email || 'Unassigned';
@@ -227,7 +288,7 @@ const MyTicketsPage: React.FC = () => {
   const getStatusColor = useCallback((ticket: TicketListItem) => {
     const statusName = getStatusName(ticket)?.toLowerCase();
     switch (statusName) {
-      case 'open': case 'new': return 'bg-blue-100 text-blue-800';
+      case 'open': case 'new': return 'bg-red-100 text-gray-800';
       case 'in progress': case 'assigned': return 'bg-yellow-100 text-yellow-800';
       case 'on hold': return 'bg-orange-100 text-orange-800';
       case 'waiting for user': return 'bg-purple-100 text-purple-800';
@@ -247,7 +308,7 @@ const MyTicketsPage: React.FC = () => {
       case 'low': return 'text-green-600';
       case 'medium': return 'text-yellow-600';
       case 'high': return 'text-orange-600';
-      case 'urgent': case 'critical': return 'text-red-600';
+      case 'urgent': case 'critical': return 'text-gray-600';
       default: return 'text-gray-500';
     }
   }, [getPriorityName]);
@@ -453,8 +514,8 @@ const MyTicketsPage: React.FC = () => {
     return (
       <div className="text-sm leading-snug min-h-screen bg-gray-50 p-sm">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Tickets</h3>
-          <p className="text-red-700">
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Error Loading Tickets</h3>
+          <p className="text-gray-700">
             {error instanceof Error ? error.message : 'Unknown error occurred'}
           </p>
         </div>
@@ -465,12 +526,25 @@ const MyTicketsPage: React.FC = () => {
   return (
     <div className="text-sm leading-snug min-h-screen bg-gray-50">
       <div className="max-w-full">
+        {/* Category Head Banner */}
+        {isCategoryHead && (
+          <div className="bg-indigo-50 border-b border-indigo-200 px-sm py-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm font-medium text-indigo-800">
+                Category Head View - Managing: {categoryHeadCategoryNames.join(', ')}
+              </span>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="bg-white shadow-sm mb-sm">
           <div className="px-sm py-sm border-b border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-xl font-semibold leading-tight">My Tickets</h1>
+                <h1 className="text-xl font-semibold leading-tight">
+                  {isCategoryHead ? 'Category Tickets' : 'My Tickets'}
+                </h1>
                 <p className="text-sm text-gray-600 mt-1">
                   Showing {startIndex + 1}-{Math.min(endIndex, filteredTickets.length)} of {filteredTickets.length} tickets
                   {tickets?.length !== filteredTickets.length && ` (${tickets?.length} total)`}
@@ -486,7 +560,7 @@ const MyTicketsPage: React.FC = () => {
                 </button>
                 <Link
                   to="/tickets/new"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   New Ticket
@@ -502,9 +576,9 @@ const MyTicketsPage: React.FC = () => {
                 <div className="text-2xl font-bold text-gray-900">{ticketCounts.total}</div>
                 <div className="text-xs text-gray-600">Total</div>
               </div>
-              <div className="bg-blue-50 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-blue-900">{ticketCounts.open}</div>
-                <div className="text-xs text-blue-600">Open</div>
+              <div className="bg-red-50 rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold text-gray-900">{ticketCounts.open}</div>
+                <div className="text-xs text-gray-600">Open</div>
               </div>
               <div className="bg-yellow-50 rounded-lg p-3 text-center">
                 <div className="text-2xl font-bold text-yellow-900">{ticketCounts.inProgress}</div>
@@ -536,7 +610,7 @@ const MyTicketsPage: React.FC = () => {
                     placeholder="Search tickets..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
                   />
                 </div>
               </div>
@@ -545,7 +619,7 @@ const MyTicketsPage: React.FC = () => {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
                 >
                   <option value="all">All Status</option>
                   <option value="open">Open</option>
@@ -558,7 +632,7 @@ const MyTicketsPage: React.FC = () => {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
                 >
                   <option value="all">All Categories</option>
                   {categories?.map((cat) => (
@@ -572,7 +646,7 @@ const MyTicketsPage: React.FC = () => {
                 <select
                   value={agentFilter}
                   onChange={(e) => setAgentFilter(e.target.value)}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
                 >
                   <option value="all">All Agents</option>
                   <option value="unassigned">Unassigned</option>
@@ -591,7 +665,7 @@ const MyTicketsPage: React.FC = () => {
                     setItemsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
                 >
                   <option value={10}>10 per page</option>
                   <option value={25}>25 per page</option>
@@ -641,7 +715,7 @@ const MyTicketsPage: React.FC = () => {
                         <Link
                           to={`/tickets/${ticket.id}`}
                           state={{ from: '/tickets/my' }}
-                          className="font-medium text-blue-600 hover:text-blue-800 hover:underline line-clamp-2"
+                          className="font-medium text-gray-600 hover:text-gray-800 hover:underline line-clamp-2"
                           title={ticket.title}
                         >
                           {ticket.title}
@@ -650,7 +724,7 @@ const MyTicketsPage: React.FC = () => {
                       <div className="col-span-1 relative group">
                         {ticket.hasMergedTickets ? (
                           <div className="relative">
-                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800 cursor-help">
+                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-indigo-800 cursor-help">
                               <svg className="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2" />
                               </svg>
@@ -682,7 +756,7 @@ const MyTicketsPage: React.FC = () => {
                             </div>
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-300">—</span>
+                          <span className="text-xs text-gray-300">�</span>
                         )}
                       </div>
                       <div className="col-span-1">
@@ -730,7 +804,7 @@ const MyTicketsPage: React.FC = () => {
                       <button
                         onClick={goToPreviousPage}
                         disabled={currentPage === 1}
-                        className="inline-flex items-center px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex items-center px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <ChevronLeft className="h-4 w-4 mr-1" />
                         Previous
@@ -754,9 +828,9 @@ const MyTicketsPage: React.FC = () => {
                             <button
                               key={pageNum}
                               onClick={() => goToPage(pageNum)}
-                              className={`px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                              className={`px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 ${
                                 pageNum === currentPage
-                                  ? 'bg-blue-600 text-white border-blue-600'
+                                  ? 'bg-red-600 text-white border-red-600'
                                   : 'border-gray-300 hover:bg-gray-50'
                               }`}
                             >
@@ -769,7 +843,7 @@ const MyTicketsPage: React.FC = () => {
                       <button
                         onClick={goToNextPage}
                         disabled={currentPage === totalPages}
-                        className="inline-flex items-center px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex items-center px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Next
                         <ChevronRight className="h-4 w-4 ml-1" />

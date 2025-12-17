@@ -72,7 +72,7 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
       </div>
     );
   }
@@ -81,9 +81,9 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-md text-center">
-          <ShieldAlert className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-red-800 mb-2">Access Denied</h2>
-          <p className="text-red-600 mb-4">
+          <ShieldAlert className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-4">
             You don't have permission to access this page. This section is only available to administrators.
           </p>
           <p className="text-sm text-gray-500">

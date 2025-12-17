@@ -66,7 +66,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Email</p>
                 <a 
                   href={`mailto:${ticket.createdByUser.email}`}
-                  className="text-sm text-indigo-600 hover:text-indigo-800"
+                  className="text-sm text-gray-600 hover:text-indigo-800"
                 >
                   {ticket.createdByUser.email}
                 </a>
@@ -82,7 +82,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Phone</p>
                 <a 
                   href={`tel:${requesterPhone}`}
-                  className="text-sm text-indigo-600 hover:text-indigo-800"
+                  className="text-sm text-gray-600 hover:text-indigo-800"
                 >
                   {requesterPhone}
                 </a>
@@ -116,7 +116,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
 
           {/* Ticket Source */}
           <div className="flex items-center space-x-3">
-            <div className="h-4 w-4 bg-blue-500 rounded-full"></div>
+            <div className="h-4 w-4 bg-red-500 rounded-full"></div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide">Source</p>
               <p className="text-sm text-gray-900">
@@ -134,7 +134,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
               {ticket.createdByUser?.email && (
                 <button
                   onClick={() => window.open(`mailto:${ticket.createdByUser!.email}`)}
-                  className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700"
+                  className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-xs rounded-md hover:bg-red-700"
                 >
                   <Mail className="h-3 w-3 mr-1" />
                   Email

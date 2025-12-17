@@ -1,0 +1,49 @@
+﻿{
+  "expo": {
+    "name": "Nivo Support",
+    "slug": "nivo-support",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1337ec"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.babajishivram.nivosupport",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1337ec"
+      },
+      "package": "com.babajishivram.nivosupport",
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE"
+      ],
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ],
+    "extra": {
+      "environment": "development",
+      "eas": {
+        "projectId": "your-project-id-here"
+      }
+    }
+  }
+}

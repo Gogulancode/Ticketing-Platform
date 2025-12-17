@@ -3,6 +3,7 @@
 
 import { ticketEmailUtility } from './ticketEmailUtility';
 import { formatTicketDateTime } from '../utils/dateUtils';
+import { API_CONFIG } from '../../config/api';
 
 export interface ForwardRequest {
   ticketId: string;
@@ -193,7 +194,7 @@ ${ticketDetails.description}
    */
   private async sendForwardEmail(emailContent: any): Promise<{ success: boolean; messageId?: string }> {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/emails/send-forward`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/emails/send-forward`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -232,7 +233,7 @@ ${ticketDetails.description}
     };
 
     try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/forwards`, {
+      await fetch(`${API_CONFIG.BASE_URL}/forwards`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

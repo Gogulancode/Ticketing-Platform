@@ -242,7 +242,7 @@ const CustomFieldsTab: React.FC = () => {
           <button
             onClick={() => refetch()}
             disabled={isLoading}
-            className="px-4 py-2 text-blue-600 hover:text-blue-800 border border-blue-300 rounded-lg hover:bg-blue-50 disabled:opacity-50 flex items-center gap-1"
+            className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-red-300 rounded-lg hover:bg-red-50 disabled:opacity-50 flex items-center gap-1"
           >
             <Search className="h-4 w-4" />
             {isLoading ? 'Refreshing...' : 'Refresh'}
@@ -253,7 +253,7 @@ const CustomFieldsTab: React.FC = () => {
               resetForm();
               setShowModal(true);
             }}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
             Add Custom Field
@@ -272,7 +272,7 @@ const CustomFieldsTab: React.FC = () => {
               placeholder="Search fields..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
 
@@ -283,7 +283,7 @@ const CustomFieldsTab: React.FC = () => {
                 type="checkbox"
                 checked={showInactive}
                 onChange={(e) => setShowInactive(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
               />
               <span>Show inactive only</span>
             </label>
@@ -309,7 +309,7 @@ const CustomFieldsTab: React.FC = () => {
       <div className="bg-white rounded-lg border">
         {isLoading ? (
           <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
             <p className="mt-2 text-gray-600">Loading custom fields...</p>
           </div>
         ) : filteredFields.length === 0 ? (
@@ -351,11 +351,11 @@ const CustomFieldsTab: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-gray-800">
                         {field.type}
                       </span>
                       {field.isRequired && (
-                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-gray-800">
                           Required
                         </span>
                       )}
@@ -375,13 +375,13 @@ const CustomFieldsTab: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         onClick={() => handleEdit(field)}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        className="text-gray-600 hover:text-gray-900 mr-3"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(field.id)}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-gray-600 hover:text-gray-900"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -418,28 +418,28 @@ const CustomFieldsTab: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Field Name <span className="text-red-500">*</span>
+                    Field Name <span className="text-gray-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                     placeholder="field_name"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Display Label <span className="text-red-500">*</span>
+                    Display Label <span className="text-gray-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.label}
                     onChange={(e) => setFormData(prev => ({ ...prev, label: e.target.value }))}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                     placeholder="Field Label"
                   />
                 </div>
@@ -448,13 +448,13 @@ const CustomFieldsTab: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Field Type <span className="text-red-500">*</span>
+                    Field Type <span className="text-gray-500">*</span>
                   </label>
                   <select
                     required
                     value={formData.type}
                     onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                   >
                     <optgroup label="Text Fields">
                       <option value="text">Single Line Text</option>
@@ -502,7 +502,7 @@ const CustomFieldsTab: React.FC = () => {
                     min="0"
                     value={formData.displayOrder}
                     onChange={(e) => setFormData(prev => ({ ...prev, displayOrder: parseInt(e.target.value) || 0 }))}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                   />
                 </div>
               </div>
@@ -510,7 +510,7 @@ const CustomFieldsTab: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Category <span className="text-red-500">*</span>
+                    Category <span className="text-gray-500">*</span>
                   </label>
                   <select
                     required
@@ -520,7 +520,7 @@ const CustomFieldsTab: React.FC = () => {
                       categoryId: e.target.value ? parseInt(e.target.value) : undefined,
                       subCategoryId: undefined
                     }))}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                   >
                     <option value="">Select Category</option>
                     {categoriesData.map((category: TicketCategoryConfig) => (
@@ -545,7 +545,7 @@ const CustomFieldsTab: React.FC = () => {
                       subCategoryId: e.target.value ? parseInt(e.target.value) : undefined
                     }))}
                     disabled={!formData.categoryId}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 disabled:bg-gray-100"
                   >
                     <option value="">All Subcategories</option>
                     {subCategoriesData.map((subCategory: any) => (
@@ -567,7 +567,7 @@ const CustomFieldsTab: React.FC = () => {
                     type="checkbox"
                     checked={formData.isRequired}
                     onChange={(e) => setFormData(prev => ({ ...prev, isRequired: e.target.checked }))}
-                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="rounded border-gray-300 text-gray-600 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
                   />
                   <span className="ml-2 text-sm text-gray-700">Required Field</span>
                 </label>
@@ -577,7 +577,7 @@ const CustomFieldsTab: React.FC = () => {
                     type="checkbox"
                     checked={formData.isActive}
                     onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="rounded border-gray-300 text-gray-600 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
                   />
                   <span className="ml-2 text-sm text-gray-700">Active</span>
                 </label>
@@ -587,7 +587,7 @@ const CustomFieldsTab: React.FC = () => {
               {['select', 'radio', 'checkbox'].includes(formData.type) && (
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Options <span className="text-red-500">*</span>
+                    Options <span className="text-gray-500">*</span>
                     <span className="text-xs font-normal text-gray-500 ml-2">
                       {formData.type === 'select' && '(Dropdown options)'}
                       {formData.type === 'radio' && '(Radio button options)'}
@@ -603,14 +603,14 @@ const CustomFieldsTab: React.FC = () => {
                           type="text"
                           value={option}
                           onChange={(e) => updateOption(index, e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                           placeholder={`Option ${index + 1}`}
                           required
                         />
                         <button
                           type="button"
                           onClick={() => removeOption(index)}
-                          className="px-2 py-2 text-red-600 hover:text-red-800 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-2 py-2 text-gray-600 hover:text-gray-800 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={(formData.options?.length || 0) <= 1}
                           title={`Remove option ${index + 1}`}
                         >
@@ -622,7 +622,7 @@ const CustomFieldsTab: React.FC = () => {
                     <button
                       type="button"
                       onClick={addOption}
-                      className="mt-3 px-4 py-2 text-blue-600 hover:text-blue-800 border border-blue-300 rounded-md hover:bg-blue-50 flex items-center gap-1 transition-colors"
+                      className="mt-3 px-4 py-2 text-gray-600 hover:text-gray-800 border border-red-300 rounded-md hover:bg-red-50 flex items-center gap-1 transition-colors"
                     >
                       <Plus className="h-4 w-4" />
                       Add Option
@@ -647,7 +647,7 @@ const CustomFieldsTab: React.FC = () => {
                     type="text"
                     value={formData.placeholder || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, placeholder: e.target.value }))}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                     placeholder={formData.type === 'select' ? 'Select an option...' : 'Enter placeholder text...'}
                   />
                   <p className="mt-1 text-xs text-gray-500">
@@ -665,14 +665,14 @@ const CustomFieldsTab: React.FC = () => {
                     setEditingField(null);
                     resetForm();
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                 >
                   {createMutation.isPending || updateMutation.isPending ? (
                     <div className="flex items-center">

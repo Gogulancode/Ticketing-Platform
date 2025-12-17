@@ -136,7 +136,7 @@ const RoleMapping: React.FC = () => {
             className={`px-6 py-2 rounded-lg font-medium transition-colors ${
               seedStatus === 'loading' 
                 ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-red-600 hover:bg-red-700 text-white'
             }`}
           >
             {seedStatus === 'loading' ? 'Seeding Data...' : 'Seed Role Data'}
@@ -147,8 +147,8 @@ const RoleMapping: React.FC = () => {
         {seedStatus !== 'idle' && (
           <div className={`p-4 rounded-lg border ${
             seedStatus === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
-            seedStatus === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
-            'bg-blue-50 border-blue-200 text-blue-800'
+            seedStatus === 'error' ? 'bg-red-50 border-red-200 text-gray-800' :
+            'bg-red-50 border-red-200 text-gray-800'
           }`}>
             <div className="flex items-center">
               <span className="font-medium mr-2">
@@ -164,7 +164,7 @@ const RoleMapping: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white p-6 rounded-lg border shadow-sm">
           <div className="flex items-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-4">
               👥
             </div>
             <div>
@@ -260,7 +260,7 @@ const RoleMapping: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-gray-900">{role.roleName}</h3>
                     {role.originalRoleId && (
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                      <span className="bg-red-100 text-gray-800 px-2 py-1 rounded text-sm">
                         ID: {role.originalRoleId}
                       </span>
                     )}
@@ -277,8 +277,8 @@ const RoleMapping: React.FC = () => {
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                            <span className="text-sm font-bold text-blue-800">
+                          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                            <span className="text-sm font-bold text-gray-800">
                               {module.totalSections > 0 ? Math.round((module.accessibleSections / module.totalSections) * 100) : 0}%
                             </span>
                           </div>
@@ -295,7 +295,7 @@ const RoleMapping: React.FC = () => {
 
       {loading && (
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-2"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mr-2"></div>
           <span>Loading role access data...</span>
         </div>
       )}

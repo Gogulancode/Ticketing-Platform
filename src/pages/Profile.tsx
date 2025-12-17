@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Briefcase, Shield, Edit2, Save, X } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { API_CONFIG } from '@/config/api';
 
 const Profile: React.FC = () => {
   const [user, setUser] = useState<any>(null);
@@ -10,7 +11,7 @@ const Profile: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api';
+  const API_BASE = API_CONFIG.BASE_URL;
 
   useEffect(() => {
     async function fetchUser() {
@@ -104,21 +105,21 @@ const Profile: React.FC = () => {
       <div className="max-w-3xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+          <div className="bg-gradient-to-r from-red-600 to-red-700 px-8 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="bg-white rounded-full p-3">
-                  <User className="h-8 w-8 text-blue-600" />
+                  <User className="h-8 w-8 text-gray-600" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-white">Profile Settings</h1>
-                  <p className="text-blue-100 text-sm">Manage your account information</p>
+                  <p className="text-gray-100 text-sm">Manage your account information</p>
                 </div>
               </div>
               {!editMode && (
                 <button
                   onClick={() => { setEditMode(true); setError(''); setSuccess(''); }}
-                  className="inline-flex items-center px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-white text-gray-600 rounded-lg hover:bg-red-50 transition-colors"
                 >
                   <Edit2 className="h-4 w-4 mr-2" />
                   Edit Profile
@@ -139,9 +140,9 @@ const Profile: React.FC = () => {
             )}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 flex items-start">
-                <X className="h-5 w-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" />
+                <X className="h-5 w-5 text-gray-600 mr-3 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-red-800 font-medium">{error}</p>
+                  <p className="text-gray-800 font-medium">{error}</p>
                 </div>
               </div>
             )}
@@ -169,7 +170,7 @@ const Profile: React.FC = () => {
                   name="firstName"
                   disabled={!editMode}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${editMode ? 'bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent' : 'bg-gray-100'}`}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${editMode ? 'bg-white focus:ring-2 focus:ring-red-500 focus:border-transparent' : 'bg-gray-100'}`}
                 />
               </div>
               <div>
@@ -180,7 +181,7 @@ const Profile: React.FC = () => {
                   name="lastName"
                   disabled={!editMode}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${editMode ? 'bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent' : 'bg-gray-100'}`}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${editMode ? 'bg-white focus:ring-2 focus:ring-red-500 focus:border-transparent' : 'bg-gray-100'}`}
                 />
               </div>
             </div>
@@ -193,7 +194,7 @@ const Profile: React.FC = () => {
                 name="department"
                 disabled={!editMode}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${editMode ? 'bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent' : 'bg-gray-100'}`}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${editMode ? 'bg-white focus:ring-2 focus:ring-red-500 focus:border-transparent' : 'bg-gray-100'}`}
               />
             </div>
 
@@ -216,7 +217,7 @@ const Profile: React.FC = () => {
                   value={form.password}
                   name="password"
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   placeholder="Leave blank to keep current password"
                 />
                 <p className="text-sm text-gray-500 mt-1">Only fill this if you want to change your password</p>
@@ -234,7 +235,7 @@ const Profile: React.FC = () => {
                 </button>
                 <button
                   onClick={handleSave}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   Save Changes

@@ -89,7 +89,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
     if (!workload) return 'bg-green-100 text-green-800';
     if (workload < 5) return 'bg-green-100 text-green-800';
     if (workload < 10) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
+    return 'bg-red-100 text-gray-800';
   };
 
   return (
@@ -139,14 +139,14 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search agents by name or email..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
             
             <select
               value={selectedDepartment || ''}
               onChange={(e) => setSelectedDepartment(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <option value="">All Departments</option>
               {departments.map(dept => (
@@ -175,7 +175,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <div className="h-8 w-8 bg-indigo-500 rounded-full flex items-center justify-center">
+                        <div className="h-8 w-8 bg-red-500 rounded-full flex items-center justify-center">
                           <User className="h-4 w-4 text-white" />
                         </div>
                         <div>
@@ -184,7 +184,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
                           </p>
                           <p className="text-xs text-gray-500">{agent.email}</p>
                           {agent.department && (
-                            <p className="text-xs text-blue-600">{agent.department}</p>
+                            <p className="text-xs text-gray-600">{agent.department}</p>
                           )}
                         </div>
                       </div>
@@ -197,7 +197,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
                         )}
                         
                         {selectedAgent === agent.id && (
-                          <CheckCircle className="h-4 w-4 text-indigo-600" />
+                          <CheckCircle className="h-4 w-4 text-gray-600" />
                         )}
                       </div>
                     </div>
@@ -219,7 +219,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
           <button
             onClick={handleAssign}
             disabled={!selectedAgent || assignTicketMutation.isPending}
-            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+            className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
           >
             <UserPlus className="h-4 w-4 mr-2" />
             {assignTicketMutation.isPending ? 'Assigning...' : 'Assign Ticket'}

@@ -1,3 +1,5 @@
+using ERPTraining.Core.Entities.Ticketing;
+
 namespace ERPTraining.Core.Entities.Tickets;
 
 public class TicketCategory
@@ -15,4 +17,5 @@ public class TicketCategory
     
     // Navigation properties
     public virtual ICollection<TicketSubCategory> SubCategories { get; set; } = new List<TicketSubCategory>();
+    public virtual ICollection<CategoryAdmin> CategoryAdmins { get; set; } = new List<CategoryAdmin>();
 }

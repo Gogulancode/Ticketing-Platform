@@ -76,7 +76,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({
             {/* Note Content */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Internal Note <span className="text-red-500">*</span>
+                Internal Note <span className="text-gray-500">*</span>
               </label>
               <textarea
                 value={noteContent}

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Users, Search, Edit, UserPlus, CheckCircle, XCircle, Eye, X, 
-  UserCheck, RefreshCw 
+  UserCheck, RefreshCw, Upload, Download, FileSpreadsheet, AlertCircle, Key
 } from 'lucide-react';
 import AdminRouteGuard from '../components/AdminRouteGuard';
+import { API_CONFIG } from '@/config/api';
 
 // Helper function to get auth headers
 const getAuthHeaders = (): Record<string, string> => {
@@ -28,6 +29,16 @@ interface User {
   createdAt: string;
   lastLogin?: string;
   isAgent: boolean;
+  branchId?: number;
+  branchName?: string;
+  branchCode?: string;
+}
+
+interface Branch {
+  id: number;
+  name: string;
+  code: string;
+  city?: string;
 }
 
 interface Agent {
@@ -42,7 +53,7 @@ interface Agent {
 }
 
 const UserManagementPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'users' | 'agents' | 'create'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'agents' | 'create' | 'bulk'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,6 +61,16 @@ const UserManagementPage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [convertingUser, setConvertingUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
+  const [newPasswordForm, setNewPasswordForm] = useState({ password: '', confirmPassword: '' });
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  
+  // Bulk upload states
+  const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
+  const [bulkUploadPreview, setBulkUploadPreview] = useState<any[]>([]);
+  const [bulkUploadErrors, setBulkUploadErrors] = useState<string[]>([]);
+  const [bulkUploadProgress, setBulkUploadProgress] = useState<{current: number; total: number; success: number; failed: number} | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,6 +83,9 @@ const UserManagementPage: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
+  
+  // Branch state for dropdown
+  const [branches, setBranches] = useState<Branch[]>([]);
   
   // User form state
   const [newUser, setNewUser] = useState({
@@ -76,6 +100,7 @@ const UserManagementPage: React.FC = () => {
     department: '',
     position: '',
     isAgent: false,
+    branchId: '' as string | number,
   });
 
   // Edit user form state
@@ -90,6 +115,7 @@ const UserManagementPage: React.FC = () => {
     position: '',
     isActive: true,
     isAgent: false,
+    branchId: '' as string | number,
   });
 
   // View user modal - store ID only and compute user from users array
@@ -98,7 +124,7 @@ const UserManagementPage: React.FC = () => {
   // Compute the actual viewing user from users array
   const viewingUser = viewingUserId ? users.find(u => u.id === viewingUserId) || null : null;
 
-  const availableRoles = ['Admin', 'User', 'Manager', 'Supervisor'];
+  const availableRoles = ['Admin', 'User'];
   const availableDepartments = ['IT', 'Support', 'Sales', 'Operations', 'HR', 'Finance'];
 
   const loadUsers = useCallback(async (page: number = 1, search: string = searchTerm) => {
@@ -128,7 +154,7 @@ const UserManagementPage: React.FC = () => {
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users?${params.toString()}`,
+        `${API_CONFIG.BASE_URL}/users?${params.toString()}`,
         {
           headers: {
             ...getAuthHeaders(),
@@ -208,7 +234,7 @@ const UserManagementPage: React.FC = () => {
   const loadAgents = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets/settings/agents`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/tickets/settings/agents`, {
         headers: getAuthHeaders()
       });
       if (response.ok) {
@@ -247,13 +273,29 @@ const UserManagementPage: React.FC = () => {
     }
   }, []);
 
+  // Load branches for dropdown
+  const loadBranches = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/branches/lookup`, {
+        headers: getAuthHeaders(),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setBranches(data);
+      }
+    } catch (err) {
+      console.error('Error loading branches:', err);
+    }
+  }, []);
+
   // Load data
   useEffect(() => {
     loadUsers(1);
+    loadBranches();
     if (activeTab === 'agents') {
       loadAgents();
     }
-  }, [activeTab, loadAgents, loadUsers]);
+  }, [activeTab, loadAgents, loadUsers, loadBranches]);
 
   // Debounced search effect
   useEffect(() => {
@@ -282,7 +324,7 @@ const UserManagementPage: React.FC = () => {
     setLoading(true);
     try {
       // API call via proxy to backend server
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -296,6 +338,7 @@ const UserManagementPage: React.FC = () => {
           department: newUser.department,
           position: newUser.position,
           isAgent: newUser.isAgent,
+          branchId: newUser.branchId ? Number(newUser.branchId) : null,
         }),
       });
 
@@ -314,6 +357,7 @@ const UserManagementPage: React.FC = () => {
           department: '',
           position: '',
           isAgent: false,
+          branchId: '',
         });
         loadUsers(currentPage, searchTerm);
       } else {
@@ -331,7 +375,7 @@ const UserManagementPage: React.FC = () => {
     setLoading(true);
     try {
       // API call to backend server for agent conversion
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/ticketing/acl/convert-to-agent/${userId}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/ticketing/acl/convert-to-agent/${userId}`, {
         method: 'POST',
         headers: getAuthHeaders(),
       });
@@ -356,7 +400,7 @@ const UserManagementPage: React.FC = () => {
     setLoading(true);
     try {
       // API call via proxy to backend server for user status toggle
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users/${userId}/status`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users/${userId}/status`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
         body: JSON.stringify({ isActive: !currentStatus }),
@@ -391,6 +435,7 @@ const UserManagementPage: React.FC = () => {
       position: user.position || '',
       isActive: user.isActive,
       isAgent: user.isAgent || false,
+      branchId: user.branchId || '',
     });
   };
 
@@ -405,7 +450,7 @@ const UserManagementPage: React.FC = () => {
       console.log('🔄 Updating user:', editingUser.id);
       console.log('📝 Update data:', editUserForm);
       
-      const apiUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/users/${editingUser.id}`;
+      const apiUrl = `${API_CONFIG.BASE_URL}/users/${editingUser.id}`;
       console.log('🌐 API URL:', apiUrl);
 
       const response = await fetch(apiUrl, {
@@ -454,6 +499,7 @@ const UserManagementPage: React.FC = () => {
             position: '',
             isActive: true,
             isAgent: false,
+            branchId: '',
           });
         }, 800);
         
@@ -472,11 +518,58 @@ const UserManagementPage: React.FC = () => {
     }
   };
 
+  // Handle admin reset password
+  const handleResetPassword = async () => {
+    if (!resetPasswordUser) return;
+
+    // Validate passwords
+    if (!newPasswordForm.password) {
+      setError('Please enter a new password');
+      return;
+    }
+
+    if (newPasswordForm.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
+    if (newPasswordForm.password !== newPasswordForm.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    try {
+      setResetPasswordLoading(true);
+      setError(null);
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users/${resetPasswordUser.id}/reset-password`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ newPassword: newPasswordForm.password }),
+      });
+
+      if (response.ok) {
+        setSuccess(`Password reset successfully for ${resetPasswordUser.firstName} ${resetPasswordUser.lastName}`);
+        setResetPasswordUser(null);
+        setNewPasswordForm({ password: '', confirmPassword: '' });
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || 'Failed to reset password');
+      }
+    } catch (err) {
+      setError('Failed to reset password');
+      console.error('Error resetting password:', err);
+    } finally {
+      setResetPasswordLoading(false);
+    }
+  };
+
   const toggleAgentStatus = async (agentId: number, currentStatus: boolean) => {
     setLoading(true);
     try {
       // API call via proxy to backend server for agent status toggle
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets/settings/agents/${agentId}/status`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/tickets/settings/agents/${agentId}/status`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
         body: JSON.stringify({ isActive: !currentStatus }),
@@ -533,7 +626,7 @@ const UserManagementPage: React.FC = () => {
         </div>
       )}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="bg-red-50 border border-red-200 text-gray-700 px-4 py-3 rounded-md">
           {error}
         </div>
       )}
@@ -545,7 +638,7 @@ const UserManagementPage: React.FC = () => {
             onClick={() => setActiveTab('users')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'users'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-red-500 text-gray-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -556,7 +649,7 @@ const UserManagementPage: React.FC = () => {
             onClick={() => setActiveTab('agents')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'agents'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-red-500 text-gray-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -567,12 +660,23 @@ const UserManagementPage: React.FC = () => {
             onClick={() => setActiveTab('create')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'create'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-gray-900 text-gray-900'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
             <UserPlus className="h-4 w-4 inline mr-2" />
             Create User
+          </button>
+          <button
+            onClick={() => setActiveTab('bulk')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'bulk'
+                ? 'border-gray-900 text-gray-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Upload className="h-4 w-4 inline mr-2" />
+            Bulk Upload
           </button>
         </nav>
       </div>
@@ -589,7 +693,7 @@ const UserManagementPage: React.FC = () => {
                 placeholder="Search users..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
 
@@ -598,7 +702,7 @@ const UserManagementPage: React.FC = () => {
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <option value="">All Roles</option>
                 {availableRoles.map(role => (
@@ -611,7 +715,7 @@ const UserManagementPage: React.FC = () => {
             <select
               value={departmentFilter}
               onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <option value="">All Departments</option>
               {availableDepartments.map(dept => (
@@ -623,7 +727,7 @@ const UserManagementPage: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -647,7 +751,7 @@ const UserManagementPage: React.FC = () => {
             </div>
             <button
               onClick={activeTab === 'users' ? () => loadUsers(currentPage, searchTerm) : loadAgents}
-              className="flex items-center px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
+              className="flex items-center px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
             >
               <RefreshCw className="h-4 w-4 mr-1" />
               Refresh
@@ -673,6 +777,9 @@ const UserManagementPage: React.FC = () => {
                     Department
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Branch
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -686,7 +793,7 @@ const UserManagementPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center">
+                    <td colSpan={7} className="px-6 py-4 text-center">
                       Loading users...
                     </td>
                   </tr>
@@ -701,8 +808,8 @@ const UserManagementPage: React.FC = () => {
                     <tr key={user.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <span className="text-sm font-medium text-blue-600">
+                          <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                            <span className="text-sm font-medium text-gray-600">
                               {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                             </span>
                           </div>
@@ -723,9 +830,9 @@ const UserManagementPage: React.FC = () => {
                               key={role}
                               className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                                 role === 'Admin'
-                                  ? 'bg-red-100 text-red-800'
+                                  ? 'bg-red-100 text-gray-800'
                                   : role === 'Agent'
-                                  ? 'bg-blue-100 text-blue-800'
+                                  ? 'bg-red-100 text-gray-800'
                                   : 'bg-gray-100 text-gray-800'
                               }`}
                             >
@@ -743,12 +850,22 @@ const UserManagementPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {user.department}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {user.branchName ? (
+                          <span className="inline-flex items-center">
+                            <span className="font-medium">{user.branchCode}</span>
+                            <span className="ml-1 text-gray-500">- {user.branchName}</span>
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                             user.isActive
                               ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                              : 'bg-red-100 text-gray-800'
                           }`}
                         >
                           {user.isActive ? (
@@ -774,7 +891,7 @@ const UserManagementPage: React.FC = () => {
                               console.log('👁️ Opening view modal for user:', user.id, user);
                               setViewingUserId(user.id);
                             }}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-gray-600 hover:text-gray-900"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
@@ -784,6 +901,16 @@ const UserManagementPage: React.FC = () => {
                             title="Edit User"
                           >
                             <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setResetPasswordUser(user);
+                              setNewPasswordForm({ password: '', confirmPassword: '' });
+                            }}
+                            className="text-orange-600 hover:text-orange-900"
+                            title="Reset Password"
+                          >
+                            <Key className="h-4 w-4" />
                           </button>
                           {!user.isAgent && (
                             <button
@@ -798,7 +925,7 @@ const UserManagementPage: React.FC = () => {
                             onClick={() => handleToggleUserStatus(user.id, user.isActive)}
                             className={`${
                               user.isActive
-                                ? 'text-red-600 hover:text-red-900'
+                                ? 'text-gray-600 hover:text-gray-900'
                                 : 'text-green-600 hover:text-green-900'
                             }`}
                             title={user.isActive ? 'Deactivate' : 'Activate'}
@@ -881,7 +1008,7 @@ const UserManagementPage: React.FC = () => {
                             onClick={() => loadUsers(page, searchTerm)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                               page === currentPage
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                ? 'z-10 bg-red-50 border-red-500 text-gray-600'
                                 : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                             }`}
                           >
@@ -976,7 +1103,7 @@ const UserManagementPage: React.FC = () => {
                           className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                             agent.isActive
                               ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                              : 'bg-red-100 text-gray-800'
                           }`}
                         >
                           {agent.isActive ? 'Active' : 'Inactive'}
@@ -991,7 +1118,7 @@ const UserManagementPage: React.FC = () => {
                             onClick={() => toggleAgentStatus(agent.id, agent.isActive)}
                             className={`text-sm px-3 py-1 rounded-md font-medium ${
                               agent.isActive
-                                ? 'text-red-700 bg-red-50 hover:bg-red-100'
+                                ? 'text-gray-700 bg-red-50 hover:bg-red-100'
                                 : 'text-green-700 bg-green-50 hover:bg-green-100'
                             }`}
                             title={agent.isActive ? 'Deactivate Agent' : 'Activate Agent'}
@@ -1027,7 +1154,7 @@ const UserManagementPage: React.FC = () => {
                   required
                   value={newUser.firstName}
                   onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
               </div>
               <div>
@@ -1039,7 +1166,7 @@ const UserManagementPage: React.FC = () => {
                   required
                   value={newUser.lastName}
                   onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
               </div>
             </div>
@@ -1054,7 +1181,7 @@ const UserManagementPage: React.FC = () => {
                   required
                   value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
               </div>
               <div>
@@ -1066,7 +1193,7 @@ const UserManagementPage: React.FC = () => {
                   value={newUser.username}
                   onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
                   placeholder="Leave empty to use email"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
               </div>
             </div>
@@ -1081,7 +1208,7 @@ const UserManagementPage: React.FC = () => {
                   required
                   value={newUser.password}
                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
               </div>
               <div>
@@ -1093,7 +1220,7 @@ const UserManagementPage: React.FC = () => {
                   required
                   value={newUser.confirmPassword}
                   onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
               </div>
             </div>
@@ -1106,7 +1233,7 @@ const UserManagementPage: React.FC = () => {
                 <select
                   value={newUser.department}
                   onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                 >
                   <option value="">Select Department</option>
                   {availableDepartments.map(dept => (
@@ -1122,21 +1249,40 @@ const UserManagementPage: React.FC = () => {
                   type="text"
                   value={newUser.position}
                   onChange={(e) => setNewUser({ ...newUser, position: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone
-              </label>
-              <input
-                type="tel"
-                value={newUser.phone}
-                onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Branch
+                </label>
+                <select
+                  value={newUser.branchId}
+                  onChange={(e) => setNewUser({ ...newUser, branchId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  <option value="">Select Branch</option>
+                  {branches.map(branch => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name} ({branch.code}){branch.city ? ` - ${branch.city}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  value={newUser.phone}
+                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
             </div>
 
             <div>
@@ -1156,7 +1302,7 @@ const UserManagementPage: React.FC = () => {
                           setNewUser({ ...newUser, roles: newUser.roles.filter(r => r !== role) });
                         }
                       }}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                     />
                     <span className="ml-2 text-sm text-gray-700">{role}</span>
                   </label>
@@ -1170,7 +1316,7 @@ const UserManagementPage: React.FC = () => {
                 id="isAgent"
                 checked={newUser.isAgent}
                 onChange={(e) => setNewUser({ ...newUser, isAgent: e.target.checked })}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
               />
               <label htmlFor="isAgent" className="ml-2 text-sm text-gray-700">
                 Make this user an agent (can be assigned tickets)
@@ -1193,21 +1339,279 @@ const UserManagementPage: React.FC = () => {
                     department: '',
                     position: '',
                     isAgent: false,
+                    branchId: '',
                   });
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
               >
                 Reset
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                className="px-4 py-2 bg-gray-900 border border-transparent rounded-md text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
               >
                 {loading ? 'Creating...' : 'Create User'}
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Bulk Upload Tab */}
+      {activeTab === 'bulk' && (
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Bulk Upload Users</h2>
+            <p className="text-sm text-gray-600">
+              Upload a CSV or Excel file to create multiple users at once. Download the template to see the required format.
+            </p>
+          </div>
+
+          {/* Download Template */}
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="h-8 w-8 text-green-600" />
+                <div>
+                  <h3 className="font-medium text-gray-900">Download Template</h3>
+                  <p className="text-sm text-gray-500">Use this template to prepare your user data</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  // Create CSV template
+                  const headers = ['username', 'email', 'firstName', 'lastName', 'phone', 'password', 'department', 'position', 'roles', 'isAgent'];
+                  const exampleRow = ['john.doe', 'john.doe@company.com', 'John', 'Doe', '+1234567890', 'SecurePassword123!', 'IT', 'Developer', 'User', 'false'];
+                  const csvContent = [headers.join(','), exampleRow.join(',')].join('\n');
+                  const blob = new Blob([csvContent], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'user_upload_template.csv';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download CSV Template
+              </button>
+            </div>
+          </div>
+
+          {/* File Upload Area */}
+          <div className="mb-6">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setBulkUploadFile(file);
+                  setBulkUploadErrors([]);
+                  setBulkUploadProgress(null);
+                  
+                  // Parse CSV file
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    const text = event.target?.result as string;
+                    const lines = text.split('\n').filter(line => line.trim());
+                    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                    
+                    const users = lines.slice(1).map((line, index) => {
+                      const values = line.split(',').map(v => v.trim());
+                      const user: Record<string, string> = {};
+                      headers.forEach((header, i) => {
+                        user[header] = values[i] || '';
+                      });
+                      user._rowNum = (index + 2).toString();
+                      return user;
+                    });
+                    
+                    setBulkUploadPreview(users);
+                  };
+                  reader.readAsText(file);
+                }
+              }}
+              className="hidden"
+            />
+            
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
+            >
+              <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <p className="text-lg font-medium text-gray-700 mb-1">
+                {bulkUploadFile ? bulkUploadFile.name : 'Click to upload or drag and drop'}
+              </p>
+              <p className="text-sm text-gray-500">CSV files supported (max 1000 users)</p>
+            </div>
+          </div>
+
+          {/* Preview Table */}
+          {bulkUploadPreview.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium text-gray-900">Preview ({bulkUploadPreview.length} users)</h3>
+                <button
+                  onClick={() => {
+                    setBulkUploadFile(null);
+                    setBulkUploadPreview([]);
+                    setBulkUploadErrors([]);
+                    setBulkUploadProgress(null);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Clear
+                </button>
+              </div>
+              
+              <div className="overflow-x-auto border rounded-lg max-h-64 overflow-y-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-medium text-gray-600">Row</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-600">Username</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-600">Email</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-600">First Name</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-600">Last Name</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-600">Department</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-600">Roles</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {bulkUploadPreview.slice(0, 10).map((user, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 text-gray-500">{user._rowNum}</td>
+                        <td className="px-3 py-2">{user.username}</td>
+                        <td className="px-3 py-2">{user.email}</td>
+                        <td className="px-3 py-2">{user.firstname || user.firstName}</td>
+                        <td className="px-3 py-2">{user.lastname || user.lastName}</td>
+                        <td className="px-3 py-2">{user.department}</td>
+                        <td className="px-3 py-2">{user.roles}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {bulkUploadPreview.length > 10 && (
+                  <div className="px-3 py-2 bg-gray-50 text-sm text-gray-500 text-center">
+                    ... and {bulkUploadPreview.length - 10} more users
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Errors */}
+          {bulkUploadErrors.length > 0 && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                <h3 className="font-medium text-red-800">Upload Errors</h3>
+              </div>
+              <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                {bulkUploadErrors.slice(0, 10).map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+              {bulkUploadErrors.length > 10 && (
+                <p className="mt-2 text-sm text-red-600">... and {bulkUploadErrors.length - 10} more errors</p>
+              )}
+            </div>
+          )}
+
+          {/* Progress */}
+          {bulkUploadProgress && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium text-blue-800">Uploading Users...</span>
+                <span className="text-sm text-blue-600">
+                  {bulkUploadProgress.current} / {bulkUploadProgress.total}
+                </span>
+              </div>
+              <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(bulkUploadProgress.current / bulkUploadProgress.total) * 100}%` }}
+                />
+              </div>
+              <div className="flex gap-4 text-sm">
+                <span className="text-green-600">✓ {bulkUploadProgress.success} successful</span>
+                <span className="text-red-600">✗ {bulkUploadProgress.failed} failed</span>
+              </div>
+            </div>
+          )}
+
+          {/* Upload Button */}
+          {bulkUploadPreview.length > 0 && !bulkUploadProgress && (
+            <div className="flex justify-end">
+              <button
+                onClick={async () => {
+                  if (bulkUploadPreview.length === 0) return;
+                  
+                  setBulkUploadErrors([]);
+                  setBulkUploadProgress({ current: 0, total: bulkUploadPreview.length, success: 0, failed: 0 });
+                  
+                  const errors: string[] = [];
+                  let successCount = 0;
+                  let failedCount = 0;
+                  
+                  for (let i = 0; i < bulkUploadPreview.length; i++) {
+                    const user = bulkUploadPreview[i];
+                    
+                    try {
+                      const response = await fetch(`${API_CONFIG.BASE_URL}/users`, {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({
+                          username: user.username,
+                          email: user.email,
+                          firstName: user.firstname || user.firstName,
+                          lastName: user.lastname || user.lastName,
+                          phone: user.phone || '',
+                          password: user.password || 'DefaultPassword123!',
+                          department: user.department || '',
+                          position: user.position || '',
+                          roles: user.roles ? user.roles.split(';').map((r: string) => r.trim()) : ['User'],
+                          isAgent: user.isagent === 'true' || user.isAgent === 'true',
+                        }),
+                      });
+                      
+                      if (response.ok) {
+                        successCount++;
+                      } else {
+                        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+                        errors.push(`Row ${user._rowNum}: ${errorData.message || response.statusText}`);
+                        failedCount++;
+                      }
+                    } catch (err) {
+                      errors.push(`Row ${user._rowNum}: Network error`);
+                      failedCount++;
+                    }
+                    
+                    setBulkUploadProgress({ current: i + 1, total: bulkUploadPreview.length, success: successCount, failed: failedCount });
+                  }
+                  
+                  setBulkUploadErrors(errors);
+                  
+                  if (successCount > 0) {
+                    setSuccess(`Successfully created ${successCount} user(s)`);
+                    loadUsers(1);
+                  }
+                }}
+                disabled={loading}
+                className="inline-flex items-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
+                <Upload className="h-5 w-5 mr-2" />
+                Upload {bulkUploadPreview.length} Users
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1241,8 +1645,8 @@ const UserManagementPage: React.FC = () => {
 
               <div className="space-y-4">
                 <div className="flex items-center space-x-4">
-                  <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-xl font-medium text-blue-600">
+                  <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
+                    <span className="text-xl font-medium text-gray-600">
                       {viewingUser.firstName.charAt(0)}{viewingUser.lastName.charAt(0)}
                     </span>
                   </div>
@@ -1256,13 +1660,13 @@ const UserManagementPage: React.FC = () => {
                         className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           viewingUser.isActive
                             ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                            : 'bg-red-100 text-gray-800'
                         }`}
                       >
                         {viewingUser.isActive ? 'Active' : 'Inactive'}
                       </span>
                       {viewingUser.isAgent && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-gray-800">
                           Agent
                         </span>
                       )}
@@ -1312,9 +1716,9 @@ const UserManagementPage: React.FC = () => {
                         key={role}
                         className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                           role === 'Admin'
-                            ? 'bg-red-100 text-red-800'
+                            ? 'bg-red-100 text-gray-800'
                             : role === 'Agent'
-                            ? 'bg-blue-100 text-blue-800'
+                            ? 'bg-red-100 text-gray-800'
                             : 'bg-gray-100 text-gray-800'
                         }`}
                       >
@@ -1337,7 +1741,7 @@ const UserManagementPage: React.FC = () => {
                     console.log('Edit user:', viewingUser?.id);
                     setViewingUserId(null);
                   }}
-                  className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700"
+                  className="px-4 py-2 bg-red-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-red-700"
                 >
                   Edit User
                 </button>
@@ -1472,6 +1876,22 @@ const UserManagementPage: React.FC = () => {
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
+                <select
+                  value={editUserForm.branchId}
+                  onChange={(e) => setEditUserForm({...editUserForm, branchId: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Select Branch</option>
+                  {branches.map(branch => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name} ({branch.code}){branch.city ? ` - ${branch.city}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Roles</label>
                 <div className="grid grid-cols-3 gap-2">
                   {availableRoles.map(role => (
@@ -1526,12 +1946,83 @@ const UserManagementPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-2 bg-red-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
                 >
                   {loading ? 'Updating...' : 'Update User'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {resetPasswordUser && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center mb-4">
+              <Key className="h-6 w-6 text-orange-500 mr-2" />
+              <h3 className="text-lg font-medium text-gray-900">
+                Reset Password
+              </h3>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Set a new password for <strong>{resetPasswordUser.firstName} {resetPasswordUser.lastName}</strong> ({resetPasswordUser.email})
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={newPasswordForm.password}
+                  onChange={(e) => setNewPasswordForm({...newPasswordForm, password: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter new password"
+                  required
+                  minLength={6}
+                />
+                <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                <input
+                  type="password"
+                  value={newPasswordForm.confirmPassword}
+                  onChange={(e) => setNewPasswordForm({...newPasswordForm, confirmPassword: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Confirm new password"
+                  required
+                />
+              </div>
+
+              {newPasswordForm.password && newPasswordForm.confirmPassword && 
+                newPasswordForm.password !== newPasswordForm.confirmPassword && (
+                <p className="text-sm text-red-600">Passwords do not match</p>
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setResetPasswordUser(null);
+                  setNewPasswordForm({ password: '', confirmPassword: '' });
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetPassword}
+                disabled={resetPasswordLoading || !newPasswordForm.password || newPasswordForm.password !== newPasswordForm.confirmPassword}
+                className="px-4 py-2 bg-orange-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resetPasswordLoading ? 'Resetting...' : 'Reset Password'}
+              </button>
+            </div>
           </div>
         </div>
       )}

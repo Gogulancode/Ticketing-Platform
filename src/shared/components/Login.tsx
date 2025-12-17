@@ -45,7 +45,7 @@ const Login: React.FC = () => {
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <div className="flex items-center space-x-3 mb-6">
           <div className="p-3 bg-gray-100 rounded-lg">
-            <Shield className="h-8 w-8 text-blue-600" />
+            <Shield className="h-8 w-8 text-gray-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Login</h1>
@@ -59,7 +59,7 @@ const Login: React.FC = () => {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               placeholder="Enter your email"
               required
             />
@@ -71,7 +71,7 @@ const Login: React.FC = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="Enter your password"
                 autoComplete="current-password"
                 required
@@ -89,10 +89,10 @@ const Login: React.FC = () => {
               </button>
             </div>
           </div>
-          {error && <div className="text-red-600 text-sm">{error}</div>}
+          {error && <div className="text-gray-600 text-sm">{error}</div>}
           <button
             type="submit"
-            className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            className="w-full py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
             disabled={loading}
           >
             {loading ? 'Signing in...' : 'Sign In'}

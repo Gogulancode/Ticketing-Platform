@@ -138,7 +138,7 @@ ${ticketDescription}
             {/* Email Recipients */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Recipients <span className="text-red-500">*</span>
+                Recipients <span className="text-gray-500">*</span>
               </label>
               <div className="space-y-2">
                 {emailAddresses.map((email, index) => (
@@ -157,7 +157,7 @@ ${ticketDescription}
                       <button
                         type="button"
                         onClick={() => removeEmailField(index)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-gray-500 hover:bg-red-50 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -178,7 +178,7 @@ ${ticketDescription}
             {/* Subject */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subject <span className="text-red-500">*</span>
+                Subject <span className="text-gray-500">*</span>
               </label>
               <input
                 type="text"

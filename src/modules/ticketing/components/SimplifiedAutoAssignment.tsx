@@ -120,7 +120,7 @@ export const SimplifiedAutoAssignment: React.FC = () => {
                 <input
                   type="text"
                   placeholder="office 365, excel, word, licensing, etc. (comma-separated)"
-                  className="w-full p-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full p-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   value={keywordsBySubcategory[subcategory.id!] || ''}
                   onChange={(e) => handleKeywordsChange(subcategory.id!, e.target.value)}
                 />
@@ -130,7 +130,7 @@ export const SimplifiedAutoAssignment: React.FC = () => {
               <button
                 onClick={() => handleSaveKeywords(subcategory.id!, subcategory.name)}
                 disabled={savingKeywords[subcategory.id!]}
-                className="px-4 py-3 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2 min-w-[100px] justify-center"
+                className="px-4 py-3 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2 min-w-[100px] justify-center"
               >
                 {savingKeywords[subcategory.id!] ? (
                   <>

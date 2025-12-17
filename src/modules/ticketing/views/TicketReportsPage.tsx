@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { BarChart3, Clock, Users, AlertTriangle, FileText, TrendingUp, Calendar } from 'lucide-react';
+import { BarChart3, Clock, Users, AlertTriangle, FileText, TrendingUp, Calendar, ShieldCheck } from 'lucide-react';
 import ReportFiltersComponent from '../components/ReportFilters';
 import LoadingSpinner from '../../../components/LoadingSpinner';
-import AdminRouteGuard from '../components/AdminRouteGuard';
+import ReportsRouteGuard, { CategoryAdminInfo } from '../components/ReportsRouteGuard';
+import AnalyticsSummaryTab from '../components/AnalyticsSummaryTab';
+import { useAuth } from '../../../contexts/AuthContext';
 import { 
   ReportFilters, 
   ResolutionResponseReport, 
@@ -14,7 +16,7 @@ import {
 } from '../services/reportsApi';
 import { formatDateIST, formatTicketDateTime } from '../../../shared/utils/dateUtils';
 
-type ReportTab = 'resolution' | 'performance' | 'unresolved' | 'allTickets';
+type ReportTab = 'resolution' | 'performance' | 'unresolved' | 'allTickets' | 'analyticsSummary';
 
 // Helper function to get default date range (last 7 days)
 const getDefaultDateRange = () => {
@@ -46,7 +48,16 @@ const getTicketDisplayId = (ticketId?: string, publicId?: number | null): string
   return Math.abs(hash).toString().padStart(6, '0').slice(-6);
 };
 
-const TicketReportsPage: React.FC = () => {
+interface TicketReportsContentProps {
+  userRole?: 'admin' | 'agent' | 'categoryAdmin' | null;
+  categoryAdminInfo?: CategoryAdminInfo;
+}
+
+const TicketReportsContent: React.FC<TicketReportsContentProps> = ({ 
+  userRole,
+  categoryAdminInfo 
+}) => {
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<ReportTab>('resolution');
   const [filters, setFilters] = useState<ReportFilters>(getDefaultDateRange());
   const [loading, setLoading] = useState(false);
@@ -81,7 +92,14 @@ const TicketReportsPage: React.FC = () => {
       name: 'All Tickets',
       icon: FileText,
       description: 'Comprehensive ticket overview with full details'
-    }
+    },
+    // Analytics Summary tab - only for admins
+    ...(isAdmin() ? [{
+      id: 'analyticsSummary' as const,
+      name: 'Analytics Summary',
+      icon: TrendingUp,
+      description: 'Key metrics, interactive charts, and drill-down analytics'
+    }] : [])
   ];
 
   const loadReportData = useCallback(async () => {
@@ -89,24 +107,55 @@ const TicketReportsPage: React.FC = () => {
     
     setLoading(true);
     try {
+      // For Category Admins, apply category filter to all reports
+      const effectiveFilters = { ...filters };
+      if (userRole === 'categoryAdmin' && categoryAdminInfo?.categoryIds.length) {
+        // Join category IDs for API filter (comma-separated)
+        effectiveFilters.category = categoryAdminInfo.categoryIds.join(',');
+      }
+      
       switch (activeTab) {
         case 'resolution': {
-          const resData = await reportsApi.getResolutionResponseReport(filters);
+          let resData = await reportsApi.getResolutionResponseReport(effectiveFilters);
+          // Client-side filter as backup for Category Admins
+          if (userRole === 'categoryAdmin' && categoryAdminInfo?.categoryNames.length) {
+            resData = resData.filter(item => 
+              categoryAdminInfo.categoryNames.some(cat => 
+                item.category?.toLowerCase().includes(cat.toLowerCase())
+              )
+            );
+          }
           setResolutionData(resData);
           break;
         }
         case 'performance': {
-          const perfData = await reportsApi.getAgentPerformanceReport(filters);
+          const perfData = await reportsApi.getAgentPerformanceReport(effectiveFilters);
           setPerformanceData(perfData);
           break;
         }
         case 'unresolved': {
-          const unresData = await reportsApi.getUnresolvedTicketsReport(filters);
+          let unresData = await reportsApi.getUnresolvedTicketsReport(effectiveFilters);
+          // Client-side filter as backup for Category Admins
+          if (userRole === 'categoryAdmin' && categoryAdminInfo?.categoryNames.length) {
+            unresData = unresData.filter(item => 
+              categoryAdminInfo.categoryNames.some(cat => 
+                item.category?.toLowerCase().includes(cat.toLowerCase())
+              )
+            );
+          }
           setUnresolvedData(unresData);
           break;
         }
         case 'allTickets': {
-          const allData = await reportsApi.getAllTicketsReport(filters);
+          let allData = await reportsApi.getAllTicketsReport(effectiveFilters);
+          // Client-side filter as backup for Category Admins
+          if (userRole === 'categoryAdmin' && categoryAdminInfo?.categoryNames.length) {
+            allData = allData.filter(item => 
+              categoryAdminInfo.categoryNames.some(cat => 
+                item.category?.toLowerCase().includes(cat.toLowerCase())
+              )
+            );
+          }
           setAllTicketsData(allData);
           break;
         }
@@ -116,7 +165,7 @@ const TicketReportsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, filters]);
+  }, [activeTab, filters, userRole, categoryAdminInfo]);
 
   // Load data based on active tab and filters
   useEffect(() => {
@@ -146,8 +195,22 @@ const TicketReportsPage: React.FC = () => {
   };
 
   return (
-    <AdminRouteGuard>
     <div className="text-sm leading-snug p-6 bg-gray-50 min-h-screen">
+      {/* Category Head Banner */}
+      {userRole === 'categoryAdmin' && categoryAdminInfo && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-3 mb-4">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-indigo-600" />
+            <span className="text-sm font-medium text-indigo-800">
+              Category Admin View - Reports for: {categoryAdminInfo.categoryNames.join(', ')}
+            </span>
+          </div>
+          <p className="text-xs text-indigo-600 mt-1">
+            You are viewing reports filtered to your assigned categories only.
+          </p>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-xl font-semibold leading-tight mt-sm mb-sm">Ticket Reports</h1>
@@ -170,12 +233,12 @@ const TicketReportsPage: React.FC = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm ${
                     isActive
-                      ? 'border-blue-500 text-blue-600'
+                      ? 'border-gray-900 text-gray-900'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
                   }`}
                 >
                   <Icon className={`mr-2 h-4 w-4 ${
-                    isActive ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'
+                    isActive ? 'text-gray-500' : 'text-gray-400 group-hover:text-gray-500'
                   }`} />
                   <span className="hidden sm:inline">{tab.name}</span>
                   <span className="sm:hidden">{tab.name.split(' ')[0]}</span>
@@ -193,18 +256,23 @@ const TicketReportsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <ReportFiltersComponent
-        filters={filters}
-        onFiltersChange={setFilters}
-        onExport={handleExport}
-        onRefresh={loadReportData}
-        loading={loading}
-        showStatusFilter={activeTab !== 'unresolved'}
-      />
+      {/* Analytics Summary Tab - Show separate component */}
+      {activeTab === 'analyticsSummary' ? (
+        <AnalyticsSummaryTab startDate={filters.startDate} endDate={filters.endDate} />
+      ) : (
+        <>
+          {/* Filters */}
+          <ReportFiltersComponent
+            filters={filters}
+            onFiltersChange={setFilters}
+            onExport={handleExport}
+            onRefresh={loadReportData}
+            loading={loading}
+            showStatusFilter={activeTab !== 'unresolved'}
+          />
 
-      {/* Report Content */}
-      <div className="bg-white rounded-lg border border-gray-200">
+          {/* Report Content */}
+          <div className="bg-white rounded-lg border border-gray-200">
         {loading ? (
           <div className="flex items-center justify-center p-12">
             <LoadingSpinner size="lg" message="Loading report data..." />
@@ -231,12 +299,12 @@ const TicketReportsPage: React.FC = () => {
 
               {/* Quick Stats */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="bg-red-50 p-4 rounded-lg">
                   <div className="flex items-center">
-                    <TrendingUp className="h-5 w-5 text-blue-600 mr-2" />
+                    <TrendingUp className="h-5 w-5 text-gray-600 mr-2" />
                     <div>
-                      <p className="text-sm text-blue-600 font-medium">Total Records</p>
-                      <p className="text-lg font-bold text-blue-900">{getCurrentData().length}</p>
+                      <p className="text-sm text-gray-600 font-medium">Total Records</p>
+                      <p className="text-lg font-bold text-gray-900">{getCurrentData().length}</p>
                     </div>
                   </div>
                 </div>
@@ -290,12 +358,12 @@ const TicketReportsPage: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="bg-red-50 p-4 rounded-lg">
                       <div className="flex items-center">
-                        <FileText className="h-5 w-5 text-blue-600 mr-2" />
+                        <FileText className="h-5 w-5 text-gray-600 mr-2" />
                         <div>
-                          <p className="text-sm text-blue-600 font-medium">Total Resolved</p>
-                          <p className="text-lg font-bold text-blue-900">
+                          <p className="text-sm text-gray-600 font-medium">Total Resolved</p>
+                          <p className="text-lg font-bold text-gray-900">
                             {performanceData.reduce((sum, item) => sum + item.resolvedTickets, 0)}
                           </p>
                         </div>
@@ -350,8 +418,18 @@ const TicketReportsPage: React.FC = () => {
           </>
         )}
       </div>
+      </>
+      )}
     </div>
-    </AdminRouteGuard>
+  );
+};
+
+// Wrapper component that uses ReportsRouteGuard to pass props
+const TicketReportsPage: React.FC = () => {
+  return (
+    <ReportsRouteGuard>
+      <TicketReportsContent />
+    </ReportsRouteGuard>
   );
 };
 
@@ -386,7 +464,7 @@ const ResolutionResponseTable: React.FC<{ data: ResolutionResponseReport[] }> = 
     <tbody className="bg-white divide-y divide-gray-200">
       {data.map((item) => (
         <tr key={item.ticketId} className="hover:bg-gray-50">
-          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-600">
             #{getTicketDisplayId(item.ticketId, item.publicId)}
           </td>
           <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
@@ -397,7 +475,7 @@ const ResolutionResponseTable: React.FC<{ data: ResolutionResponseReport[] }> = 
           </td>
           <td className="px-6 py-4 whitespace-nowrap">
             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-              item.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+              item.priority === 'Critical' ? 'bg-red-100 text-gray-800' :
               item.priority === 'High' ? 'bg-orange-100 text-orange-800' :
               item.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
               'bg-green-100 text-green-800'
@@ -456,8 +534,8 @@ const AgentPerformanceTable: React.FC<{ data: AgentPerformanceReport[] }> = ({ d
           <td className="px-6 py-4 whitespace-nowrap">
             <div className="flex items-center">
               <div className="flex-shrink-0 h-8 w-8">
-                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <span className="text-sm font-medium text-blue-800">
+                <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+                  <span className="text-sm font-medium text-gray-800">
                     {agent.agentName.charAt(0).toUpperCase()}
                   </span>
                 </div>
@@ -498,7 +576,7 @@ const AgentPerformanceTable: React.FC<{ data: AgentPerformanceReport[] }> = ({ d
             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
               (agent.satisfactionRating || 0) >= 4 ? 'bg-green-100 text-green-800' :
               (agent.satisfactionRating || 0) >= 3 ? 'bg-yellow-100 text-yellow-800' :
-              'bg-red-100 text-red-800'
+              'bg-red-100 text-gray-800'
             }`}>
               {agent.satisfactionRating ? agent.satisfactionRating.toFixed(1) : 'N/A'}
             </span>
@@ -540,7 +618,7 @@ const UnresolvedTicketsTable: React.FC<{ data: UnresolvedTicket[] }> = ({ data }
     <tbody className="bg-white divide-y divide-gray-200">
       {data.map((ticket) => (
         <tr key={ticket.ticketId} className="hover:bg-gray-50">
-          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-600">
             #{getTicketDisplayId(ticket.ticketId, ticket.publicId)}
           </td>
           <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
@@ -548,7 +626,7 @@ const UnresolvedTicketsTable: React.FC<{ data: UnresolvedTicket[] }> = ({ data }
           </td>
           <td className="px-6 py-4 whitespace-nowrap">
             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-              ticket.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+              ticket.priority === 'Critical' ? 'bg-red-100 text-gray-800' :
               ticket.priority === 'High' ? 'bg-orange-100 text-orange-800' :
               ticket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
               'bg-green-100 text-green-800'
@@ -565,7 +643,7 @@ const UnresolvedTicketsTable: React.FC<{ data: UnresolvedTicket[] }> = ({ data }
             {ticket.assignedAgent || 'Unassigned'}
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-            <span className={ticket.daysSinceCreation > 7 ? 'text-red-600 font-semibold' : 'text-gray-900'}>
+            <span className={ticket.daysSinceCreation > 7 ? 'text-gray-600 font-semibold' : 'text-gray-900'}>
               {ticket.daysSinceCreation} days
             </span>
           </td>
@@ -609,7 +687,7 @@ const AllTicketsTable: React.FC<{ data: TicketSummary[] }> = ({ data }) => (
     <tbody className="bg-white divide-y divide-gray-200">
       {data.map((ticket) => (
         <tr key={ticket.ticketId} className="hover:bg-gray-50">
-          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-600">
             #{getTicketDisplayId(ticket.ticketId, ticket.publicId)}
           </td>
           <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
@@ -620,7 +698,7 @@ const AllTicketsTable: React.FC<{ data: TicketSummary[] }> = ({ data }) => (
           </td>
           <td className="px-6 py-4 whitespace-nowrap">
             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-              ticket.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+              ticket.priority === 'Critical' ? 'bg-red-100 text-gray-800' :
               ticket.priority === 'High' ? 'bg-orange-100 text-orange-800' :
               ticket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
               'bg-green-100 text-green-800'

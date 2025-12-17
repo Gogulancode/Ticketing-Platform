@@ -131,13 +131,13 @@ const Sidebar: React.FC<SidebarProps> = ({
           w-full flex items-center text-left rounded-lg transition-all duration-200 group
           ${isOpen ? 'px-3 py-2' : 'px-2 py-3 justify-center'}
           ${isActive 
-            ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' 
+            ? 'bg-red-50 text-gray-700 border-l-4 border-red-500' 
             : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
           }
         `}
         title={!isOpen ? item.label : undefined}
       >
-        <Icon className={`${isOpen ? 'w-4 h-4 mr-2' : 'w-5 h-5'} ${isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'} transition-colors`} />
+        <Icon className={`${isOpen ? 'w-4 h-4 mr-2' : 'w-5 h-5'} ${isActive ? 'text-gray-600' : 'text-gray-500 group-hover:text-gray-700'} transition-colors`} />
         {isOpen && <span className="text-sm font-medium">{item.label}</span>}
       </Link>
     );
@@ -190,7 +190,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div className="space-y-1">
                 <div className="flex justify-between text-xs px-1">
                   <span className="text-gray-600">Modules</span>
-                  <span className="font-medium text-blue-600">12</span>
+                  <span className="font-medium text-gray-600">12</span>
                 </div>
                 <div className="flex justify-between text-xs px-1">
                   <span className="text-gray-600">Completed</span>

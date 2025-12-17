@@ -44,3 +44,8 @@ backend/ERPTraining.API/temp/
 **/appsettings.json
 **/appsettings.*.json
 production-config/
+
+# Desktop app build outputs
+desktop-app/release/
+desktop-app/dist/
+

@@ -101,7 +101,7 @@ const GroupEditModal: React.FC<GroupEditModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <Users className="w-6 h-6 text-blue-600" />
+            <Users className="w-6 h-6 text-gray-600" />
             <h2 className="text-xl font-semibold text-gray-900">Edit Agent Group</h2>
           </div>
           <button
@@ -123,7 +123,7 @@ const GroupEditModal: React.FC<GroupEditModalProps> = ({
                 type="text"
                 value={formData.name || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 placeholder="Enter group name"
               />
             </div>
@@ -135,7 +135,7 @@ const GroupEditModal: React.FC<GroupEditModalProps> = ({
                 type="number"
                 value={formData.priority || 1}
                 onChange={(e) => setFormData(prev => ({ ...prev, priority: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 min="1"
               />
             </div>
@@ -149,7 +149,7 @@ const GroupEditModal: React.FC<GroupEditModalProps> = ({
               value={formData.description || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
               placeholder="Describe what this group handles"
             />
           </div>
@@ -164,12 +164,12 @@ const GroupEditModal: React.FC<GroupEditModalProps> = ({
                 {(formData.departments || []).map((dept) => (
                   <span
                     key={dept}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-gray-800 rounded-full text-sm"
                   >
                     {dept}
                     <button
                       onClick={() => handleDepartmentRemove(dept)}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-gray-600 hover:text-gray-800"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -210,14 +210,14 @@ const GroupEditModal: React.FC<GroupEditModalProps> = ({
                           type="checkbox"
                           checked={isCategorySelected}
                           onChange={() => handleCategoryToggle(category.id)}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          className="w-4 h-4 text-gray-600 border-gray-300 rounded focus:ring-red-500"
                         />
                         <span className="font-medium text-gray-900">{category.name}</span>
                       </label>
                       <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
                         {category.subcategories.length} subcategories
                       </span>
-                      <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                      <span className="px-2 py-1 text-xs bg-red-100 text-gray-800 rounded">
                         {category.estimatedResolutionTime}h avg resolution
                       </span>
                     </div>
@@ -239,12 +239,12 @@ const GroupEditModal: React.FC<GroupEditModalProps> = ({
                                     type="checkbox"
                                     checked={isSubcategoryAssigned}
                                     onChange={() => handleSubcategoryToggle(category.id, subcategory.id)}
-                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    className="w-4 h-4 text-gray-600 border-gray-300 rounded focus:ring-red-500"
                                   />
                                   <span className="text-sm text-gray-900">{subcategory.name}</span>
                                 </label>
                                 <span className={`px-2 py-1 text-xs rounded-full ${
-                                  subcategory.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                                  subcategory.priority === 'urgent' ? 'bg-red-100 text-gray-800' :
                                   subcategory.priority === 'high' ? 'bg-orange-100 text-orange-800' :
                                   subcategory.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                                   'bg-green-100 text-green-800'
@@ -273,7 +273,7 @@ const GroupEditModal: React.FC<GroupEditModalProps> = ({
               id="isActive"
               checked={formData.isActive}
               onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="w-4 h-4 text-gray-600 border-gray-300 rounded focus:ring-red-500"
             />
             <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
               Active Group
@@ -292,7 +292,7 @@ const GroupEditModal: React.FC<GroupEditModalProps> = ({
           <button
             onClick={handleSave}
             disabled={!formData.name || !formData.description}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <Save className="w-4 h-4" />
             Save Changes

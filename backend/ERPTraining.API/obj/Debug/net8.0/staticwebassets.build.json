@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "Rz++UViW+bYz6TXRHYXxq7H7CMV/XPA1/DBZKWJDy4c=",
+  "Hash": "XcvvWomguZJwWNo5hR4GopokhVtxXlQ7Olff5j8CCs0=",
   "Source": "ERPTraining.API",
   "BasePath": "_content/ERPTraining.API",
   "Mode": "Default",
@@ -10,17 +10,17 @@
     {
       "Name": "ERPTraining.API\\wwwroot",
       "Source": "ERPTraining.API",
-      "ContentRoot": "D:\\BabajiShivram_training\\backend\\ERPTraining.API\\wwwroot\\",
+      "ContentRoot": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\",
       "BasePath": "_content/ERPTraining.API",
       "Pattern": "**"
     }
   ],
   "Assets": [
     {
-      "Identity": "D:\\BabajiShivram_training\\backend\\ERPTraining.API\\wwwroot\\advanced-settings-test.html",
+      "Identity": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\advanced-settings-test.html",
       "SourceId": "ERPTraining.API",
       "SourceType": "Discovered",
-      "ContentRoot": "D:\\BabajiShivram_training\\backend\\ERPTraining.API\\wwwroot\\",
+      "ContentRoot": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\",
       "BasePath": "_content/ERPTraining.API",
       "RelativePath": "advanced-settings-test.html",
       "AssetKind": "All",
@@ -36,10 +36,10 @@
       "OriginalItemSpec": "wwwroot\\advanced-settings-test.html"
     },
     {
-      "Identity": "D:\\BabajiShivram_training\\backend\\ERPTraining.API\\wwwroot\\cors-test.html",
+      "Identity": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\cors-test.html",
       "SourceId": "ERPTraining.API",
       "SourceType": "Discovered",
-      "ContentRoot": "D:\\BabajiShivram_training\\backend\\ERPTraining.API\\wwwroot\\",
+      "ContentRoot": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\",
       "BasePath": "_content/ERPTraining.API",
       "RelativePath": "cors-test.html",
       "AssetKind": "All",
@@ -55,10 +55,10 @@
       "OriginalItemSpec": "wwwroot\\cors-test.html"
     },
     {
-      "Identity": "D:\\BabajiShivram_training\\backend\\ERPTraining.API\\wwwroot\\enhanced-email-merge-test.html",
+      "Identity": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\enhanced-email-merge-test.html",
       "SourceId": "ERPTraining.API",
       "SourceType": "Discovered",
-      "ContentRoot": "D:\\BabajiShivram_training\\backend\\ERPTraining.API\\wwwroot\\",
+      "ContentRoot": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\",
       "BasePath": "_content/ERPTraining.API",
       "RelativePath": "enhanced-email-merge-test.html",
       "AssetKind": "All",
@@ -74,10 +74,10 @@
       "OriginalItemSpec": "wwwroot\\enhanced-email-merge-test.html"
     },
     {
-      "Identity": "D:\\BabajiShivram_training\\backend\\ERPTraining.API\\wwwroot\\integration-test.html",
+      "Identity": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\integration-test.html",
       "SourceId": "ERPTraining.API",
       "SourceType": "Discovered",
-      "ContentRoot": "D:\\BabajiShivram_training\\backend\\ERPTraining.API\\wwwroot\\",
+      "ContentRoot": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\",
       "BasePath": "_content/ERPTraining.API",
       "RelativePath": "integration-test.html",
       "AssetKind": "All",
@@ -93,10 +93,10 @@
       "OriginalItemSpec": "wwwroot\\integration-test.html"
     },
     {
-      "Identity": "D:\\BabajiShivram_training\\backend\\ERPTraining.API\\wwwroot\\ticket-merge-test.html",
+      "Identity": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\ticket-merge-test.html",
       "SourceId": "ERPTraining.API",
       "SourceType": "Discovered",
-      "ContentRoot": "D:\\BabajiShivram_training\\backend\\ERPTraining.API\\wwwroot\\",
+      "ContentRoot": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\",
       "BasePath": "_content/ERPTraining.API",
       "RelativePath": "ticket-merge-test.html",
       "AssetKind": "All",
@@ -110,6 +110,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\ticket-merge-test.html"
+    },
+    {
+      "Identity": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\uploads\\branding\\logo_20251213093117.jpeg",
+      "SourceId": "ERPTraining.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\Ticketing Platform\\backend\\ERPTraining.API\\wwwroot\\",
+      "BasePath": "_content/ERPTraining.API",
+      "RelativePath": "uploads/branding/logo_20251213093117.jpeg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\branding\\logo_20251213093117.jpeg"
     }
   ]
 }

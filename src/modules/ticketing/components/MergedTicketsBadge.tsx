@@ -50,7 +50,7 @@ const MergedTicketsBadge: React.FC<MergedTicketsBadgeProps> = ({ mergedInfo, onN
           </div>
           <button
             onClick={() => onNavigateToTicket?.(mergedInfo.wasMergedInto!.primaryTicketId)}
-            className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white text-sm rounded-full hover:bg-blue-700 transition-colors"
+            className="flex items-center space-x-1 px-3 py-1 bg-red-600 text-white text-sm rounded-full hover:bg-red-700 transition-colors"
             title={`Go to primary ticket: ${mergedInfo.wasMergedInto.primaryTicketTitle}`}
           >
             <span>Go to #{mergedInfo.wasMergedInto.primaryTicketPublicId}</span>

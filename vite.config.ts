@@ -11,10 +11,10 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     // base: '/support-staging/', // REMOVED - folder itself is at /support-staging/
     server: {
-      port: 5178,
+      port: 5175,
       proxy: {
         '/api': {
-          target: 'http://localhost:5015',
+          target: 'http://localhost:5016',
           changeOrigin: true,
           secure: false,
         },

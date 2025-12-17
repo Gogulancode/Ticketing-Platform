@@ -9,13 +9,13 @@ const QuickActionsWidget: React.FC = () => {
     {
       icon: Plus,
       label: 'New Ticket',
-      color: 'bg-blue-600 hover:bg-blue-700',
+      color: 'bg-gray-900 hover:bg-gray-800',
       onClick: () => navigate('/tickets/new')
     },
     {
       icon: Search,
       label: 'Search Tickets',
-      color: 'bg-green-600 hover:bg-green-700',
+      color: 'bg-blue-600 hover:bg-blue-700',
       onClick: () => {
         // Navigate to My Tickets page where search functionality is available
         navigate('/tickets/my');
@@ -27,7 +27,7 @@ const QuickActionsWidget: React.FC = () => {
   return (
     <div className="bg-white rounded-lg shadow-sm border p-6">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-5 h-5 bg-gradient-to-r from-blue-600 to-purple-600 rounded"></div>
+        <div className="w-5 h-5 bg-gradient-to-r from-gray-700 to-gray-900 rounded"></div>
         <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
       </div>
 

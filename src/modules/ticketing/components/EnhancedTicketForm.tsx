@@ -99,8 +99,8 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
     switch (priority) {
       case 'low': return 'text-green-600 bg-green-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
-      case 'high': return 'text-red-600 bg-red-100';
-      case 'urgent': return 'text-red-700 bg-red-200';
+      case 'high': return 'text-gray-600 bg-red-100';
+      case 'urgent': return 'text-gray-700 bg-red-200';
       default: return 'text-gray-600 bg-gray-100';
     }
   };
@@ -124,12 +124,12 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
             type="text"
             value={formData.title}
             onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
               errors.title ? 'border-red-300' : 'border-gray-300'
             }`}
             placeholder="Brief description of your issue"
           />
-          {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
+          {errors.title && <p className="mt-1 text-sm text-gray-600">{errors.title}</p>}
         </div>
 
         {/* Department Selection */}
@@ -148,7 +148,7 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
                 subcategoryId: '',
                 assignedAgentId: ''
               }))}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent appearance-none ${
                 errors.departmentId ? 'border-red-300' : 'border-gray-300'
               }`}
             >
@@ -161,7 +161,7 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
             </select>
             <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
           </div>
-          {errors.departmentId && <p className="mt-1 text-sm text-red-600">{errors.departmentId}</p>}
+          {errors.departmentId && <p className="mt-1 text-sm text-gray-600">{errors.departmentId}</p>}
         </div>
 
         {/* Category & Subcategory */}
@@ -181,7 +181,7 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
                   assignedAgentId: ''
                 }))}
                 disabled={!formData.departmentId || assignmentLoading}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent appearance-none ${
                   errors.categoryId ? 'border-red-300' : 'border-gray-300'
                 } ${!formData.departmentId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               >
@@ -194,7 +194,7 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
               </select>
               <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
-            {errors.categoryId && <p className="mt-1 text-sm text-red-600">{errors.categoryId}</p>}
+            {errors.categoryId && <p className="mt-1 text-sm text-gray-600">{errors.categoryId}</p>}
           </div>
 
           <div>
@@ -209,7 +209,7 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
                   setShowAgentRecommendations(true);
                 }}
                 disabled={!formData.categoryId || assignmentLoading}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent appearance-none ${
                   errors.subcategoryId ? 'border-red-300' : 'border-gray-300'
                 } ${!formData.categoryId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               >
@@ -222,11 +222,11 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
               </select>
               <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
-            {errors.subcategoryId && <p className="mt-1 text-sm text-red-600">{errors.subcategoryId}</p>}
+            {errors.subcategoryId && <p className="mt-1 text-sm text-gray-600">{errors.subcategoryId}</p>}
             
             {/* Show subcategory info */}
             {selectedSubcategory && (
-              <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
+              <div className="mt-2 p-2 bg-red-50 rounded text-xs">
                 <div className="flex items-center justify-between">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(selectedSubcategory.priority)}`}>
                     {selectedSubcategory.priority.charAt(0).toUpperCase() + selectedSubcategory.priority.slice(1)} Priority
@@ -258,7 +258,7 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
                 onClick={() => setFormData(prev => ({ ...prev, priority }))}
                 className={`p-3 border-2 rounded-lg text-center transition-all ${
                   formData.priority === priority 
-                    ? 'border-blue-500 bg-blue-50' 
+                    ? 'border-red-500 bg-red-50' 
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
@@ -279,12 +279,12 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             rows={12}
-            className={`w-full px-3 py-2 border rounded-lg resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            className={`w-full px-3 py-2 border rounded-lg resize-y focus:ring-2 focus:ring-red-500 focus:border-transparent ${
               errors.description ? 'border-red-300' : 'border-gray-300'
             }`}
             placeholder="Please provide detailed information about your issue..."
           />
-          {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+          {errors.description && <p className="mt-1 text-sm text-gray-600">{errors.description}</p>}
         </div>
 
         {/* Agent Recommendations */}
@@ -350,7 +350,7 @@ const EnhancedTicketForm: React.FC<EnhancedTicketFormProps> = ({
           <button
             type="submit"
             disabled={isLoading || assignmentLoading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center"
           >
             {isLoading ? (
               <>

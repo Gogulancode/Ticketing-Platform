@@ -26,12 +26,14 @@ public class TicketsController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly IAutoAssignmentService _autoAssignmentService;
     private readonly IEmailService _emailService;
+    private readonly ICategoryAdminService _categoryAdminService;
 
     public TicketsController(
         ITicketService ticketService, 
         IA_TicketSettingsService settingsService, 
         IAutoAssignmentService autoAssignmentService,
         IEmailService emailService,
+        ICategoryAdminService categoryAdminService,
         ILogger<TicketsController> logger, 
         IConfiguration configuration,
         ApplicationDbContext context)
@@ -43,6 +45,7 @@ public class TicketsController : ControllerBase
         _context = context;
         _autoAssignmentService = autoAssignmentService;
         _emailService = emailService;
+        _categoryAdminService = categoryAdminService;
     }
 
     // Helper method to ensure DateTime is properly stored as UTC
@@ -99,19 +102,22 @@ public class TicketsController : ControllerBase
     {
         try
         {
-            var notification = new UserNotification
-            {
-                UserId = userId,
-                Title = title,
-                Message = message,
-                Type = type,
-                IsRead = false,
-                CreatedAt = DateTime.UtcNow,
-                ActionUrl = actionUrl
-            };
-
-            await _context.UserNotifications.AddAsync(notification);
-            await _context.SaveChangesAsync();
+            // Use direct SQL to avoid DbContext connection issues after TicketService raw SQL
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+            
+            var sql = @"INSERT INTO UserNotifications (UserId, Title, Message, Type, IsRead, CreatedAt, ActionUrl)
+                        VALUES (@UserId, @Title, @Message, @Type, 0, @CreatedAt, @ActionUrl)";
+            
+            using var command = new SqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@UserId", userId);
+            command.Parameters.AddWithValue("@Title", title);
+            command.Parameters.AddWithValue("@Message", message);
+            command.Parameters.AddWithValue("@Type", type);
+            command.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@ActionUrl", (object?)actionUrl ?? DBNull.Value);
+            
+            await command.ExecuteNonQueryAsync();
             
             _logger.LogInformation($"📬 Notification sent to user {userId}: {title}");
         }
@@ -258,6 +264,136 @@ public class TicketsController : ControllerBase
         }
     }
 
+    // GET: api/tickets/by-categories - Get tickets filtered by category IDs (for Category Heads)
+    [HttpGet("by-categories")]
+    public async Task<ActionResult<object>> GetTicketsByCategories(
+        [FromQuery] string categoryIds,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 500)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(categoryIds))
+            {
+                return BadRequest(new { error = "categoryIds parameter is required" });
+            }
+
+            // Parse category IDs
+            var categoryIdList = categoryIds.Split(',')
+                .Select(s => int.TryParse(s.Trim(), out var id) ? id : -1)
+                .Where(id => id > 0)
+                .ToList();
+
+            if (!categoryIdList.Any())
+            {
+                return Ok(new List<object>());
+            }
+
+            // Validate pagination
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 100;
+            if (pageSize > 500) pageSize = 500;
+
+            // Get merge information using raw SQL (MergedTickets is not mapped to EF entity)
+            var mergedTicketLookup = new Dictionary<Guid, string>();
+            var allMergedIds = new HashSet<Guid>();
+            
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                using var cmd = new SqlCommand("SELECT PrimaryTicketId, MergedTicketIds FROM MergedTickets", connection);
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var primaryId = (Guid)reader["PrimaryTicketId"];
+                    var mergedIds = reader["MergedTicketIds"]?.ToString() ?? "";
+                    mergedTicketLookup[primaryId] = mergedIds;
+                    
+                    // Add all merged IDs to lookup set
+                    foreach (var idStr in mergedIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (Guid.TryParse(idStr.Trim(), out var mergedGuid))
+                            allMergedIds.Add(mergedGuid);
+                    }
+                }
+            }
+
+            // Query tickets with CategoryId in the provided list
+            var query = _context.Tickets.AsNoTracking()
+                .Where(t => t.CategoryId.HasValue && categoryIdList.Contains(t.CategoryId.Value) && t.Status != 99)
+                .Include(t => t.CreatedByUser)
+                .Include(t => t.AssignedToUser)
+                .OrderByDescending(t => t.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+            
+            var tickets = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(t => new
+                {
+                    id = t.Id,
+                    publicId = t.PublicId,
+                    title = t.Title,
+                    description = t.Description,
+                    category = (int)t.Category,
+                    categoryId = t.CategoryId,
+                    priority = (int)t.Priority,
+                    status = t.Status,
+                    source = (int)t.Source,
+                    createdByUserId = t.CreatedByUserId,
+                    assignedToUserId = t.AssignedToUserId,
+                    createdAt = t.CreatedAt,
+                    updatedAt = t.UpdatedAt,
+                    resolvedAt = t.ResolvedAt,
+                    createdByName = t.CreatedByUser != null ? t.CreatedByUser.FirstName + " " + t.CreatedByUser.LastName : null,
+                    assignedToName = t.AssignedToUser != null ? t.AssignedToUser.FirstName + " " + t.AssignedToUser.LastName : null,
+                    departmentId = t.DepartmentId,
+                    subcategoryId = t.SubcategoryId
+                })
+                .ToListAsync();
+
+            // Add merge information to response (same as GetMyTickets)
+            var ticketsWithMergeInfo = tickets.Select(t => new
+            {
+                t.id,
+                t.publicId,
+                t.title,
+                t.description,
+                t.category,
+                t.categoryId,
+                t.priority,
+                t.status,
+                t.source,
+                t.createdByUserId,
+                t.assignedToUserId,
+                t.createdAt,
+                t.updatedAt,
+                t.resolvedAt,
+                t.createdByName,
+                t.assignedToName,
+                t.departmentId,
+                t.subcategoryId,
+                // Merge info - same as regular ticket list
+                hasMergedTickets = mergedTicketLookup.ContainsKey(t.id),
+                wasMergedIntoAnother = allMergedIds.Contains(t.id),
+                mergedTicketsCount = mergedTicketLookup.TryGetValue(t.id, out var mergedIds) 
+                    ? (mergedIds?.Split(',', StringSplitOptions.RemoveEmptyEntries).Length ?? 0) 
+                    : 0
+            }).ToList();
+
+            _logger.LogInformation("Category Head fetched {Count} tickets for categories: {Categories}", 
+                ticketsWithMergeInfo.Count, string.Join(", ", categoryIdList));
+
+            return Ok(ticketsWithMergeInfo);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving tickets by categories");
+            return StatusCode(500, new { error = "Error retrieving tickets" });
+        }
+    }
+
     // GET: api/tickets/my
     [HttpGet("my")]
     public async Task<ActionResult<object>> GetMyTickets(
@@ -280,11 +416,33 @@ public class TicketsController : ControllerBase
             // Check if user is Admin - if so, return ALL tickets
             var isAdmin = User.IsInRole("Admin");
             
+            // Check if user is a Category Admin
+            var isCategoryAdmin = await _categoryAdminService.IsCategoryAdminAsync(userId);
+            var categoryAdminCategoryIds = isCategoryAdmin 
+                ? (await _categoryAdminService.GetAdminCategoryIdsAsync(userId)).ToList()
+                : new List<int>();
+            
             // Base query with filters
-            var query = isAdmin 
-                ? _context.Tickets.AsNoTracking()
-                : _context.Tickets.AsNoTracking()
+            IQueryable<Ticket> query;
+            if (isAdmin)
+            {
+                // Admin sees all tickets
+                query = _context.Tickets.AsNoTracking();
+            }
+            else if (isCategoryAdmin && categoryAdminCategoryIds.Any())
+            {
+                // Category Admin sees: tickets they created, assigned to them, OR in their managed categories
+                query = _context.Tickets.AsNoTracking()
+                    .Where(t => t.CreatedByUserId == userId 
+                             || t.AssignedToUserId == userId 
+                             || (t.CategoryId.HasValue && categoryAdminCategoryIds.Contains(t.CategoryId.Value)));
+            }
+            else
+            {
+                // Regular user sees only tickets they created or are assigned to
+                query = _context.Tickets.AsNoTracking()
                     .Where(t => t.CreatedByUserId == userId || t.AssignedToUserId == userId);
+            }
             
             // Apply filters
             if (status.HasValue)
@@ -957,9 +1115,39 @@ public class TicketsController : ControllerBase
                 return NotFound($"Ticket with ID {id} not found");
 
             var authorUserId = GetCurrentUserId();
+            var authorUser = await _context.Users.FindAsync(authorUserId);
+            var authorName = authorUser != null ? $"{authorUser.FirstName} {authorUser.LastName}" : "Someone";
 
             // Create the comment using the service
             var comment = await _ticketService.AddCommentAsync(id, request.Content, authorUserId, request.IsInternal);
+            
+            // Send notifications for non-internal comments
+            if (!request.IsInternal)
+            {
+                // Notify the ticket creator if they're not the comment author
+                if (!string.IsNullOrEmpty(ticket.CreatedByUserId) && ticket.CreatedByUserId != authorUserId)
+                {
+                    await SendNotificationAsync(
+                        ticket.CreatedByUserId,
+                        $"New comment on your ticket: {ticket.Title}",
+                        $"{authorName} commented: {request.Content.Substring(0, Math.Min(100, request.Content.Length))}...",
+                        "Comment",
+                        $"/tickets/{id}"
+                    );
+                }
+
+                // Notify the assigned agent if they're not the comment author
+                if (!string.IsNullOrEmpty(ticket.AssignedToUserId) && ticket.AssignedToUserId != authorUserId && ticket.AssignedToUserId != ticket.CreatedByUserId)
+                {
+                    await SendNotificationAsync(
+                        ticket.AssignedToUserId,
+                        $"New comment on ticket: {ticket.Title}",
+                        $"{authorName} commented: {request.Content.Substring(0, Math.Min(100, request.Content.Length))}...",
+                        "Comment",
+                        $"/tickets/{id}"
+                    );
+                }
+            }
             
             // Return clean DTO response to avoid circular references
             return Ok(new { 
@@ -1205,6 +1393,182 @@ public class TicketsController : ControllerBase
             return StatusCode(500, $"Error removing collaborator: {ex.Message}");
         }
     }
+
+    // POST: api/tickets/{id}/reopen
+    /// <summary>
+    /// Reopen a resolved ticket within the 48-hour window.
+    /// Users can only reopen tickets within 48 hours of resolution.
+    /// After 48 hours, the ticket will be automatically closed.
+    /// </summary>
+    [HttpPost("{id:guid}/reopen")]
+    public async Task<ActionResult> ReopenTicket(Guid id, [FromBody] ReopenTicketRequest? request)
+    {
+        try
+        {
+            var ticket = await _context.Tickets.FindAsync(id);
+            if (ticket == null)
+            {
+                return NotFound("Ticket not found");
+            }
+
+            // Check if ticket is in Resolved status (4)
+            if (ticket.Status != 4)
+            {
+                return BadRequest("Only resolved tickets can be reopened. Current status does not allow reopening.");
+            }
+
+            // Check if within 48-hour window - use UpdatedAt as fallback if ResolvedAt not set
+            var resolvedTime = ticket.ResolvedAt ?? ticket.UpdatedAt;
+            
+            // If ResolvedAt was null, backfill it now for future reference
+            if (ticket.ResolvedAt == null)
+            {
+                ticket.ResolvedAt = ticket.UpdatedAt;
+                _logger.LogWarning("Backfilled ResolvedAt for ticket {TicketId} using UpdatedAt: {ResolvedAt}", id, ticket.ResolvedAt);
+            }
+
+            var hoursSinceResolved = (DateTime.UtcNow - resolvedTime).TotalHours;
+            if (hoursSinceResolved > 48)
+            {
+                return BadRequest($"Reopen window has expired. Tickets can only be reopened within 48 hours of resolution. This ticket was resolved {Math.Round(hoursSinceResolved)} hours ago.");
+            }
+
+            // Check if the current user is the ticket creator or an agent/admin
+            var currentUserId = GetCurrentUserId();
+            var isAgentOrAdmin = await IsCurrentUserAgentOrAdmin();
+            
+            if (ticket.CreatedByUserId != currentUserId && !isAgentOrAdmin)
+            {
+                return Forbid("Only the ticket creator or agents can reopen this ticket.");
+            }
+
+            // Reopen the ticket - set status back to "In Progress" (2)
+            var oldStatus = ticket.Status;
+            ticket.Status = 2; // In Progress
+            ticket.UpdatedAt = DateTime.UtcNow;
+            // Don't clear ResolvedAt - keep it for tracking purposes
+
+            // Add audit log
+            var auditLog = new AuditLog
+            {
+                TicketId = id,
+                Field = "Status",
+                OldValue = "Resolved",
+                NewValue = "In Progress (Reopened)",
+                ChangedByUserId = currentUserId,
+                ChangedAt = DateTime.UtcNow
+            };
+            _context.AuditLogs.Add(auditLog);
+
+            // Add a system comment about the reopen
+            var reopenComment = new TicketComment
+            {
+                Id = Guid.NewGuid(),
+                TicketId = id,
+                Body = $"Ticket reopened{(string.IsNullOrEmpty(request?.Reason) ? "" : $": {request.Reason}")}",
+                IsInternal = false,
+                AuthorUserId = currentUserId,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.TicketComments.Add(reopenComment);
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Ticket {TicketId} reopened by user {UserId}. Reason: {Reason}", 
+                id, currentUserId, request?.Reason ?? "No reason provided");
+
+            // Notify assigned agent if any
+            if (!string.IsNullOrEmpty(ticket.AssignedToUserId) && ticket.AssignedToUserId != currentUserId)
+            {
+                await SendNotificationAsync(
+                    ticket.AssignedToUserId,
+                    "Ticket Reopened",
+                    $"Ticket #{ticket.PublicId} has been reopened and requires attention.",
+                    "Warning",
+                    $"/tickets/{id}"
+                );
+            }
+
+            return Ok(new
+            {
+                id = ticket.Id,
+                publicId = ticket.PublicId,
+                status = ticket.Status,
+                statusName = "In Progress",
+                updatedAt = EnsureUtc(ticket.UpdatedAt),
+                message = "Ticket reopened successfully",
+                reopenedAt = EnsureUtc(DateTime.UtcNow),
+                previousResolvedAt = EnsureUtc(ticket.ResolvedAt)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reopening ticket {TicketId}", id);
+            return StatusCode(500, $"Error reopening ticket: {ex.Message}");
+        }
+    }
+
+    // GET: api/tickets/{id}/reopen-info
+    /// <summary>
+    /// Get reopen eligibility information for a ticket.
+    /// Returns whether the ticket can be reopened and time remaining.
+    /// </summary>
+    [HttpGet("{id:guid}/reopen-info")]
+    public async Task<ActionResult> GetReopenInfo(Guid id)
+    {
+        try
+        {
+            var ticket = await _context.Tickets.FindAsync(id);
+            if (ticket == null)
+            {
+                return NotFound("Ticket not found");
+            }
+
+            // Only resolved tickets can be reopened
+            if (ticket.Status != 4)
+            {
+                return Ok(new
+                {
+                    canReopen = false,
+                    reason = "Ticket is not in resolved status",
+                    status = ticket.Status,
+                    hoursRemaining = 0,
+                    minutesRemaining = 0,
+                    secondsRemaining = 0
+                });
+            }
+
+            // Use UpdatedAt as fallback if ResolvedAt is not set
+            var resolvedTime = ticket.ResolvedAt ?? ticket.UpdatedAt;
+
+            var timeSinceResolved = DateTime.UtcNow - resolvedTime;
+            var timeRemaining = TimeSpan.FromHours(48) - timeSinceResolved;
+            var canReopen = timeRemaining.TotalSeconds > 0;
+
+            return Ok(new
+            {
+                canReopen = canReopen,
+                reason = canReopen ? "Ticket can be reopened" : "48-hour reopen window has expired",
+                status = ticket.Status,
+                resolvedAt = EnsureUtc(resolvedTime),
+                expiresAt = EnsureUtc(resolvedTime.AddHours(48)),
+                hoursRemaining = canReopen ? (int)timeRemaining.TotalHours : 0,
+                minutesRemaining = canReopen ? timeRemaining.Minutes : 0,
+                secondsRemaining = canReopen ? timeRemaining.Seconds : 0,
+                totalSecondsRemaining = canReopen ? (int)timeRemaining.TotalSeconds : 0
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting reopen info for ticket {TicketId}", id);
+            return StatusCode(500, $"Error getting reopen info: {ex.Message}");
+        }
+    }
+}
+
+public class ReopenTicketRequest
+{
+    public string? Reason { get; set; }
 }
 
 // DTOs for request/response

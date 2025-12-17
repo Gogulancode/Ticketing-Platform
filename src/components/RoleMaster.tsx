@@ -320,10 +320,10 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <div className="flex items-center">
-          <div className="text-red-500">❌</div>
+          <div className="text-gray-500">❌</div>
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-red-800">API Connection Error</h3>
-            <p className="text-sm text-red-700 mt-1">{globalError}</p>
+            <h3 className="text-sm font-medium text-gray-800">API Connection Error</h3>
+            <p className="text-sm text-gray-700 mt-1">{globalError}</p>
             <button
               onClick={onRefresh}
               className="mt-2 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
@@ -342,12 +342,12 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-            <Users className="h-6 w-6 mr-2 text-blue-600" />
+            <Users className="h-6 w-6 mr-2 text-gray-600" />
             Role Master
           </h2>
           {stats && (
             <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+              <span className="bg-red-100 text-gray-800 px-2 py-1 rounded">
                 {stats.totalRoles} Total
               </span>
               <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
@@ -363,14 +363,14 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setShowStats(!showStats)}
-            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            className="p-2 text-gray-500 hover:text-gray-600 hover:bg-red-50 rounded transition-colors"
             title="Show Statistics"
           >
             <BarChart3 className="h-4 w-4" />
           </button>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            className="p-2 text-gray-500 hover:text-gray-600 hover:bg-red-50 rounded transition-colors"
             title="Show Filters"
           >
             <Filter className="h-4 w-4" />
@@ -393,7 +393,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
           </label>
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Role
@@ -406,9 +406,9 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Role Statistics</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-blue-600">{stats.totalRoles}</div>
-              <div className="text-sm text-blue-800">Total Roles</div>
+            <div className="bg-red-50 rounded-lg p-4">
+              <div className="text-2xl font-bold text-gray-600">{stats.totalRoles}</div>
+              <div className="text-sm text-gray-800">Total Roles</div>
             </div>
             <div className="bg-green-50 rounded-lg p-4">
               <div className="text-2xl font-bold text-green-600">{stats.activeRoles}</div>
@@ -439,7 +439,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                   type="text"
                   value={filters.search}
                   onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                   placeholder="Search roles..."
                 />
               </div>
@@ -453,7 +453,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                   ...prev, 
                   isActive: e.target.value === '' ? undefined : e.target.value === 'true' 
                 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <option value="">All Statuses</option>
                 <option value="true">Active</option>
@@ -469,7 +469,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                   ...prev, 
                   hasModuleAccess: e.target.value === '' ? undefined : e.target.value === 'true' 
                 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <option value="">All Roles</option>
                 <option value="true">With Permissions</option>
@@ -483,7 +483,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                 <select
                   value={filters.sortBy}
                   onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value as any }))}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 >
                   <option value="name">Name</option>
                   <option value="createdAt">Created Date</option>
@@ -525,7 +525,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                 type="text"
                 value={newRole.name}
                 onChange={(e) => setNewRole(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="Enter role name"
               />
             </div>
@@ -535,7 +535,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
               <select
                 value={newRole.isActive.toString()}
                 onChange={(e) => setNewRole(prev => ({ ...prev, isActive: e.target.value === 'true' }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
@@ -548,7 +548,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                 value={newRole.description}
                 onChange={(e) => setNewRole(prev => ({ ...prev, description: e.target.value }))}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="Role description (optional)"
               />
             </div>
@@ -565,7 +565,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
             <button
               onClick={handleAddRole}
               disabled={loading || !newRole.name.trim()}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -593,7 +593,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
         
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-gray-600" />
             <span className="ml-3 text-gray-600">Loading roles...</span>
           </div>
         ) : filteredRoles.length > 0 ? (
@@ -610,7 +610,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                           type="text"
                           value={editingRole.name}
                           onChange={(e) => setEditingRole(prev => prev ? { ...prev, name: e.target.value } : null)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                         />
                       </div>
                       <div>
@@ -618,7 +618,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                         <select
                           value={editingRole.isActive.toString()}
                           onChange={(e) => setEditingRole(prev => prev ? { ...prev, isActive: e.target.value === 'true' } : null)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                         >
                           <option value="true">Active</option>
                           <option value="false">Inactive</option>
@@ -630,7 +630,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                           value={editingRole.description || ''}
                           onChange={(e) => setEditingRole(prev => prev ? { ...prev, description: e.target.value } : null)}
                           rows={2}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                         />
                       </div>
                     </div>
@@ -645,7 +645,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                       <button
                         onClick={handleUpdateRole}
                         disabled={loading}
-                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                       >
                         <Save className="h-4 w-4 mr-2" />
                         {loading ? 'Saving...' : 'Save Changes'}
@@ -670,7 +670,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                         <div className="flex items-center space-x-3">
                           <h4 className="font-medium text-gray-900">{role.name}</h4>
                           <span className={`text-xs px-2 py-1 rounded-full ${
-                            role.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            role.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-gray-800'
                           }`}>
                             {role.isActive ? 'Active' : 'Inactive'}
                           </span>
@@ -695,14 +695,14 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => setEditingRole(role)}
-                        className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="p-2 text-gray-500 hover:text-gray-600 hover:bg-red-50 rounded transition-colors"
                         title="Edit Role"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteRole(role.id, role.name)}
-                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        className="p-2 text-gray-500 hover:text-gray-600 hover:bg-red-50 rounded transition-colors"
                         title="Delete Role"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -720,7 +720,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                       </h5>
                       <button
                         onClick={() => setManagingPermissionsForRole(role)}
-                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                        className="text-sm text-gray-600 hover:text-gray-800 flex items-center"
                       >
                         <Edit className="h-3 w-3 mr-1" />
                         Edit Permissions
@@ -738,7 +738,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                               )}
                             </div>
                             <span className={`text-xs px-2 py-1 rounded ${
-                              permission.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              permission.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-gray-800'
                             }`}>
                               {permission.isActive ? 'Active' : 'Inactive'}
                             </span>
@@ -751,7 +751,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                         <p>No permissions assigned</p>
                         <button
                           onClick={() => setManagingPermissionsForRole(role)}
-                          className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                          className="mt-2 text-sm text-gray-600 hover:text-gray-800"
                         >
                           Assign Permissions
                         </button>
@@ -774,7 +774,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
             </p>
             <button
               onClick={() => setShowAddForm(true)}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               <Plus className="h-4 w-4 mr-2" />
               Create First Role
@@ -808,7 +808,7 @@ const RoleMaster: React.FC<RoleMasterProps> = ({ modules, error: globalError, on
                     onClick={() => handlePageChange(page)}
                     className={`px-3 py-1 text-sm border rounded ${
                       currentPage === page
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-red-600 text-white border-red-600'
                         : 'border-gray-300 hover:bg-gray-50'
                     }`}
                   >

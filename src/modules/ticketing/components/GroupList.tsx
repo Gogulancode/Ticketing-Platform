@@ -96,7 +96,7 @@ const GroupList: React.FC<GroupListProps> = ({
       {!showAddForm && editingId === undefined && (
         <button
           onClick={() => setShowAddForm(true)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center gap-2"
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2"
         >
           <Plus size={16} />
           Add Group
@@ -119,7 +119,7 @@ const GroupList: React.FC<GroupListProps> = ({
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="e.g., Level 1 Support, Technical Team"
               />
             </div>
@@ -131,7 +131,7 @@ const GroupList: React.FC<GroupListProps> = ({
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 rows={3}
                 placeholder="Brief description of the group's role and responsibilities"
               />
@@ -144,7 +144,7 @@ const GroupList: React.FC<GroupListProps> = ({
               <select
                 value={formData.isActive ? 'active' : 'inactive'}
                 onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.value === 'active' }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
@@ -163,7 +163,7 @@ const GroupList: React.FC<GroupListProps> = ({
                       type="checkbox"
                       checked={formData.agentIds.includes(agent.id)}
                       onChange={() => handleAgentToggle(agent.id)}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      className="rounded border-gray-300 text-gray-600 focus:ring-red-500"
                     />
                     <div className="flex-1">
                       <span className="text-sm font-medium">{agent.name}</span>
@@ -220,7 +220,7 @@ const GroupList: React.FC<GroupListProps> = ({
                 <span className={`px-2 py-1 text-xs rounded-full ${
                   group.isActive 
                     ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
+                    : 'bg-red-100 text-gray-800'
                 }`}>
                   {group.isActive ? 'Active' : 'Inactive'}
                 </span>
@@ -243,7 +243,7 @@ const GroupList: React.FC<GroupListProps> = ({
                       .map(agent => (
                         <span
                           key={agent!.id}
-                          className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
+                          className="px-2 py-1 text-xs bg-red-100 text-gray-800 rounded"
                         >
                           {agent!.name}
                         </span>
@@ -263,7 +263,7 @@ const GroupList: React.FC<GroupListProps> = ({
                   className={`p-2 rounded ${
                     group.isActive
                       ? 'text-green-600 hover:bg-green-50'
-                      : 'text-red-600 hover:bg-red-50'
+                      : 'text-gray-600 hover:bg-red-50'
                   }`}
                   title={group.isActive ? 'Deactivate' : 'Activate'}
                 >
@@ -271,14 +271,14 @@ const GroupList: React.FC<GroupListProps> = ({
                 </button>
                 <button
                   onClick={() => startEditing(group)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                  className="p-2 text-gray-600 hover:bg-red-50 rounded"
                   title="Edit"
                 >
                   <Edit2 size={16} />
                 </button>
                 <button
                   onClick={() => onDelete(group.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded"
+                  className="p-2 text-gray-600 hover:bg-red-50 rounded"
                   title="Delete"
                 >
                   <Trash2 size={16} />

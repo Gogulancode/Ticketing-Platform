@@ -1,0 +1,31 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle with Gradient -->
+  <defs>
+    <linearGradient id="nivoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:var(--primary-color, #2563EB)"/>
+      <stop offset="100%" style="stop-color:var(--secondary-color, #1E40AF)"/>
+    </linearGradient>
+    <linearGradient id="nivoAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.1"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Main Circle -->
+  <circle cx="100" cy="100" r="95" fill="url(#nivoGradient)"/>
+  
+  <!-- Decorative Ring -->
+  <circle cx="100" cy="100" r="85" fill="none" stroke="url(#nivoAccent)" stroke-width="2"/>
+  
+  <!-- N Letter - Modern Stylized -->
+  <path 
+    d="M60 140V60H75L125 120V60H140V140H125L75 80V140H60Z" 
+    fill="white"
+  />
+  
+  <!-- Accent Dot -->
+  <circle cx="150" cy="70" r="12" fill="white" opacity="0.9"/>
+  
+  <!-- Subtle glow effect -->
+  <circle cx="100" cy="100" r="95" fill="none" stroke="white" stroke-width="0.5" opacity="0.3"/>
+</svg>

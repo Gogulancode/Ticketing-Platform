@@ -1,0 +1,36 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.nivo.chat
+productName: Nivo Chat
+asar: false
+files:
+  - filter:
+      - dist/**/*
+      - dist-electron/**/*
+      - public/**/*
+win:
+  target:
+    - target: dir
+      arch:
+        - x64
+  icon: public/icon.ico
+  signAndEditExecutable: false
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: public/icon.icns
+linux:
+  target:
+    - AppImage
+  icon: public/icon.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+electronVersion: 28.3.3

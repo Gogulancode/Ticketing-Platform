@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nivo Support Splash Screen</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101322",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white h-screen w-full flex flex-col justify-between overflow-hidden relative selection:bg-primary/30">
+<div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+<div class="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-primary/5 dark:bg-primary/10 rounded-full blur-[100px]"></div>
+<div class="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[80px]"></div>
+</div>
+<div class="flex-1"></div>
+<div class="flex flex-col items-center gap-10 z-10 w-full px-6 animate-in fade-in zoom-in duration-700">
+<div class="relative group">
+<div class="absolute inset-0 bg-primary/30 rounded-full blur-xl scale-90 group-hover:scale-100 transition duration-700"></div>
+<div class="relative flex items-center justify-center bg-transparent rounded-full aspect-square w-36 h-36 overflow-hidden transform hover:scale-105 transition duration-500">
+<div class="bg-center bg-no-repeat bg-contain w-full h-full rounded-full" data-alt="Nivo Support application logo showing circular blue icon with N" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDSvBYzIodw4TQOsWX2Oe2pIUS1ZPdE9xvqMnYK_8DNybHmstI5TDHsm8p4yYL1TzPvNXAFYcMIGeMah9hLCo6p32xoXik7HfruuFnikBbyRlCGKKvxaOtrefel-Km9f0cZkVByxSs3fCOQinkPxVGy0Xm1E2GdiTbn0t4frLul3Sdhv3S3OncEI8NYkueTiMWuzKExPeWmfttRdg30q1TsYwxw9aiSZUx1ry9VrQcLwfs0H8ONF2SjP5-HGG_wxZvRDyLY7Q8Y6nM");'>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-center justify-center space-y-3">
+<h1 class="text-[2rem] font-bold tracking-tight text-slate-900 dark:text-white text-center leading-tight">
+                Nivo Support
+            </h1>
+<div class="flex items-center gap-2">
+<span class="h-px w-6 bg-primary/30 dark:bg-blue-400/30"></span>
+<p class="text-primary dark:text-blue-400 font-semibold text-center tracking-widest uppercase text-[11px]">
+                    Agent Portal
+                </p>
+<span class="h-px w-6 bg-primary/30 dark:bg-blue-400/30"></span>
+</div>
+</div>
+</div>
+<div class="flex-1"></div>
+<div class="w-full max-w-[240px] px-4 pb-16 flex flex-col gap-8 items-center z-10 mx-auto">
+<div class="flex flex-col gap-3 w-full">
+<div class="rounded-full bg-slate-200/80 dark:bg-slate-800/80 h-1 w-full overflow-hidden backdrop-blur-sm">
+<div class="h-full rounded-full bg-primary w-[45%] shadow-[0_0_12px_rgba(19,55,236,0.6)] animate-[width_2s_ease-in-out_infinite]"></div>
+</div>
+<div class="flex justify-center px-1">
+<p class="text-slate-400 dark:text-slate-500 text-[10px] font-semibold uppercase tracking-widest animate-pulse">Loading Resources...</p>
+</div>
+</div>
+<p class="text-slate-300 dark:text-slate-700 text-[10px] font-medium text-center font-mono">
+            v2.0.1
+        </p>
+</div>
+
+</body></html>

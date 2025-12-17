@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, Plus, Shield } from 'lucide-react';
+import { Building2, Plus, Shield, ShieldCheck } from 'lucide-react';
 import { analyticsApi, DashboardAnalytics } from '../../../shared/services/api/analyticsApi';
 import { getCurrentUser } from '../../../shared/services/api/auth';
+import { settingsApi } from '../../../api/settingsApi';
 import QuickCustomFieldAnalytics from '../components/QuickCustomFieldAnalytics';
 import WeeklyDepartmentWidget from '../components/WeeklyDepartmentWidget';
 import AgentPerformanceWidget from '../components/AgentPerformanceWidget';
@@ -72,9 +73,13 @@ const TicketDashboard: React.FC = () => {
   const [userDepartment, setUserDepartment] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAgent, setIsAgent] = useState(false);
+  const [isCategoryAdmin, setIsCategoryAdmin] = useState(false);
+  // Note: State is set for potential future re-renders but local variable is used for initial API call
+  const [_categoryAdminCategoryIds, setCategoryAdminCategoryIds] = useState<number[]>([]);
+  const [categoryAdminCategoryNames, setCategoryAdminCategoryNames] = useState<string[]>([]);
   const [myTicketSummary, setMyTicketSummary] = useState<MyTicketSummary | null>(null);
   const [myTicketsError, setMyTicketsError] = useState<string | null>(null);
-  const showAnalytics = isAdmin || isAgent;
+  const showAnalytics = isAdmin || isAgent || isCategoryAdmin;
 
   const loadMyTicketSummary = useCallback(async () => {
     try {
@@ -125,6 +130,11 @@ const TicketDashboard: React.FC = () => {
         setLoading(true);
         console.log('🎫 Loading user info and ticketing analytics...');
         
+        // Variables to track category admin state locally (since setState is async)
+        let localCategoryAdminCategoryIds: number[] = [];
+        let localIsCategoryAdmin = false;
+        let localIsAdmin = false;
+        
         // Get current user to check department and role
         try {
           const currentUser = await getCurrentUser();
@@ -136,45 +146,76 @@ const TicketDashboard: React.FC = () => {
           const singleRole = (currentUser.role || '').toString().toLowerCase();
           const roles = Array.isArray(currentUser.roles)
             ? currentUser.roles
-                .map(role => {
+                .map((role: unknown) => {
                   if (!role) return '';
                   if (typeof role === 'string') return role;
-                  if (typeof role === 'object' && 'name' in role && typeof role.name === 'string') {
-                    return role.name;
+                  if (typeof role === 'object' && role !== null && 'name' in role && typeof (role as { name: unknown }).name === 'string') {
+                    return (role as { name: string }).name;
                   }
-                  return role.toString();
+                  return String(role);
                 })
                 .filter(Boolean)
             : [];
-          const normalizedRoles = roles.map(role => role.toLowerCase());
+          const normalizedRoles = roles.map((role: string) => role.toLowerCase());
           const userIsAdmin = adminRoles.some(role => 
-            singleRole.includes(role.toLowerCase()) || normalizedRoles.some(r => r.includes(role.toLowerCase()))
+            singleRole.includes(role.toLowerCase()) || normalizedRoles.some((r: string) => r.includes(role.toLowerCase()))
           );
           setIsAdmin(userIsAdmin);
+          localIsAdmin = userIsAdmin;
 
+          // Check if Agent (includes Agent, Senior Agent, Team Lead)
+          const agentRoles = ['agent', 'senior agent', 'team lead'];
           const userIsAgent = Boolean(
             currentUser.isAgent ||
-            singleRole.includes('agent') ||
-            normalizedRoles.some(role => role.includes('agent'))
+            agentRoles.some(agentRole => singleRole.includes(agentRole)) ||
+            normalizedRoles.some(role => agentRoles.some(agentRole => role.includes(agentRole)))
           );
           setIsAgent(userIsAgent);
 
-          if (!userIsAdmin && !userIsAgent) {
+          // Check if user is a category admin
+          try {
+            const categoryAdminStatus = await settingsApi.checkIsCategoryAdmin(currentUser.id);
+            setIsCategoryAdmin(categoryAdminStatus.isCategoryAdmin);
+            setCategoryAdminCategoryIds(categoryAdminStatus.categoryIds);
+            localIsCategoryAdmin = categoryAdminStatus.isCategoryAdmin;
+            localCategoryAdminCategoryIds = categoryAdminStatus.categoryIds;
+            
+            // Get category names for display
+            if (categoryAdminStatus.isCategoryAdmin && categoryAdminStatus.categoryIds.length > 0) {
+              const categories = await settingsApi.getTicketCategories();
+              const adminCategoryNames = categories
+                .filter(c => categoryAdminStatus.categoryIds.includes(c.id))
+                .map(c => c.name);
+              setCategoryAdminCategoryNames(adminCategoryNames);
+              console.log(`🛡️ User is Category Head for: ${adminCategoryNames.join(', ')}`);
+            }
+          } catch (categoryAdminError) {
+            console.warn('⚠️ Could not check category admin status:', categoryAdminError);
+            setIsCategoryAdmin(false);
+            setCategoryAdminCategoryIds([]);
+          }
+
+          if (!userIsAdmin && !userIsAgent && !localIsCategoryAdmin) {
             await loadMyTicketSummary();
           } else {
             setMyTicketSummary(null);
             setMyTicketsError(null);
           }
           
-          console.log(`👤 User department: ${department}, Is Admin: ${userIsAdmin}, Is Agent: ${userIsAgent}`);
-        } catch {
-          console.warn('⚠️ Could not fetch user info, defaulting to admin view');
-          setIsAdmin(true); // Default to admin view if user fetch fails
-          setIsAgent(true);
+          console.log(`👤 User department: ${department}, Is Admin: ${userIsAdmin}, Is Agent: ${userIsAgent}, Is Category Head: ${localIsCategoryAdmin}`);
+        } catch (userError) {
+          console.warn('⚠️ Could not fetch user info:', userError);
+          // Don't default to admin view - show regular user view
+          setIsAdmin(false);
+          setIsAgent(false);
+          await loadMyTicketSummary();
         }
         
         // Try to get live analytics data from API
-        const analyticsData = await analyticsApi.getDashboardAnalytics();
+        // Pass category IDs if user is a category head (not full admin)
+        const analyticsData = await analyticsApi.getDashboardAnalytics(
+          localCategoryAdminCategoryIds.length > 0 && !localIsAdmin ? localCategoryAdminCategoryIds : undefined
+        );
         console.log('✅ Ticketing analytics loaded:', analyticsData);
         setAnalytics(analyticsData);
         setApiStatus('live');
@@ -221,8 +262,8 @@ const TicketDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Department/Admin View Banner */}
-      {!isAdmin && userDepartment && (
-        <div className="bg-blue-50 text-blue-700 border border-blue-200 rounded-lg p-3 text-sm font-medium flex items-center gap-2">
+      {!isAdmin && !isCategoryAdmin && userDepartment && (
+        <div className="bg-blue-50 text-gray-700 border border-blue-200 rounded-lg p-3 text-sm font-medium flex items-center gap-2">
           <Building2 className="w-4 h-4" />
           <span>Viewing {userDepartment} Department Dashboard</span>
         </div>
@@ -232,6 +273,14 @@ const TicketDashboard: React.FC = () => {
         <div className="bg-purple-50 text-purple-700 border border-purple-200 rounded-lg p-3 text-sm font-medium flex items-center gap-2">
           <Shield className="w-4 h-4" />
           <span>Admin View - All Departments</span>
+        </div>
+      )}
+
+      {/* Category Admin Banner */}
+      {isCategoryAdmin && !isAdmin && (
+        <div className="bg-indigo-50 text-gray-700 border border-indigo-200 rounded-lg p-3 text-sm font-medium flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4" />
+          <span>Category Admin View - {categoryAdminCategoryNames.length > 0 ? categoryAdminCategoryNames.join(', ') : 'Your Categories'}</span>
         </div>
       )}
       
@@ -254,18 +303,25 @@ const TicketDashboard: React.FC = () => {
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {isAdmin ? 'Ticketing Analytics Dashboard - All Departments' : 'Agent Ticketing Dashboard'}
+                  {isAdmin 
+                    ? 'Ticketing Analytics Dashboard - All Departments' 
+                    : isCategoryAdmin 
+                      ? `Category Admin Dashboard - ${categoryAdminCategoryNames.join(', ')}`
+                      : 'Agent Ticketing Dashboard'
+                  }
                 </h1>
                 <p className="text-gray-600 mt-2">
                   {isAdmin 
                     ? 'Complete business intelligence overview for all departments' 
-                    : 'Analytics and insights across every department'
+                    : isCategoryAdmin
+                      ? 'Analytics and insights for your assigned categories'
+                      : 'Analytics and insights across every department'
                   }
                 </p>
               </div>
               <Link
                 to="/tickets/new"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New Ticket
@@ -330,18 +386,18 @@ const TicketDashboard: React.FC = () => {
               {myTicketSummary && (
                 <div className="text-right">
                   <p className="text-sm text-gray-500">Total tickets</p>
-                  <p className="text-4xl font-bold text-blue-600">{myTicketSummary.total}</p>
+                  <p className="text-4xl font-bold text-gray-600">{myTicketSummary.total}</p>
                 </div>
               )}
             </div>
 
             {myTicketsError ? (
-              <div className="mt-6 flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-red-700 text-sm md:flex-row md:items-center md:justify-between">
+              <div className="mt-6 flex flex-col gap-3 rounded-md border border-gray-300 bg-gray-50 p-4 text-gray-700 text-sm md:flex-row md:items-center md:justify-between">
                 <span>{myTicketsError}</span>
                 <button
                   type="button"
                   onClick={loadMyTicketSummary}
-                  className="inline-flex items-center justify-center rounded-md border border-red-300 px-4 py-2 text-red-700 hover:bg-red-100"
+                  className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-100"
                 >
                   Retry
                 </button>

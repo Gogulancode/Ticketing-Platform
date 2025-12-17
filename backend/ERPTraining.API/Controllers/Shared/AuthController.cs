@@ -283,6 +283,78 @@ public class AuthController : ControllerBase
         return Ok(refreshed);
     }
 
+    /// <summary>
+    /// Changes the current user's password
+    /// </summary>
+    /// <param name="request">Current password and new password</param>
+    /// <returns>Success or error message</returns>
+    /// <remarks>
+    /// Allows authenticated users to change their own password.
+    /// Requires the current password for verification.
+    /// 
+    /// <para><strong>Password Requirements:</strong></para>
+    /// <list type="bullet">
+    /// <item><description>Minimum 6 characters</description></item>
+    /// <item><description>At least one uppercase letter</description></item>
+    /// <item><description>At least one lowercase letter</description></item>
+    /// <item><description>At least one digit</description></item>
+    /// </list>
+    /// 
+    /// Sample request:
+    /// 
+    ///     POST /api/auth/change-password
+    ///     {
+    ///       "currentPassword": "OldPassword123!",
+    ///       "newPassword": "NewPassword456!",
+    ///       "confirmPassword": "NewPassword456!"
+    ///     }
+    /// 
+    /// </remarks>
+    /// <response code="200">Password changed successfully</response>
+    /// <response code="400">Validation failed or passwords don't match</response>
+    /// <response code="401">Current password is incorrect</response>
+    [HttpPost("change-password")]
+    [Authorize]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(new { message = "User not authenticated" });
+        }
+
+        // Validate input
+        if (string.IsNullOrEmpty(request.CurrentPassword) || string.IsNullOrEmpty(request.NewPassword))
+        {
+            return BadRequest(new { message = "Current password and new password are required" });
+        }
+
+        if (request.NewPassword != request.ConfirmPassword)
+        {
+            return BadRequest(new { message = "New password and confirm password do not match" });
+        }
+
+        if (request.NewPassword.Length < 6)
+        {
+            return BadRequest(new { message = "New password must be at least 6 characters long" });
+        }
+
+        var result = await _authService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
+        if (!result.Success)
+        {
+            if (result.ErrorType == "InvalidCurrentPassword")
+            {
+                return Unauthorized(new { message = "Current password is incorrect" });
+            }
+            return BadRequest(new { message = result.ErrorMessage ?? "Failed to change password" });
+        }
+
+        return Ok(new { message = "Password changed successfully" });
+    }
+
     [HttpPost("assign-role")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> AssignRole([FromBody] AssignRoleDto assignRoleDto)
@@ -307,4 +379,11 @@ public class AssignRoleDto
 {
     public string UserId { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+}
+
+public class ChangePasswordRequest
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+    public string ConfirmPassword { get; set; } = string.Empty;
 }

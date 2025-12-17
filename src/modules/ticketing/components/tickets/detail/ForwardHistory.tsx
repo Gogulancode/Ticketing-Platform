@@ -32,7 +32,7 @@ const ForwardHistoryComponent: React.FC<ForwardHistoryProps> = ({ ticketId }) =>
       case 'acknowledged':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'failed':
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <XCircle className="h-4 w-4 text-gray-500" />;
       case 'sent':
       default:
         return <AlertCircle className="h-4 w-4 text-yellow-500" />;
@@ -45,7 +45,7 @@ const ForwardHistoryComponent: React.FC<ForwardHistoryProps> = ({ ticketId }) =>
       case 'acknowledged':
         return 'text-green-700 bg-green-50 border-green-200';
       case 'failed':
-        return 'text-red-700 bg-red-50 border-red-200';
+        return 'text-gray-700 bg-red-50 border-red-200';
       case 'sent':
       default:
         return 'text-yellow-700 bg-yellow-50 border-yellow-200';

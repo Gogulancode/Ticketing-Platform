@@ -1,269 +1,288 @@
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.exe
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\AutoMapper.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\AutoMapper.Extensions.Microsoft.DependencyInjection.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Azure.Core.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Azure.Identity.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.AspNetCore.OpenApi.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Abstractions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Relational.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.SqlServer.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Caching.Abstractions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Caching.Memory.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.Abstractions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.Binder.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.CommandLine.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.EnvironmentVariables.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.FileExtensions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.Json.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.UserSecrets.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.Abstractions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.FileProviders.Abstractions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.FileProviders.Physical.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.FileSystemGlobbing.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Hosting.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Hosting.Abstractions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.Abstractions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.Configuration.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.Console.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.Debug.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.EventLog.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.EventSource.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Options.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Options.ConfigurationExtensions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Primitives.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Graph.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Graph.Core.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Identity.Client.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.Abstractions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.JsonWebTokens.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.Logging.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Abstractions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Authentication.Azure.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Http.HttpClientLibrary.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Serialization.Form.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Serialization.Json.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Serialization.Multipart.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Serialization.Text.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.OpenApi.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.SqlServer.Server.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Std.UriTemplate.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Swashbuckle.AspNetCore.Annotations.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Swashbuckle.AspNetCore.Filters.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Swashbuckle.AspNetCore.Swagger.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerGen.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerUI.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Configuration.ConfigurationManager.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Diagnostics.DiagnosticSource.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.IO.Pipelines.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Text.Encodings.Web.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Text.Json.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\Microsoft.Data.SqlClient.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-x64\native\Microsoft.Data.SqlClient.SNI.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Diagnostics.EventLog.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.Core.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.Infrastructure.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\modules.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Web.config
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\appsettings.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\appsettings.Production.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\appsettings.Staging.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\erp-modules.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-1-sections.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-10-sections.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-11-sections.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-12-sections.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-15-sections.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-2-sections.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-3-sections.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-4-sections.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-5-sections.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-6-sections.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-8-sections.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-9-sections.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\sections-data.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Data\simple-modules.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.staticwebassets.runtime.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.xml
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.deps.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.runtimeconfig.json
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.pdb
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\BCrypt.Net-Next.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\BouncyCastle.Cryptography.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Humanizer.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\MailKit.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Bcl.AsyncInterfaces.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Build.Locator.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.CodeAnalysis.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.CodeAnalysis.CSharp.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.CodeAnalysis.CSharp.Workspaces.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.CodeAnalysis.Workspaces.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.CodeAnalysis.Workspaces.MSBuild.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Data.SqlClient.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Data.Sqlite.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Design.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Sqlite.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.DependencyModel.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Identity.Client.Extensions.Msal.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.Validators.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\MimeKit.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Mono.TextTemplating.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Scrutor.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\SQLitePCLRaw.batteries_v2.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\SQLitePCLRaw.core.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\SQLitePCLRaw.provider.e_sqlite3.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\Swashbuckle.AspNetCore.Filters.Abstractions.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.ClientModel.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.CodeDom.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Composition.AttributedModel.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Composition.Convention.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Composition.Hosting.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Composition.Runtime.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Composition.TypedParts.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Diagnostics.EventLog.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Formats.Asn1.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Memory.Data.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Runtime.Caching.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Security.Cryptography.Pkcs.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\System.Security.Cryptography.ProtectedData.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\cs\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\de\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\es\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\fr\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\it\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ja\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ko\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\pl\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\pt-BR\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ru\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\cs\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\de\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\es\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\fr\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\it\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ja\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ko\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\pl\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\pt-BR\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ru\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.CSharp.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\cs\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\de\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\es\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\fr\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\it\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ja\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ko\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\pl\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\pt-BR\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ru\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\cs\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\de\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\es\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\fr\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\it\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ja\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ko\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\pl\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\pt-BR\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ru\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\cs\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\de\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\es\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\fr\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\it\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ja\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ko\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\pl\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\pt-BR\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ru\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\de\Microsoft.Data.SqlClient.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\es\Microsoft.Data.SqlClient.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\fr\Microsoft.Data.SqlClient.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\it\Microsoft.Data.SqlClient.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ja\Microsoft.Data.SqlClient.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ko\Microsoft.Data.SqlClient.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\pt-BR\Microsoft.Data.SqlClient.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ru\Microsoft.Data.SqlClient.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hans\Microsoft.Data.SqlClient.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hant\Microsoft.Data.SqlClient.resources.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\unix\lib\net8.0\Microsoft.Data.SqlClient.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-arm\native\Microsoft.Data.SqlClient.SNI.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-arm64\native\Microsoft.Data.SqlClient.SNI.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-x86\native\Microsoft.Data.SqlClient.SNI.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\browser-wasm\nativeassets\net8.0\e_sqlite3.a
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-arm\native\libe_sqlite3.so
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-arm64\native\libe_sqlite3.so
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-armel\native\libe_sqlite3.so
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-mips64\native\libe_sqlite3.so
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-musl-arm\native\libe_sqlite3.so
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-musl-arm64\native\libe_sqlite3.so
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-musl-s390x\native\libe_sqlite3.so
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-musl-x64\native\libe_sqlite3.so
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-ppc64le\native\libe_sqlite3.so
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-s390x\native\libe_sqlite3.so
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-x64\native\libe_sqlite3.so
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-x86\native\libe_sqlite3.so
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\maccatalyst-arm64\native\libe_sqlite3.dylib
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\maccatalyst-x64\native\libe_sqlite3.dylib
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\osx-arm64\native\libe_sqlite3.dylib
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\osx-x64\native\libe_sqlite3.dylib
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-arm\native\e_sqlite3.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-arm64\native\e_sqlite3.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-x64\native\e_sqlite3.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-x86\native\e_sqlite3.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Diagnostics.EventLog.Messages.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Runtime.Caching.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Security.Cryptography.Pkcs.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.Core.pdb
-D:\BabajiShivram_training\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.Infrastructure.pdb
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.csproj.AssemblyReference.cache
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.GeneratedMSBuildEditorConfig.editorconfig
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.AssemblyInfoInputs.cache
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.AssemblyInfo.cs
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.csproj.CoreCompileInputs.cache
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.MvcApplicationPartsAssemblyInfo.cs
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.MvcApplicationPartsAssemblyInfo.cache
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.sourcelink.json
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets.build.json
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets.development.json
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets\msbuild.ERPTraining.API.Microsoft.AspNetCore.StaticWebAssets.props
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets\msbuild.build.ERPTraining.API.props
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets\msbuild.buildMultiTargeting.ERPTraining.API.props
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets\msbuild.buildTransitive.ERPTraining.API.props
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets.pack.json
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\scopedcss\bundle\ERPTraining.API.styles.css
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ERPTrain.2A11766C.Up2Date
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\refint\ERPTraining.API.dll
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.pdb
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.genruntimeconfig.cache
-D:\BabajiShivram_training\backend\ERPTraining.API\obj\Debug\net8.0\ref\ERPTraining.API.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\modules.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Web.config
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\appsettings.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\appsettings.Production.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\appsettings.Staging.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\erp-modules.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-1-sections.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-10-sections.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-11-sections.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-12-sections.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-15-sections.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-2-sections.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-3-sections.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-4-sections.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-5-sections.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-6-sections.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-8-sections.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\module-9-sections.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\sections-data.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Data\simple-modules.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.staticwebassets.runtime.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.exe
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.xml
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.deps.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.runtimeconfig.json
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.API.pdb
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\AutoMapper.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\AutoMapper.Extensions.Microsoft.DependencyInjection.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Azure.Core.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Azure.Identity.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\BCrypt.Net-Next.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\BouncyCastle.Cryptography.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Humanizer.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\MailKit.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.AspNetCore.OpenApi.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Bcl.AsyncInterfaces.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Build.Locator.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.CodeAnalysis.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.CodeAnalysis.CSharp.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.CodeAnalysis.CSharp.Workspaces.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.CodeAnalysis.Workspaces.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.CodeAnalysis.Workspaces.MSBuild.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Data.SqlClient.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Data.Sqlite.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Abstractions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Design.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Relational.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Sqlite.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.SqlServer.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Caching.Abstractions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Caching.Memory.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.Abstractions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.Binder.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.CommandLine.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.EnvironmentVariables.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.FileExtensions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.Json.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.UserSecrets.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.DependencyModel.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.Abstractions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.FileProviders.Abstractions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.FileProviders.Physical.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.FileSystemGlobbing.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Hosting.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Hosting.Abstractions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.Abstractions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.Configuration.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.Console.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.Debug.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.EventLog.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Logging.EventSource.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Options.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Options.ConfigurationExtensions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Primitives.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Graph.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Graph.Core.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Identity.Client.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Identity.Client.Extensions.Msal.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.Abstractions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.JsonWebTokens.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.Logging.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.IdentityModel.Validators.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Abstractions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Authentication.Azure.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Http.HttpClientLibrary.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Serialization.Form.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Serialization.Json.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Serialization.Multipart.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Kiota.Serialization.Text.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.OpenApi.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.SqlServer.Server.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\MimeKit.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Mono.TextTemplating.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Scrutor.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\SixLabors.ImageSharp.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\SQLitePCLRaw.batteries_v2.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\SQLitePCLRaw.core.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\SQLitePCLRaw.provider.e_sqlite3.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Std.UriTemplate.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Swashbuckle.AspNetCore.Annotations.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Swashbuckle.AspNetCore.Filters.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Swashbuckle.AspNetCore.Filters.Abstractions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Swashbuckle.AspNetCore.Swagger.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.ClientModel.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.CodeDom.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Composition.AttributedModel.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Composition.Convention.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Composition.Hosting.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Composition.Runtime.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Composition.TypedParts.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Configuration.ConfigurationManager.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Diagnostics.DiagnosticSource.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Diagnostics.EventLog.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Formats.Asn1.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.IO.Pipelines.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Memory.Data.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Runtime.Caching.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Security.Cryptography.Pkcs.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Security.Cryptography.ProtectedData.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Text.Encodings.Web.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\System.Text.Json.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\cs\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\de\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\es\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\fr\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\it\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ja\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ko\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\pl\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\pt-BR\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ru\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\cs\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\de\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\es\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\fr\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\it\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ja\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ko\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\pl\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\pt-BR\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ru\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.CSharp.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\cs\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\de\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\es\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\fr\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\it\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ja\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ko\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\pl\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\pt-BR\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ru\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\cs\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\de\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\es\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\fr\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\it\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ja\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ko\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\pl\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\pt-BR\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ru\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\cs\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\de\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\es\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\fr\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\it\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ja\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ko\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\pl\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\pt-BR\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ru\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\de\Microsoft.Data.SqlClient.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\es\Microsoft.Data.SqlClient.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\fr\Microsoft.Data.SqlClient.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\it\Microsoft.Data.SqlClient.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ja\Microsoft.Data.SqlClient.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ko\Microsoft.Data.SqlClient.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\pt-BR\Microsoft.Data.SqlClient.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ru\Microsoft.Data.SqlClient.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hans\Microsoft.Data.SqlClient.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\zh-Hant\Microsoft.Data.SqlClient.resources.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\unix\lib\net8.0\Microsoft.Data.SqlClient.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\Microsoft.Data.SqlClient.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-arm\native\Microsoft.Data.SqlClient.SNI.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-arm64\native\Microsoft.Data.SqlClient.SNI.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-x64\native\Microsoft.Data.SqlClient.SNI.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-x86\native\Microsoft.Data.SqlClient.SNI.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\browser-wasm\nativeassets\net8.0\e_sqlite3.a
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-arm\native\libe_sqlite3.so
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-arm64\native\libe_sqlite3.so
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-armel\native\libe_sqlite3.so
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-mips64\native\libe_sqlite3.so
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-musl-arm\native\libe_sqlite3.so
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-musl-arm64\native\libe_sqlite3.so
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-musl-s390x\native\libe_sqlite3.so
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-musl-x64\native\libe_sqlite3.so
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-ppc64le\native\libe_sqlite3.so
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-s390x\native\libe_sqlite3.so
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-x64\native\libe_sqlite3.so
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\linux-x86\native\libe_sqlite3.so
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\maccatalyst-arm64\native\libe_sqlite3.dylib
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\maccatalyst-x64\native\libe_sqlite3.dylib
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\osx-arm64\native\libe_sqlite3.dylib
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\osx-x64\native\libe_sqlite3.dylib
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-arm\native\e_sqlite3.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-arm64\native\e_sqlite3.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-x64\native\e_sqlite3.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win-x86\native\e_sqlite3.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Diagnostics.EventLog.Messages.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Diagnostics.EventLog.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Runtime.Caching.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Security.Cryptography.Pkcs.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.Core.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.Infrastructure.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.Core.pdb
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\ERPTraining.Infrastructure.pdb
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.csproj.AssemblyReference.cache
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.GeneratedMSBuildEditorConfig.editorconfig
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.AssemblyInfoInputs.cache
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.AssemblyInfo.cs
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.csproj.CoreCompileInputs.cache
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.MvcApplicationPartsAssemblyInfo.cs
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.MvcApplicationPartsAssemblyInfo.cache
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.sourcelink.json
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets.build.json
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets.development.json
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets\msbuild.ERPTraining.API.Microsoft.AspNetCore.StaticWebAssets.props
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets\msbuild.build.ERPTraining.API.props
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets\msbuild.buildMultiTargeting.ERPTraining.API.props
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets\msbuild.buildTransitive.ERPTraining.API.props
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\staticwebassets.pack.json
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\scopedcss\bundle\ERPTraining.API.styles.css
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ERPTrain.2A11766C.Up2Date
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.dll
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\refint\ERPTraining.API.dll
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.pdb
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ERPTraining.API.genruntimeconfig.cache
+D:\Ticketing Platform\backend\ERPTraining.API\obj\Debug\net8.0\ref\ERPTraining.API.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\HealthChecks.SqlServer.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\HealthChecks.UI.Client.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\HealthChecks.UI.Core.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\AspNetCoreRateLimit.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.HealthChecks.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Newtonsoft.Json.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Serilog.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Serilog.AspNetCore.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Serilog.Enrichers.Environment.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Serilog.Enrichers.Thread.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Serilog.Extensions.Hosting.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Serilog.Extensions.Logging.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Serilog.Formatting.Compact.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Serilog.Settings.Configuration.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Serilog.Sinks.Console.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Serilog.Sinks.Debug.dll
+D:\Ticketing Platform\backend\ERPTraining.API\bin\Debug\net8.0\Serilog.Sinks.File.dll

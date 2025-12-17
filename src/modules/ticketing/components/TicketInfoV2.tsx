@@ -143,7 +143,7 @@ const TicketInfoV2: React.FC<TicketInfoV2Props> = ({
         {!isEditing ? (
           <button
             onClick={() => setIsEditing(true)}
-            className="inline-flex items-center px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
+            className="inline-flex items-center px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
           >
             <Edit2 className="h-4 w-4 mr-1" />
             Edit
@@ -153,7 +153,7 @@ const TicketInfoV2: React.FC<TicketInfoV2Props> = ({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex items-center px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
             >
               <Save className="h-4 w-4 mr-1" />
               {saving ? 'Saving...' : 'Save'}
@@ -171,7 +171,7 @@ const TicketInfoV2: React.FC<TicketInfoV2Props> = ({
 
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-md">
-          <p className="text-red-700 text-sm">{error}</p>
+          <p className="text-gray-700 text-sm">{error}</p>
         </div>
       )}
 
@@ -186,7 +186,7 @@ const TicketInfoV2: React.FC<TicketInfoV2Props> = ({
             <select
               value={selectedCategoryId || ''}
               onChange={(e) => handleCategoryChange(Number(e.target.value))}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
             >
               <option value="">Select Category</option>
               {categories.map((category) => (
@@ -211,7 +211,7 @@ const TicketInfoV2: React.FC<TicketInfoV2Props> = ({
               value={selectedSubcategoryId || ''}
               onChange={(e) => setSelectedSubcategoryId(Number(e.target.value))}
               disabled={!selectedCategoryId}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
             >
               <option value="">Select Subcategory</option>
               {subcategories.map((subcategory) => (
@@ -235,7 +235,7 @@ const TicketInfoV2: React.FC<TicketInfoV2Props> = ({
             <select
               value={selectedAgentUserId || ''}
               onChange={(e) => setSelectedAgentUserId(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
             >
               <option value="">Select Agent</option>
               {agents.map((agent) => (

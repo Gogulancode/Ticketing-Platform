@@ -1,5 +1,5 @@
 // Client-side modules API functions
-const API_BASE = 'http://localhost:5015/api';
+const API_BASE = 'http://localhost:5016/api';
 
 interface Module {
   id: number;

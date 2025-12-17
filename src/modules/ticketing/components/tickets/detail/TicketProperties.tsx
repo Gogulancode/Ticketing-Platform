@@ -330,7 +330,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents, isA
           <select
             value={toInputValue(formData.categoryId)}
             onChange={(e) => handleInputChange('categoryId', e.target.value)}
-            className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Select Category</option>
             {categories?.map((category) => (
@@ -344,7 +344,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents, isA
           <select
             value={toInputValue(formData.subcategoryId)}
             onChange={(e) => handleInputChange('subcategoryId', e.target.value)}
-            className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             disabled={!formData.categoryId}
           >
             <option value="">Select Sub Category</option>
@@ -360,14 +360,14 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents, isA
               <div key={field.id}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {field.label || field.name}
-                  {field.isRequired && <span className="text-red-500 ml-1">*</span>}
+                  {field.isRequired && <span className="text-gray-500 ml-1">*</span>}
                 </label>
 
                 {field.type === 'select' ? (
                   <select
                     value={toInputValue(formData[`customField_${field.id}`])}
                     onChange={(e) => handleInputChange(`customField_${field.id}`, e.target.value)}
-                    className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                   >
                     <option value="">Not set</option>
                     {field.options?.map((option: string, index: number) => (
@@ -380,7 +380,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents, isA
                     value={toInputValue(formData[`customField_${field.id}`])}
                     onChange={(e) => handleInputChange(`customField_${field.id}`, e.target.value)}
                     placeholder={field.placeholder}
-                    className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                   />
                 )}
               </div>
@@ -393,7 +393,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents, isA
           <select
             value={toInputValue(formData.priorityId)}
             onChange={(e) => handleInputChange('priorityId', e.target.value)}
-            className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Select Priority</option>
             {priorities?.map((priority) => (
@@ -409,7 +409,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents, isA
             <select
               value={toInputValue(formData.statusId)}
               onChange={(e) => handleInputChange('statusId', e.target.value)}
-              className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <option value="">Select Status</option>
               {statuses?.map((status) => (
@@ -426,7 +426,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents, isA
             <select
               value={toInputValue(formData.assignedAgentId)}
               onChange={(e) => handleInputChange('assignedAgentId', e.target.value)}
-              className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               disabled={!formData.categoryId || !formData.subcategoryId || effectiveAgents.length === 0}
             >
               {effectiveAgents.length === 0 ? (
@@ -455,7 +455,7 @@ const TicketProperties: React.FC<TicketPropertiesProps> = ({ ticket, agents, isA
           <button
             onClick={handleUpdate}
             disabled={updateMutation.isPending}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
           >
             {updateMutation.isPending ? (
               <>

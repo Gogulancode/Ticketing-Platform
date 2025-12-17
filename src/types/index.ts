@@ -1,121 +1,152 @@
-// Type definitions for the Training Portal
+// Type definitions for the Ticketing Platform
+
 export interface User {
   id: string;
   name: string;
-  role: 'Admin' | 'QA' | 'User';
+  role: 'Admin' | 'Agent' | 'User';
   email: string;
   avatar?: string;
+  department?: string;
+  isAgent?: boolean;
+  isActive?: boolean;
 }
 
-export interface Module {
-  id: number; // Changed from string to number to match API
-  originalModuleId?: number;
-  title: string;
+// Ticketing Types
+export interface Ticket {
+  id: number;
+  ticketNumber: string;
+  subject: string;
   description: string;
-  icon: string;
-  category: string;
-  color: string;
-  estimatedTime: string;
-  difficulty: string;
-  prerequisites: string[];
-  learningObjectives: string[];
+  status: TicketStatus;
+  priority: TicketPriority;
+  categoryId?: number;
+  category?: TicketCategory;
+  assignedAgentId?: number;
+  assignedAgent?: Agent;
+  requesterId: string;
+  requester?: User;
+  createdAt: string;
+  updatedAt: string;
+  dueDate?: string;
+  resolvedAt?: string;
+  closedAt?: string;
+  tags?: string[];
+  customFields?: Record<string, unknown>;
+  branchId?: number;
+  branch?: Branch;
+}
+
+export type TicketStatus = 'Open' | 'In Progress' | 'Pending' | 'Resolved' | 'Closed';
+export type TicketPriority = 'Low' | 'Medium' | 'High' | 'Urgent';
+
+export interface TicketCategory {
+  id: number;
+  name: string;
+  description?: string;
+  parentCategoryId?: number;
   isActive: boolean;
   order: number;
-  erpModuleId?: string;
-  progress: number;
-  isLocked: boolean;
-  sections?: Section[];
-  completionRate?: number; // Made optional
-  isCompleted?: boolean; // Made optional
 }
 
-export interface Section {
-  id: number; // Changed from string to number
-  title: string;
-  description: string;
-  moduleId: number; // Changed from string to number
-  order: number;
-  isActive: boolean;
-  erpSectionId?: string;
-  lessons: Lesson[];
-}
-
-export interface Lesson {
-  id: string;
-  title: string;
-  type: 'video' | 'document' | 'interactive' | 'quiz';
-  duration: string;
-  isCompleted: boolean;
-  isLocked: boolean;
-  content?: string;
-  videoUrl?: string;
-  documentContent?: string;
-  scribeLink?: string;
-  assessment?: Assessment; // Embedded assessment data
-  hasAssessment: boolean;
-}
-
-export interface Assessment {
-  id: string;
-  title: string;
-  description: string;
-  moduleId: string;
-  sectionId?: string;
-  lessonId?: string;
-  questions: Question[];
-  passingScore: number;
-  timeLimit?: number; // in minutes
-  attempts: QuizAttempt[];
-  maxAttempts: number;
-  isActive: boolean;
-  isRequired: boolean; // Whether completing this assessment is required for module completion
-}
-
-export interface Question {
-  id: string;
-  type: 'multiple-choice' | 'true-false' | 'short-answer' | 'essay';
-  question: string;
-  options?: string[]; // for multiple choice
-  correctAnswer: string | string[];
-  explanation?: string;
-  points: number;
-}
-
-export interface QuizAttempt {
-  id: string;
+export interface Agent {
+  id: number;
   userId: string;
-  startedAt: string;
-  completedAt?: string;
-  answers: { [questionId: string]: string };
-  score: number;
-  passed: boolean;
+  name: string;
+  email: string;
+  department?: string;
+  isActive: boolean;
+  ticketGroupId?: number;
+  ticketGroup?: TicketGroup;
 }
 
-export interface UploadedContent {
-  id: string;
-  title: string;
-  type: 'pdf' | 'doc' | 'image' | 'scribe';
-  module: string;
-  uploadedBy: string;
+export interface TicketGroup {
+  id: number;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  agents?: Agent[];
+}
+
+export interface TicketComment {
+  id: number;
+  ticketId: number;
+  content: string;
+  isInternal: boolean;
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+  attachments?: Attachment[];
+}
+
+export interface Attachment {
+  id: number;
+  fileName: string;
+  fileSize: number;
+  contentType: string;
+  url: string;
   uploadedAt: string;
-  tags: string[];
-  description: string;
 }
 
-export interface SearchResult {
-  id: string;
-  title: string;
-  type: string;
-  module: string;
-  tags: string[];
-  relevance: number;
+// SLA Types
+export interface SlaPolicy {
+  id: number;
+  name: string;
+  description?: string;
+  priority: TicketPriority;
+  firstResponseTime: number; // in minutes
+  resolutionTime: number; // in minutes
+  escalationEnabled: boolean;
+  isActive: boolean;
 }
 
-export interface ProgressData {
-  totalModules: number;
-  completedModules: number;
-  overallProgress: number;
-  recentActivity: string[];
+// Branch Types (for on-prem multi-branch tracking)
+export interface Branch {
+  id: number;
+  name: string;
+  code: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Dashboard/Analytics Types
+export interface TicketStats {
+  totalTickets: number;
+  openTickets: number;
+  inProgressTickets: number;
+  resolvedTickets: number;
+  closedTickets: number;
+  averageResolutionTime: number;
+  slaComplianceRate: number;
+}
+
+export interface BranchStats {
+  branchId: number;
+  branchName: string;
+  totalTickets: number;
+  openTickets: number;
+  resolvedTickets: number;
+  averageResolutionTime: number;
+}
+
+// Filter/Search Types
+export interface TicketFilter {
+  search?: string;
+  status?: TicketStatus[];
+  priority?: TicketPriority[];
+  categoryId?: number;
+  assignedAgentId?: number;
+  branchId?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 // Role Management Types
@@ -123,7 +154,6 @@ export interface Role {
   id: string;
   name: string;
   description?: string;
-  originalRoleId?: number;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -133,29 +163,35 @@ export interface Role {
 export interface Permission {
   id: string;
   roleId: string;
-  moduleId: string;
-  sectionId?: string;
-  moduleName: string;
-  sectionName?: string;
-  erpRoleId?: string;
-  erpModuleId?: string;
-  erpSectionId?: string;
+  resource: string; // e.g., 'tickets', 'agents', 'settings'
+  action: string; // e.g., 'create', 'read', 'update', 'delete'
   isActive: boolean;
 }
 
-export interface RoleFilter {
-  search: string;
-  isActive?: boolean;
-  hasModuleAccess?: boolean;
-  page: number;
-  pageSize: number;
-  sortBy: 'name' | 'createdAt' | 'permissions';
-  sortOrder: 'asc' | 'desc';
+// AI Feature Types (for future DeepSeek integration)
+export interface AISuggestedReply {
+  id: string;
+  ticketId: number;
+  suggestion: string;
+  confidence: number;
+  createdAt: string;
 }
 
-export interface RoleStats {
-  totalRoles: number;
-  activeRoles: number;
-  totalPermissions: number;
-  rolesWithoutPermissions: number;
+export interface AIInsight {
+  id: string;
+  branchId?: number;
+  insightType: 'trend' | 'anomaly' | 'recommendation';
+  title: string;
+  description: string;
+  data?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface AIAutoCloseCandidate {
+  ticketId: number;
+  ticketNumber: string;
+  subject: string;
+  daysSinceLastActivity: number;
+  confidence: number;
+  reason: string;
 }

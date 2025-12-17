@@ -72,7 +72,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
               {ticket.comments.map((comment) => (
                 <div key={comment.id} className="flex space-x-3 p-3 border-l-4 border-indigo-200 bg-gray-50">
                   <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-full bg-red-500 flex items-center justify-center">
                       <User className="h-5 w-5 text-white" />
                     </div>
                   </div>
@@ -111,7 +111,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
                 onClick={() => setCommentType('comment')}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                   commentType === 'comment'
-                    ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                    ? 'bg-red-100 text-gray-700 border border-indigo-200'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -138,7 +138,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
                   : 'Add public comment (visible to customer)...'
               }
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
             
             <div className="flex justify-between items-center mt-3">
@@ -150,7 +150,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
               <button
                 onClick={handleAddComment}
                 disabled={!newComment.trim() || addCommentMutation.isPending}
-                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Send className="h-4 w-4 mr-2" />
                 {addCommentMutation.isPending 

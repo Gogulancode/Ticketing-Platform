@@ -90,7 +90,7 @@ const TagModal: React.FC<TagModalProps> = ({ isOpen, onClose, tag, subcategories
         <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <TagIcon className="h-5 w-5 text-blue-600" />
+              <TagIcon className="h-5 w-5 text-gray-600" />
               {tag ? "Edit Tag" : "Create New Tag"}
             </h3>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -110,10 +110,10 @@ const TagModal: React.FC<TagModalProps> = ({ isOpen, onClose, tag, subcategories
                   maxLength: { value: 100, message: "Tag name cannot exceed 100 characters" },
                 })}
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="e.g., password, login, reset, hardware"
               />
-              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
+              {errors.name && <p className="mt-1 text-sm text-gray-600">{errors.name.message}</p>}
             </div>
 
             <div>
@@ -125,7 +125,7 @@ const TagModal: React.FC<TagModalProps> = ({ isOpen, onClose, tag, subcategories
                   valueAsNumber: true,
                   validate: (value) => value > 0 || "Please select a subcategory",
                 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value={0}>Select subcategory</option>
                 {subcategories.map((sub) => (
@@ -135,7 +135,7 @@ const TagModal: React.FC<TagModalProps> = ({ isOpen, onClose, tag, subcategories
                 ))}
               </select>
               {errors.subCategoryId && (
-                <p className="mt-1 text-sm text-red-600">{errors.subCategoryId.message}</p>
+                <p className="mt-1 text-sm text-gray-600">{errors.subCategoryId.message}</p>
               )}
             </div>
 
@@ -144,7 +144,7 @@ const TagModal: React.FC<TagModalProps> = ({ isOpen, onClose, tag, subcategories
                 <input
                   {...register("isActive")}
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                 />
                 <span className="ml-2 text-sm text-gray-700">Active tag</span>
               </label>
@@ -162,7 +162,7 @@ const TagModal: React.FC<TagModalProps> = ({ isOpen, onClose, tag, subcategories
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:opacity-50"
               >
                 {isSubmitting ? "Saving..." : tag ? "Update" : "Create"}
               </button>

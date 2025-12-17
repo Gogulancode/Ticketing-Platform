@@ -96,7 +96,7 @@ const CustomFieldsSection: React.FC<CustomFieldsSectionProps> = ({
                         <textarea
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                           rows={3}
                         />
                         <div className="flex items-center space-x-2">
@@ -132,8 +132,8 @@ const CustomFieldsSection: React.FC<CustomFieldsSectionProps> = ({
             ))}
           </div>
           
-          <div className="mt-4 p-3 bg-blue-50 rounded-md">
-            <p className="text-xs text-blue-700">
+          <div className="mt-4 p-3 bg-red-50 rounded-md">
+            <p className="text-xs text-gray-700">
               💡 Tip: Click on any field value to edit it. Custom fields help track additional information specific to your workflow.
             </p>
           </div>

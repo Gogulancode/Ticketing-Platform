@@ -30,10 +30,10 @@ const MergedTicketsUI: React.FC<MergedTicketsUIProps> = ({ mergedInfo, onNavigat
   }
 
   return (
-    <div className="border-l-4 border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 mx-6 my-4 rounded-lg shadow-sm">
+    <div className="border-l-4 border-red-500 bg-gradient-to-r from-red-50 to-red-50 mx-6 my-4 rounded-lg shadow-sm">
       <div className="p-6">
         <div className="flex items-center mb-4">
-          <GitMerge className="h-6 w-6 text-blue-600 mr-3" />
+          <GitMerge className="h-6 w-6 text-gray-600 mr-3" />
           <h3 className="text-lg font-semibold text-gray-900">Ticket Merge Information</h3>
         </div>
 
@@ -70,7 +70,7 @@ const MergedTicketsUI: React.FC<MergedTicketsUIProps> = ({ mergedInfo, onNavigat
                               <button
                                 key={ticketId}
                                 onClick={() => onNavigateToTicket?.(ticketId)}
-                                className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full hover:bg-blue-200 transition-colors"
+                                className="inline-flex items-center px-3 py-1 bg-red-100 text-gray-800 text-sm font-medium rounded-full hover:bg-red-200 transition-colors"
                               >
                                 #{ticketId}
                                 <ExternalLink className="h-3 w-3 ml-1" />
@@ -135,7 +135,7 @@ const MergedTicketsUI: React.FC<MergedTicketsUIProps> = ({ mergedInfo, onNavigat
                   <div className="mt-1">
                     <button
                       onClick={() => onNavigateToTicket?.(mergedInfo.wasMergedInto!.primaryTicketId)}
-                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                      className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
                     >
                       #{mergedInfo.wasMergedInto.primaryTicketPublicId}
                       <ExternalLink className="h-4 w-4 ml-2" />

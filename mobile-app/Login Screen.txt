@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+
+<html class="" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Agent Login Screen</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">tailwind.config = {theme: {extend: {colors: {primary: "#1337ec", "background-light": "#f6f6f8", "background-dark": "#101322"}, fontFamily: {display: "Inter"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}}}};</script>
+<style>
+        body {
+          min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light font-display min-h-screen flex flex-col justify-center overflow-x-hidden antialiased text-[#111422]">
+<div class="relative flex w-full max-w-md mx-auto flex-col h-full min-h-screen justify-center p-6">
+<div class="flex flex-col items-center gap-6 mb-10">
+<div class="h-20 w-20 bg-primary/10 rounded-2xl flex items-center justify-center shadow-sm backdrop-blur-sm border border-primary/5">
+<span class="material-symbols-outlined text-primary" style="font-size: 40px;">support_agent</span>
+</div>
+<div class="text-center space-y-1">
+<h1 class="text-[#111422] tracking-tight text-3xl font-bold leading-tight">Welcome Back</h1>
+<p class="text-[#64748b] text-base font-normal">Log in to your agent workspace</p>
+</div>
+</div>
+<div class="w-full flex flex-col gap-6">
+<div class="flex flex-col gap-2">
+<label class="text-[#111422] text-sm font-semibold leading-normal ml-1">Email or Username</label>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111422] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dce0e5] bg-white focus:border-primary h-14 placeholder:text-gray-400 px-4 text-base font-normal leading-normal transition-all duration-200 shadow-sm" placeholder="Enter your email or username" type="text"/>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center ml-1">
+<label class="text-[#111422] text-sm font-semibold leading-normal">Password</label>
+<a class="text-primary text-sm font-semibold hover:underline" href="#">Forgot Password?</a>
+</div>
+<div class="relative flex w-full items-center">
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111422] focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dce0e5] bg-white focus:border-primary h-14 placeholder:text-gray-400 px-4 pr-12 text-base font-normal leading-normal transition-all duration-200 shadow-sm" placeholder="••••••••" type="password"/>
+<button class="absolute right-0 top-0 bottom-0 px-4 text-gray-400 flex items-center justify-center hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-size: 24px;">visibility_off</span>
+</button>
+</div>
+</div>
+<button class="flex w-full items-center justify-center rounded-xl bg-primary py-4 px-4 text-white text-base font-bold shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:shadow-blue-500/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all duration-200 mt-2">
+                Log In
+            </button>
+<button class="flex w-full items-center justify-center gap-3 rounded-xl border border-[#dce0e5] bg-white py-4 px-4 text-[#111422] text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-gray-600" style="font-size: 22px;">face</span>
+                Login with Face ID
+            </button>
+</div>
+<div class="relative flex py-8 items-center">
+<div class="flex-grow border-t border-[#dce0e5]"></div>
+<span class="flex-shrink-0 mx-4 text-gray-400 text-xs font-semibold uppercase tracking-wider">Or continue with</span>
+<div class="flex-grow border-t border-[#dce0e5]"></div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<button class="flex items-center justify-center gap-3 rounded-xl bg-white border border-[#dce0e5] py-3 px-4 hover:bg-gray-50 transition-all shadow-sm">
+<img alt="Google Logo" class="w-5 h-5" data-alt="Google G logo in color" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwgmHBNdUwql2jSt4usqnzkT4cgYL3poXrc1RK_-nCz4vBrqMBtsLNM5CNq-jhVyCq4juHOuyMQBqoyMf9uEyCusiGWmt_-RQKVIuwp-ZSVT4QyTHBCtio3aDxEpJU1yiOntqjriyZUy3564FuEsszwfELEXFCsCEpARFrhgwVqDKjzHdWFmw5hBhXBDpgpq07vsfxVcOiBh-7HwNLt-K2dFWRtSkLJr714opB4dE-MEqifmSCTOVVz5Nb7FTXywev2cIpkOBgOG0"/>
+<span class="text-[#111422] text-sm font-semibold">Google</span>
+</button>
+<button class="flex items-center justify-center gap-3 rounded-xl bg-white border border-[#dce0e5] py-3 px-4 hover:bg-gray-50 transition-all shadow-sm">
+<span class="material-symbols-outlined text-[#111422]" style="font-size: 24px;">domain</span>
+<span class="text-[#111422] text-sm font-semibold">SSO</span>
+</button>
+</div>
+<div class="mt-auto pt-8 text-center pb-4">
+<p class="text-[#64748b] text-sm font-medium">
+                Don't have an account? <a class="text-primary hover:underline font-bold" href="#">Contact Admin</a>
+</p>
+</div>
+</div>
+</body></html>

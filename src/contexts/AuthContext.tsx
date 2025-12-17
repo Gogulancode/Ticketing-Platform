@@ -25,6 +25,9 @@ export interface UserPermissions {
   platformRoles: string[];
   erpRoles: string[];
   permissions: Permission[];
+  // Category Admin support
+  isCategoryAdmin?: boolean;
+  categoryAdminCategoryIds?: number[];
 }
 
 interface AuthContextType {
@@ -33,6 +36,8 @@ interface AuthContextType {
   hasRole: (roleName: string) => boolean;
   isAdmin: () => boolean;
   isSuperAdmin: () => boolean;
+  isCategoryAdmin: () => boolean;
+  getCategoryAdminCategoryIds: () => number[];
   login: () => Promise<void>;
   logout: () => void;
   loading: boolean;
@@ -136,7 +141,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const userData = await response.json();
       console.log('✅ User fetched from API:', userData.email);
       
-      return mapUserDtoToPermissions(userData);
+      const userPermissions = mapUserDtoToPermissions(userData);
+      
+      // Check if user is a category admin
+      try {
+        const categoryAdminResponse = await fetch(
+          `${API_CONFIG.BASE_URL}/tickets/settings/category-admins/check/${userData.id}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+        
+        if (categoryAdminResponse.ok) {
+          const categoryAdminData = await categoryAdminResponse.json();
+          userPermissions.isCategoryAdmin = categoryAdminData.isCategoryAdmin;
+          userPermissions.categoryAdminCategoryIds = categoryAdminData.categoryIds || [];
+          console.log('🛡️ Category admin status:', categoryAdminData.isCategoryAdmin, 'Categories:', categoryAdminData.categoryIds);
+        }
+      } catch (categoryAdminError) {
+        console.warn('Could not fetch category admin status:', categoryAdminError);
+        userPermissions.isCategoryAdmin = false;
+        userPermissions.categoryAdminCategoryIds = [];
+      }
+      
+      return userPermissions;
     } catch (error) {
       console.error('Error fetching user permissions:', error);
       return null;
@@ -214,6 +244,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const isSuperAdmin = (): boolean => {
     return hasRole('SuperAdmin') || hasRole('Superadmin');
+  };
+
+  const isCategoryAdmin = (): boolean => {
+    return user?.isCategoryAdmin === true;
+  };
+
+  const getCategoryAdminCategoryIds = (): number[] => {
+    return user?.categoryAdminCategoryIds || [];
   };
 
   const login = useCallback(async () => {
@@ -305,6 +343,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     hasRole,
     isAdmin,
     isSuperAdmin,
+    isCategoryAdmin,
+    getCategoryAdminCategoryIds,
     login,
     logout,
     loading

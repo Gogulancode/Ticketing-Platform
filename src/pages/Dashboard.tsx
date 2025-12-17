@@ -117,14 +117,14 @@ const Dashboard: React.FC = () => {
           Welcome back, {currentUser?.name || 'User'}!
         </h1>
         <p className="text-gray-600">
-          You're logged in as <span className="font-medium text-blue-600">{currentUser?.role || 'User'}</span>.
+          You're logged in as <span className="font-medium text-gray-600">{currentUser?.role || 'User'}</span>.
           Continue your training journey or explore new modules.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h3 className="font-medium text-blue-900">Completed Modules</h3>
-            <p className="text-2xl font-bold text-blue-600 mt-1">{completedModules}</p>
+          <div className="bg-red-50 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900">Completed Modules</h3>
+            <p className="text-2xl font-bold text-gray-600 mt-1">{completedModules}</p>
           </div>
           <div className="bg-orange-50 rounded-lg p-4">
             <h3 className="font-medium text-orange-900">In Progress</h3>
@@ -154,9 +154,9 @@ const Dashboard: React.FC = () => {
                 className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 bg-blue-100 rounded-lg">
+                  <div className="p-3 bg-red-100 rounded-lg">
                     {IconComponent && (
-                      <IconComponent className="h-6 w-6 text-blue-600" />
+                      <IconComponent className="h-6 w-6 text-gray-600" />
                     )}
                   </div>
                   {module.progress >= 100 && (
@@ -176,7 +176,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      className="bg-red-600 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${module.progress}%` }}
                     />
                   </div>
@@ -210,7 +210,7 @@ const Dashboard: React.FC = () => {
                         <h3 className="font-medium text-gray-900">{upload.title}</h3>
                         <p className="text-sm text-gray-600">{upload.description}</p>
                         <div className="flex items-center space-x-4 mt-1">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                          <span className="px-2 py-1 bg-red-100 text-gray-800 text-xs font-medium rounded-full">
                             {upload.module}
                           </span>
                           <span className="text-xs text-gray-500">
@@ -219,7 +219,7 @@ const Dashboard: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <button className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
+                    <button className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 hover:bg-red-50 rounded-lg transition-colors">
                       View
                     </button>
                   </div>

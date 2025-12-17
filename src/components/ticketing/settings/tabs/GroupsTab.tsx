@@ -206,7 +206,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
         <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <UserGroupIcon className="h-5 w-5 text-blue-600" />
+              <UserGroupIcon className="h-5 w-5 text-gray-600" />
               {group ? 'Edit Agent Group' : 'Create Agent Group'}
             </h3>
             <button
@@ -230,11 +230,11 @@ const GroupModal: React.FC<GroupModalProps> = ({
                   <input
                     {...register('groupName')}
                     type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     placeholder="e.g., Technical Support Team, Billing Specialists"
                   />
                   {errors.groupName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.groupName.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.groupName.message}</p>
                   )}
                 </div>
 
@@ -245,11 +245,11 @@ const GroupModal: React.FC<GroupModalProps> = ({
                   <textarea
                     {...register('description')}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     placeholder="Describe the group's responsibilities and scope"
                   />
                   {errors.description && (
-                    <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.description.message}</p>
                   )}
                 </div>
 
@@ -259,7 +259,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
                   </label>
                   <select
                     {...register('categoryId', { valueAsNumber: true })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   >
                     <option value={0}>Select category</option>
                     {categories.map((category) => (
@@ -269,7 +269,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
                     ))}
                   </select>
                   {errors.categoryId && (
-                    <p className="mt-1 text-sm text-red-600">{errors.categoryId.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.categoryId.message}</p>
                   )}
                 </div>
 
@@ -279,7 +279,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
                   </label>
                   <select
                     {...register('subcategoryId', { valueAsNumber: true })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     disabled={!watchCategoryId || filteredSubcategories.length === 0}
                   >
                     <option value={0}>No specific subcategory</option>
@@ -290,7 +290,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
                     ))}
                   </select>
                   {errors.subcategoryId && (
-                    <p className="mt-1 text-sm text-red-600">{errors.subcategoryId.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.subcategoryId.message}</p>
                   )}
                 </div>
               </div>
@@ -310,10 +310,10 @@ const GroupModal: React.FC<GroupModalProps> = ({
                     type="number"
                     min="1"
                     max="100"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   />
                   {errors.maxTicketsPerAgent && (
-                    <p className="mt-1 text-sm text-red-600">{errors.maxTicketsPerAgent.message}</p>
+                    <p className="mt-1 text-sm text-gray-600">{errors.maxTicketsPerAgent.message}</p>
                   )}
                 </div>
 
@@ -323,7 +323,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
                       <input
                         {...register('autoAssignmentEnabled')}
                         type="checkbox"
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                       />
                       <span className="ml-2 text-sm text-gray-700">Enable Auto-Assignment</span>
                     </label>
@@ -337,7 +337,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
                       <input
                         {...register('isActive')}
                         type="checkbox"
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                       />
                       <span className="ml-2 text-sm text-gray-700">Active Group</span>
                     </label>
@@ -364,7 +364,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
                   type="text"
                   value={agentSearch}
                   onChange={(e) => setAgentSearch(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   placeholder="Search agents by name, email, or department..."
                 />
               </div>
@@ -386,7 +386,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
                           type="checkbox"
                           checked={selectedAgents.has(agent.id)}
                           onChange={() => handleAgentToggle(agent.id)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                         />
                         <div className="ml-3 flex-1">
                           <div className="flex items-center justify-between">
@@ -395,7 +395,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
                               <div className="text-sm text-gray-500">{agent.email}</div>
                             </div>
                             {agent.department && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-gray-800">
                                 {agent.department}
                               </span>
                             )}
@@ -408,7 +408,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
               </div>
 
               {errors.assignedAgentIds && (
-                <p className="mt-1 text-sm text-red-600">{errors.assignedAgentIds.message}</p>
+                <p className="mt-1 text-sm text-gray-600">{errors.assignedAgentIds.message}</p>
               )}
             </div>
 
@@ -424,7 +424,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Saving...' : (group ? 'Update Group' : 'Create Group')}
               </button>
@@ -545,10 +545,10 @@ const GroupsTab: React.FC = () => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <div className="text-red-600 mb-4">Failed to load agent groups</div>
+        <div className="text-gray-600 mb-4">Failed to load agent groups</div>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
         >
           Retry
         </button>
@@ -563,7 +563,7 @@ const GroupsTab: React.FC = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
           >
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Create Agent Group
@@ -581,7 +581,7 @@ const GroupsTab: React.FC = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm"
               placeholder="Search groups..."
             />
           </div>
@@ -592,7 +592,7 @@ const GroupsTab: React.FC = () => {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm"
             >
               <option value={0}>All Categories</option>
               {categories.map((category) => (
@@ -609,7 +609,7 @@ const GroupsTab: React.FC = () => {
               type="checkbox"
               checked={showInactive}
               onChange={(e) => setShowInactive(e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+              className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded cursor-pointer"
             />
             <span>Show inactive</span>
           </label>
@@ -617,16 +617,16 @@ const GroupsTab: React.FC = () => {
       </div>
 
       {/* Info Banner */}
-      <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+      <div className="bg-red-50 border-l-4 border-red-400 p-4">
         <div className="flex">
           <div className="flex-shrink-0">
-            <UserGroupIcon className="h-5 w-5 text-blue-400" />
+            <UserGroupIcon className="h-5 w-5 text-gray-400" />
           </div>
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">
+            <h3 className="text-sm font-medium text-gray-800">
               Agent Group Management
             </h3>
-            <div className="mt-2 text-sm text-blue-700">
+            <div className="mt-2 text-sm text-gray-700">
               <p className="mb-2">Organize agents into specialized groups for efficient ticket handling and automatic assignment.</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Create category-specific agent groups with defined responsibilities</li>
@@ -643,7 +643,7 @@ const GroupsTab: React.FC = () => {
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         {isLoading ? (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
             <p className="mt-2 text-gray-500">Loading agent groups...</p>
           </div>
         ) : filteredGroups.length === 0 ? (
@@ -657,7 +657,7 @@ const GroupsTab: React.FC = () => {
             </p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
             >
               <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
               Create Agent Group
@@ -670,7 +670,7 @@ const GroupsTab: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
-                      <UserGroupIcon className="h-8 w-8 text-blue-600" />
+                      <UserGroupIcon className="h-8 w-8 text-gray-600" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center space-x-2">
@@ -680,12 +680,12 @@ const GroupsTab: React.FC = () => {
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           group.isActive 
                             ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
+                            : 'bg-red-100 text-gray-800'
                         }`}>
                           {group.isActive ? 'Active' : 'Inactive'}
                         </span>
                         {group.autoAssignmentEnabled && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-gray-800">
                             Auto-Assign
                           </span>
                         )}
@@ -736,14 +736,14 @@ const GroupsTab: React.FC = () => {
                     {/* Actions */}
                     <button
                       onClick={() => handleEdit(group)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="text-gray-600 hover:text-gray-900"
                       title="Edit group"
                     >
                       <PencilIcon className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => handleDelete(group.id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-gray-600 hover:text-gray-900"
                       title="Delete group"
                       disabled={deleteMutation.isPending}
                     >
@@ -760,12 +760,12 @@ const GroupsTab: React.FC = () => {
       {/* Statistics */}
       <div className="bg-white p-6 rounded-lg shadow">
         <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-          <ChartBarIcon className="h-5 w-5 text-blue-600" />
+          <ChartBarIcon className="h-5 w-5 text-gray-600" />
           Group Statistics
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{visibleGroups.length}</div>
+            <div className="text-2xl font-bold text-gray-600">{visibleGroups.length}</div>
             <div className="text-sm text-gray-500">Total Groups</div>
           </div>
           <div className="text-center">

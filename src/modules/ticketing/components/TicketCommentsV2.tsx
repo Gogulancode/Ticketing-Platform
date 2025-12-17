@@ -78,7 +78,7 @@ const TicketCommentsV2: React.FC<TicketCommentsV2Props> = ({ ticketId, isAgent =
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center gap-2 mb-4">
-        <MessageSquare className="h-5 w-5 text-blue-600" />
+        <MessageSquare className="h-5 w-5 text-gray-600" />
         <h3 className="text-lg font-semibold text-gray-900">
           Comments ({filteredComments.length})
         </h3>
@@ -86,7 +86,7 @@ const TicketCommentsV2: React.FC<TicketCommentsV2Props> = ({ ticketId, isAgent =
 
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-md">
-          <p className="text-red-700 text-sm">{error}</p>
+          <p className="text-gray-700 text-sm">{error}</p>
         </div>
       )}
 
@@ -94,7 +94,7 @@ const TicketCommentsV2: React.FC<TicketCommentsV2Props> = ({ ticketId, isAgent =
       <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
         {loading ? (
           <div className="text-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
             <p className="text-gray-500 mt-2">Loading comments...</p>
           </div>
         ) : filteredComments.length === 0 ? (
@@ -143,7 +143,7 @@ const TicketCommentsV2: React.FC<TicketCommentsV2Props> = ({ ticketId, isAgent =
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Write a comment..."
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
             rows={3}
           />
           
@@ -154,7 +154,7 @@ const TicketCommentsV2: React.FC<TicketCommentsV2Props> = ({ ticketId, isAgent =
                 id="internal-comment"
                 checked={isInternal}
                 onChange={(e) => setIsInternal(e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-gray-300 text-gray-600 focus:ring-red-500"
               />
               <label htmlFor="internal-comment" className="text-sm text-gray-700 flex items-center gap-1">
                 <EyeOff className="h-4 w-4" />
@@ -167,7 +167,7 @@ const TicketCommentsV2: React.FC<TicketCommentsV2Props> = ({ ticketId, isAgent =
             <button
               onClick={handleAddComment}
               disabled={!newComment.trim() || addingComment}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {addingComment ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />

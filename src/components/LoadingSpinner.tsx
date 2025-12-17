@@ -1,5 +1,5 @@
 import React from 'react';
-import AnimatedBusinessHubLogo from './AnimatedBusinessHubLogo';
+import AnimatedNivoLogo from './AnimatedNivoLogo';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -14,7 +14,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center space-y-4 ${className}`}>
-      <AnimatedBusinessHubLogo size={size} />
+      <AnimatedNivoLogo size={size} />
       {message && (
         <p className="text-gray-600 text-sm font-medium animate-pulse">
           {message}

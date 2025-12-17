@@ -9,8 +9,14 @@ import {
   ListBulletIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  ClockIcon
+  ClockIcon,
+  BoltIcon,
+  BuildingOffice2Icon,
+  SparklesIcon,
+  PhotoIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
+import { API_CONFIG } from '@/config/api';
 
 // Tab Components (will be created separately)
 import TagsTab from '@components/ticketing/settings/tabs/TagsTab';
@@ -18,23 +24,35 @@ import EmailConfigTab from '@components/ticketing/settings/tabs/EmailConfigTab';
 import CustomFieldsTab from '@components/ticketing/settings/tabs/CustomFieldsTab';
 import GroupsTab from '@components/ticketing/settings/tabs/GroupsTab';
 import SlaTab from '@components/Settings/SlaTab';
+import QuickTemplatesTab from '@components/ticketing/settings/tabs/QuickTemplatesTab';
+import BranchesTab from '@components/ticketing/settings/tabs/BranchesTab';
+import AISettingsTab from '@components/ticketing/settings/tabs/AISettingsTab';
+import BrandingTab from '@components/ticketing/settings/tabs/BrandingTab';
 
 // Existing components
 import CategoriesTab from '@components/ticketing/settings/tabs/CategoriesTab';
 import SubCategoriesTab from '@components/ticketing/settings/tabs/SubCategoriesTab';
 import PrioritiesTab from '@components/ticketing/settings/tabs/PrioritiesTab';
 import StatusesTab from '@components/ticketing/settings/tabs/StatusesTab';
+import DepartmentsTab from '@components/ticketing/settings/tabs/DepartmentsTab';
+import CategoryAdminsTab from '@components/ticketing/settings/tabs/CategoryAdminsTab';
 
 export type SettingsTab = 
   | 'categories'
   | 'subcategories' 
+  | 'departments'
+  | 'category-admins'
   | 'priorities'
   | 'statuses'
   | 'tags'
   | 'email-config'
   | 'ticket-fields'
   | 'groups'
-  | 'sla';
+  | 'sla'
+  | 'quick-templates'
+  | 'branches'
+  | 'ai'
+  | 'branding';
 
 interface TabConfig {
   id: SettingsTab;
@@ -62,6 +80,21 @@ const tabConfigs: TabConfig[] = [
     component: SubCategoriesTab,
   },
   {
+    id: 'departments',
+    name: 'Departments',
+    description: 'Manage organization departments',
+    icon: BuildingOffice2Icon,
+    component: DepartmentsTab,
+  },
+  {
+    id: 'category-admins',
+    name: 'Category Admins',
+    description: 'Assign users to manage specific categories',
+    icon: ShieldCheckIcon,
+    component: CategoryAdminsTab,
+    isNew: true,
+  },
+  {
     id: 'priorities',
     name: 'Priorities',
     description: 'Configure priority levels',
@@ -81,7 +114,6 @@ const tabConfigs: TabConfig[] = [
     description: 'Manage ticket tags for better organization',
     icon: TagIcon,
     component: TagsTab,
-    isNew: true,
   },
   {
     id: 'email-config',
@@ -89,7 +121,6 @@ const tabConfigs: TabConfig[] = [
     description: 'Configure Microsoft Graph email processing',
     icon: AtSymbolIcon,
     component: EmailConfigTab,
-    isNew: true,
   },
   {
     id: 'ticket-fields',
@@ -97,7 +128,6 @@ const tabConfigs: TabConfig[] = [
     description: 'Create dynamic form fields for tickets',
     icon: DocumentIcon,
     component: CustomFieldsTab,
-    isNew: true,
   },
   {
     id: 'groups',
@@ -105,7 +135,6 @@ const tabConfigs: TabConfig[] = [
     description: 'Manage agent groups and assignments',
     icon: UserGroupIcon,
     component: GroupsTab,
-    isNew: true,
   },
   {
     id: 'sla',
@@ -113,6 +142,36 @@ const tabConfigs: TabConfig[] = [
     description: 'Configure SLA targets and escalation rules',
     icon: ClockIcon,
     component: SlaTab,
+  },
+  {
+    id: 'quick-templates',
+    name: 'Quick Templates',
+    description: 'Manage quick start templates for ticket creation',
+    icon: BoltIcon,
+    component: QuickTemplatesTab,
+  },
+  {
+    id: 'branches',
+    name: 'Branches',
+    description: 'Manage organization branches/locations for analytics',
+    icon: BuildingOffice2Icon,
+    component: BranchesTab,
+    isNew: true,
+  },
+  {
+    id: 'ai',
+    name: 'AI Assistant',
+    description: 'Configure AI-powered ticket assistance features',
+    icon: SparklesIcon,
+    component: AISettingsTab,
+    isNew: true,
+  },
+  {
+    id: 'branding',
+    name: 'Branding',
+    description: 'Customize logo, login page content and theme colors',
+    icon: PhotoIcon,
+    component: BrandingTab,
     isNew: true,
   },
 ];
@@ -136,7 +195,7 @@ const AdvancedSettingsTabs: React.FC<AdvancedSettingsTabsProps> = ({
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="min-w-0 flex-1">
             <h1 className="text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Cog6ToothIcon className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600 flex-shrink-0" />
+              <Cog6ToothIcon className="h-6 w-6 lg:h-8 lg:w-8 text-gray-600 flex-shrink-0" />
               <span className="truncate">Ticketing System Settings</span>
             </h1>
             <p className="mt-1 text-sm text-gray-500">
@@ -146,9 +205,6 @@ const AdvancedSettingsTabs: React.FC<AdvancedSettingsTabsProps> = ({
           <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
               Production Ready
-            </span>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {tabConfigs.filter(t => t.isNew).length} New Features
             </span>
           </div>
         </div>
@@ -164,7 +220,7 @@ const AdvancedSettingsTabs: React.FC<AdvancedSettingsTabsProps> = ({
               className={`
                 group inline-flex items-center py-4 px-2 lg:px-1 border-b-2 font-medium text-sm transition-colors duration-200 flex-shrink-0
                 ${activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-red-500 text-gray-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }
               `}
@@ -173,7 +229,7 @@ const AdvancedSettingsTabs: React.FC<AdvancedSettingsTabsProps> = ({
                 className={`
                   -ml-0.5 mr-2 h-5 w-5 transition-colors duration-200
                   ${activeTab === tab.id
-                    ? 'text-blue-500'
+                    ? 'text-gray-500'
                     : 'text-gray-400 group-hover:text-gray-500'
                   }
                 `}
@@ -200,20 +256,20 @@ const AdvancedSettingsTabs: React.FC<AdvancedSettingsTabsProps> = ({
         {activeTabConfig && (
           <div className="space-y-4">
             {/* Tab Description */}
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-md">
+            <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-md">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <activeTabConfig.icon className="h-5 w-5 text-blue-400" aria-hidden="true" />
+                  <activeTabConfig.icon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 </div>
                 <div className="ml-3 min-w-0 flex-1">
-                  <h3 className="text-sm font-medium text-blue-800">
+                  <h3 className="text-sm font-medium text-gray-800">
                     {activeTabConfig.name}
                   </h3>
-                  <p className="mt-1 text-sm text-blue-700">
+                  <p className="mt-1 text-sm text-gray-700">
                     {activeTabConfig.description}
                   </p>
                   {activeTabConfig.isNew && (
-                    <p className="mt-1 text-xs text-blue-600 font-medium">
+                    <p className="mt-1 text-xs text-gray-600 font-medium">
                       ✨ This is a new advanced feature with full CRUD operations and real-time updates
                     </p>
                   )}
@@ -244,14 +300,14 @@ const AdvancedSettingsTabs: React.FC<AdvancedSettingsTabsProps> = ({
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 text-sm text-gray-500">
           <div className="flex flex-wrap items-center gap-4">
             <span>API Status: <span className="text-green-600 font-medium">Connected</span></span>
-            <span className="hidden sm:inline">Server: <span className="font-medium">localhost:5015</span></span>
+            <span className="hidden sm:inline">Server: <span className="font-medium">localhost:5016</span></span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <a 
-              href={`${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5015'}/swagger`} 
+              href={`${API_CONFIG.BASE_URL.replace('/api', '')}/swagger`} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-500 font-medium"
+              className="text-gray-600 hover:text-gray-500 font-medium"
             >
               API Docs
             </a>

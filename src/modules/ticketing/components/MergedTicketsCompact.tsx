@@ -58,15 +58,15 @@ const MergedTicketsCompact: React.FC<MergedTicketsCompactProps> = ({
   
   return (
     <>
-      <div className="bg-blue-50 border-l-4 border-blue-500">
+      <div className="bg-red-50 border-l-4 border-red-500">
         {/* Compact Header - Always Visible */}
         <div 
-          className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-blue-100 transition-colors"
+          className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-red-100 transition-colors"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center space-x-2">
-            <GitMerge className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-800">
+            <GitMerge className="h-4 w-4 text-gray-600" />
+            <span className="text-sm font-medium text-gray-800">
               {mergedInfo.wasMergedInto 
                 ? `Merged into Ticket #${mergedInfo.wasMergedInto.primaryTicketPublicId}`
                 : `Contains ${mergedInfo.mergedTickets?.length} merged ticket(s)`
@@ -78,7 +78,7 @@ const MergedTicketsCompact: React.FC<MergedTicketsCompactProps> = ({
                   e.stopPropagation();
                   onNavigateToTicket?.(mergedInfo.wasMergedInto!.primaryTicketId);
                 }}
-                className="inline-flex items-center px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center px-2 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 transition-colors"
               >
                 View Primary
                 <ExternalLink className="h-3 w-3 ml-1" />
@@ -86,19 +86,19 @@ const MergedTicketsCompact: React.FC<MergedTicketsCompactProps> = ({
             )}
           </div>
           <div className="flex items-center space-x-2">
-            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+            <span className="text-xs text-gray-600 bg-red-100 px-2 py-1 rounded">
               {hasMergedInfo ? 'Merged' : 'Normal'}
             </span>
             {isExpanded ? 
-              <ChevronDown className="h-4 w-4 text-blue-600" /> : 
-              <ChevronRight className="h-4 w-4 text-blue-600" />
+              <ChevronDown className="h-4 w-4 text-gray-600" /> : 
+              <ChevronRight className="h-4 w-4 text-gray-600" />
             }
           </div>
         </div>
 
         {/* Expanded Details */}
         {isExpanded && (
-          <div className="px-4 pb-4 bg-white border-t border-blue-200">
+          <div className="px-4 pb-4 bg-white border-t border-red-200">
             {/* This ticket has merged other tickets */}
             {mergedInfo.hasMergedTickets && (
               <div className="mb-4">
@@ -109,7 +109,7 @@ const MergedTicketsCompact: React.FC<MergedTicketsCompactProps> = ({
                   </h4>
                   <button
                     onClick={() => setShowViewer(true)}
-                    className="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+                    className="inline-flex items-center px-3 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 transition-colors"
                   >
                     <Eye className="h-3 w-3 mr-1" />
                     View All Tickets
@@ -127,7 +127,7 @@ const MergedTicketsCompact: React.FC<MergedTicketsCompactProps> = ({
                               <button
                                 key={ticketId}
                                 onClick={() => onNavigateToTicket?.(ticketId)}
-                                className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded hover:bg-blue-200 transition-colors"
+                                className="inline-flex items-center px-2 py-1 bg-red-100 text-gray-800 text-xs rounded hover:bg-red-200 transition-colors"
                               >
                                 #{ticketId}
                                 <ExternalLink className="h-3 w-3 ml-1" />
@@ -175,7 +175,7 @@ const MergedTicketsCompact: React.FC<MergedTicketsCompactProps> = ({
                     <div className="mt-1">
                       <button
                         onClick={() => onNavigateToTicket?.(mergedInfo.wasMergedInto!.primaryTicketId)}
-                        className="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                        className="inline-flex items-center px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
                       >
                         #{mergedInfo.wasMergedInto.primaryTicketPublicId}
                         <ExternalLink className="h-3 w-3 ml-1" />

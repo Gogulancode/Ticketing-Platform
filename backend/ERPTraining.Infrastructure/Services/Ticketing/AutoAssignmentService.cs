@@ -305,15 +305,64 @@ public class AutoAssignmentService : IAutoAssignmentService
         return options;
     }
 
+    /// <summary>
+    /// Gets all eligible agents from both direct rule assignments AND from groups linked to the rule.
+    /// Only returns agents that are active AND available AND (either directly in RuleAgents OR in an active group with active membership).
+    /// </summary>
+    private async Task<List<Agent>> GetEligibleAgentsForRuleAsync(AutoAssignmentRule rule)
+    {
+        var eligibleAgentIds = new HashSet<int>();
+
+        // 1. Get agents directly assigned to the rule
+        var directAgentIds = rule.RuleAgents
+            .Where(ra => ra.IsActive)
+            .Select(ra => ra.AgentId)
+            .ToList();
+        
+        foreach (var agentId in directAgentIds)
+        {
+            eligibleAgentIds.Add(agentId);
+        }
+
+        // 2. Get agents from groups linked to the rule
+        if (rule.RuleGroups != null && rule.RuleGroups.Any())
+        {
+            var groupIds = rule.RuleGroups.Select(rg => rg.GroupId).ToList();
+            
+            // Get agents from active groups with active membership
+            var groupAgentIds = await _context.TicketGroupAgents
+                .Include(tga => tga.TicketGroup)
+                .Where(tga => groupIds.Contains(tga.TicketGroupId))
+                .Where(tga => tga.IsActive) // Agent membership is active
+                .Where(tga => tga.TicketGroup.IsActive && !tga.TicketGroup.IsDeleted) // Group is active and not deleted
+                .Where(tga => tga.TicketGroup.AutoAssignmentEnabled) // Group has auto-assignment enabled
+                .Select(tga => tga.AgentId)
+                .ToListAsync();
+            
+            foreach (var agentId in groupAgentIds)
+            {
+                eligibleAgentIds.Add(agentId);
+            }
+        }
+
+        // 3. Fetch actual agent entities that are active (don't filter by AvailabilityStatus - often empty/null)
+        var agents = await _context.Agents
+            .Where(a => eligibleAgentIds.Contains(a.Id))
+            .Where(a => a.IsActive)
+            .ToListAsync();
+
+        _logger.LogDebug("Rule {RuleId} ({RuleName}): Found {Count} eligible agents from {DirectCount} direct assignments and {GroupCount} groups",
+            rule.Id, rule.Name, agents.Count, directAgentIds.Count, rule.RuleGroups?.Count ?? 0);
+
+        return agents;
+    }
+
     private async Task<List<AssignmentOption>> GetRoundRobinOptionsAsync(AutoAssignmentRule rule)
     {
         var options = new List<AssignmentOption>();
 
-        // Get agent assignments for round robin
-        var agents = await _context.Agents
-            .Where(a => rule.RuleAgents.Any(ra => ra.AgentId == a.Id && ra.IsActive))
-            .Where(a => a.IsActive && a.AvailabilityStatus == "Available")
-            .ToListAsync();
+        // Get eligible agents from both direct assignments AND groups
+        var agents = await GetEligibleAgentsForRuleAsync(rule);
 
         if (agents.Any())
         {
@@ -349,12 +398,12 @@ public class AutoAssignmentService : IAutoAssignmentService
     {
         var options = new List<AssignmentOption>();
 
-        var agents = await _context.Agents
-            .Where(a => rule.RuleAgents.Any(ra => ra.AgentId == a.Id && ra.IsActive))
-            .Where(a => a.IsActive && a.AvailabilityStatus == "Available")
+        // Get eligible agents from both direct assignments AND groups
+        var allAgents = await GetEligibleAgentsForRuleAsync(rule);
+        var agents = allAgents
             .OrderBy(a => a.CurrentTicketCount)
             .Take(3) // Top 3 least busy
-            .ToListAsync();
+            .ToList();
 
         int score = 95;
         foreach (var agent in agents)
@@ -380,11 +429,15 @@ public class AutoAssignmentService : IAutoAssignmentService
     {
         var options = new List<AssignmentOption>();
 
-        // Get agents with assignments in the same category/subcategory
+        // Get all eligible agents from both direct assignments AND groups
+        var eligibleAgents = await GetEligibleAgentsForRuleAsync(rule);
+        var eligibleAgentIds = eligibleAgents.Select(a => a.Id).ToList();
+
+        // Get agents with assignments in the same category/subcategory (from eligible agents only)
         var categoryAgents = await _context.TicketAssignments
             .Include(ta => ta.Agent)
             .Where(ta => ta.CategoryId == (int)ticket.Category && ta.IsActive)
-            .Where(ta => rule.RuleAgents.Any(ra => ra.AgentId == ta.AgentId && ra.IsActive))
+            .Where(ta => eligibleAgentIds.Contains(ta.AgentId))
             .Where(ta => ta.Agent.IsActive && ta.Agent.AvailabilityStatus == "Available")
             .Select(ta => ta.Agent)
             .Distinct()
@@ -414,11 +467,9 @@ public class AutoAssignmentService : IAutoAssignmentService
     {
         var options = new List<AssignmentOption>();
 
-        var availableAgents = await _context.Agents
-            .Where(a => rule.RuleAgents.Any(ra => ra.AgentId == a.Id && ra.IsActive))
-            .Where(a => a.IsActive && a.AvailabilityStatus == "Available")
-            .Take(5)
-            .ToListAsync();
+        // Get eligible agents from both direct assignments AND groups
+        var allAgents = await GetEligibleAgentsForRuleAsync(rule);
+        var availableAgents = allAgents.Take(5).ToList();
 
         int score = 80;
         foreach (var agent in availableAgents)
@@ -444,17 +495,19 @@ public class AutoAssignmentService : IAutoAssignmentService
     {
         var options = new List<AssignmentOption>();
 
-        var weightedAgents = await _context.Agents
-            .Where(a => rule.RuleAgents.Any(ra => ra.AgentId == a.Id && ra.IsActive))
-            .Where(a => a.IsActive && a.AvailabilityStatus == "Available")
+        // Get eligible agents from both direct assignments AND groups
+        var eligibleAgents = await GetEligibleAgentsForRuleAsync(rule);
+        
+        // For weighted, we need to get weights from RuleAgents (default weight 1 for group agents)
+        var weightedAgents = eligibleAgents
             .Select(a => new { 
                 Agent = a, 
-                Weight = rule.RuleAgents.First(ra => ra.AgentId == a.Id).Weight 
+                Weight = rule.RuleAgents.FirstOrDefault(ra => ra.AgentId == a.Id)?.Weight ?? 1 
             })
             .OrderByDescending(x => x.Weight)
             .ThenBy(x => x.Agent.CurrentTicketCount)
             .Take(5)
-            .ToListAsync();
+            .ToList();
 
         foreach (var item in weightedAgents)
         {
@@ -479,14 +532,65 @@ public class AutoAssignmentService : IAutoAssignmentService
     {
         var options = new List<AssignmentOption>();
 
-        // Get any available agents as fallback
+        // First, try to find agents from groups that match the ticket's category and have auto-assignment enabled
+        // Use ticket.CategoryId (database FK) instead of ticket.Category (enum)
+        var categoryGroups = await _context.TicketGroups
+            .Include(g => g.GroupAgents.Where(ga => ga.IsActive))
+                .ThenInclude(ga => ga.Agent)
+            .Where(g => g.IsActive && !g.IsDeleted && g.AutoAssignmentEnabled)
+            .Where(g => g.CategoryId == ticket.CategoryId)
+            .Where(g => g.SubCategoryId == null || g.SubCategoryId == ticket.SubcategoryId)
+            .ToListAsync();
+
+        if (categoryGroups.Any())
+        {
+            // Get all active agents from matching groups - don't filter by AvailabilityStatus
+            // since it's often empty/null. Just use IsActive flag.
+            var groupAgents = categoryGroups
+                .SelectMany(g => g.GroupAgents)
+                .Where(ga => ga.IsActive && ga.Agent.IsActive)
+                .Select(ga => new { Agent = ga.Agent, GroupName = categoryGroups.First(g => g.Id == ga.TicketGroupId).Name })
+                .DistinctBy(x => x.Agent.Id)
+                .OrderBy(x => x.Agent.CurrentTicketCount)
+                .Take(3)
+                .ToList();
+
+            int score = 70; // Higher score than generic fallback since it's category-matched
+            foreach (var item in groupAgents)
+            {
+                options.Add(new AssignmentOption
+                {
+                    UserId = item.Agent.UserId,
+                    AgentId = item.Agent.Id,
+                    DisplayName = item.Agent.Name,
+                    Email = item.Agent.Email,
+                    Score = score--,
+                    Reasoning = $"Auto-assigned from group '{item.GroupName}' (category match)",
+                    Reason = AssignmentReason.AutoAssignmentRule,
+                    CurrentWorkload = item.Agent.CurrentTicketCount,
+                    AvailabilityStatus = item.Agent.AvailabilityStatus
+                });
+            }
+
+            if (options.Any())
+            {
+                _logger.LogInformation("Fallback: Found {Count} agents from category groups for ticket {TicketId}", 
+                    options.Count, ticket.Id);
+                return options;
+            }
+        }
+
+        // Generic fallback: Get any active agents (only if no group-based agents found)
+        _logger.LogWarning("No group agents found for ticket {TicketId} CategoryId={CategoryId} SubcategoryId={SubcategoryId}. Using generic fallback.", 
+            ticket.Id, ticket.CategoryId, ticket.SubcategoryId);
+        
         var availableAgents = await _context.Agents
-            .Where(a => a.IsActive && a.AvailabilityStatus == "Available")
+            .Where(a => a.IsActive)
             .OrderBy(a => a.CurrentTicketCount)
             .Take(3)
             .ToListAsync();
 
-        int score = 50; // Lower score for fallback options
+        int fallbackScore = 50; // Lower score for generic fallback options
         foreach (var agent in availableAgents)
         {
             options.Add(new AssignmentOption
@@ -495,7 +599,7 @@ public class AutoAssignmentService : IAutoAssignmentService
                 AgentId = agent.Id,
                 DisplayName = agent.Name,
                 Email = agent.Email,
-                Score = score--,
+                Score = fallbackScore--,
                 Reasoning = "Fallback assignment - no specific rules matched",
                 Reason = AssignmentReason.AutoAssignmentRule,
                 CurrentWorkload = agent.CurrentTicketCount,
@@ -852,11 +956,15 @@ public class AutoAssignmentService : IAutoAssignmentService
         var options = new List<AssignmentOption>();
         var categoryId = (int)ticketContext.Category;
 
-        // Get agents with assignments in the same category
+        // Get all eligible agents from both direct assignments AND groups
+        var eligibleAgents = await GetEligibleAgentsForRuleAsync(rule);
+        var eligibleAgentIds = eligibleAgents.Select(a => a.Id).ToList();
+
+        // Get agents with assignments in the same category (from eligible agents only)
         var categoryAgents = await _context.TicketAssignments
             .Include(ta => ta.Agent)
             .Where(ta => ta.CategoryId == categoryId && ta.IsActive)
-            .Where(ta => rule.RuleAgents.Any(ra => ra.AgentId == ta.AgentId && ra.IsActive))
+            .Where(ta => eligibleAgentIds.Contains(ta.AgentId))
             .Where(ta => ta.Agent.IsActive && ta.Agent.AvailabilityStatus == "Available")
             .Select(ta => ta.Agent)
             .Distinct()

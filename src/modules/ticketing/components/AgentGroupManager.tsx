@@ -129,7 +129,7 @@ const AgentGroupManager: React.FC<AgentGroupManagerProps> = ({
           </div>
           <button
             onClick={() => handleUnassign(assignedGroup.id)}
-            className="p-2 text-red-600 hover:bg-red-100 rounded-full"
+            className="p-2 text-gray-600 hover:bg-red-100 rounded-full"
             title="Remove assignment"
           >
             <Minus className="h-4 w-4" />
@@ -155,7 +155,7 @@ const AgentGroupManager: React.FC<AgentGroupManagerProps> = ({
         </div>
         <button
           onClick={() => handleUnassign(assignedAgent.id)}
-          className="p-2 text-red-600 hover:bg-red-100 rounded-full"
+          className="p-2 text-gray-600 hover:bg-red-100 rounded-full"
           title="Remove assignment"
         >
           <Minus className="h-4 w-4" />
@@ -224,7 +224,7 @@ const AgentGroupManager: React.FC<AgentGroupManagerProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
-            <Users className="h-6 w-6 text-blue-600" />
+            <Users className="h-6 w-6 text-gray-600" />
             <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
           </div>
           <button
@@ -238,7 +238,7 @@ const AgentGroupManager: React.FC<AgentGroupManagerProps> = ({
         {loading ? (
           <div className="flex-1 flex items-center justify-center p-8">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-2"></div>
               <p className="text-gray-600">Loading...</p>
             </div>
           </div>
@@ -259,7 +259,7 @@ const AgentGroupManager: React.FC<AgentGroupManagerProps> = ({
               {/* Available Items */}
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <Plus className="h-5 w-5 text-blue-600 mr-2" />
+                  <Plus className="h-5 w-5 text-gray-600 mr-2" />
                   Available {mode === 'agent' ? 'Groups' : 'Agents'} ({availableCount})
                 </h3>
                 <div className="space-y-2">

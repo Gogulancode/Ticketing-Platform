@@ -1,4 +1,6 @@
 // Settings API for ticket configurations
+import { API_CONFIG } from '@/config/api';
+
 export interface SettingsConfig {
   id: number;
   name: string;
@@ -254,15 +256,45 @@ export interface EmailConfiguration {
   notificationSettings: NotificationSettings;
 }
 
+// Quick Template for ticket creation
+export interface QuickTemplate {
+  id: number;
+  name: string;
+  label: string;
+  titleTemplate: string;
+  descriptionTemplate: string;
+  iconName: string;
+  category: string;
+  priority: number;
+  categoryId?: number;
+  displayOrder: number;
+  isActive: boolean;
+}
+
+export interface CreateQuickTemplateRequest {
+  name?: string;
+  label: string;
+  titleTemplate?: string;
+  descriptionTemplate?: string;
+  iconName?: string;
+  category?: string;
+  priority?: number;
+  categoryId?: number;
+  subcategoryId?: number;
+  departmentId?: number;
+  displayOrder?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateQuickTemplateRequest extends Partial<CreateQuickTemplateRequest> {}
+
 class SettingsApiService {
   private baseUrl: string;
   private useMocks: boolean;
   constructor() {
     const envObj = (import.meta as any).env || {};
-    const rawBase: string | undefined = envObj.VITE_API_BASE_URL;
-    // Normalize and default to running backend port 5015
-    const cleaned = (rawBase?.trim().replace(/\/$/, '')) || 'http://localhost:5015/api';
-    this.baseUrl = cleaned;
+    // Use centralized API_CONFIG for consistent URL across all environments
+    this.baseUrl = API_CONFIG.BASE_URL;
     this.useMocks = envObj.VITE_USE_MOCKS === 'true';
     
     // Debug log to check the actual baseUrl being used (only in development)
@@ -2386,6 +2418,112 @@ class SettingsApiService {
     });
 
     return filteredFields;
+  }
+
+  // Quick Template Methods
+  async getQuickTemplates(includeInactive: boolean = false): Promise<QuickTemplate[]> {
+    try {
+      const url = `${this.baseUrl}/tickets/settings/quick-templates${includeInactive ? '?includeInactive=true' : ''}`;
+      const response = await fetch(url, { headers: this.getAuthHeaders() });
+      return await this.handleResponse<QuickTemplate[]>(response);
+    } catch (error) {
+      console.error('Error fetching quick templates:', error);
+      throw error;
+    }
+  }
+
+  async getQuickTemplate(id: number): Promise<QuickTemplate> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/quick-templates/${id}`, {
+        headers: this.getAuthHeaders()
+      });
+      return await this.handleResponse<QuickTemplate>(response);
+    } catch (error) {
+      console.error('Error fetching quick template:', error);
+      throw error;
+    }
+  }
+
+  async createQuickTemplate(template: CreateQuickTemplateRequest): Promise<QuickTemplate> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/quick-templates`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(template)
+      });
+      return await this.handleResponse<QuickTemplate>(response);
+    } catch (error) {
+      console.error('Error creating quick template:', error);
+      throw error;
+    }
+  }
+
+  async updateQuickTemplate(id: number, template: UpdateQuickTemplateRequest): Promise<QuickTemplate> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/quick-templates/${id}`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(template)
+      });
+      return await this.handleResponse<QuickTemplate>(response);
+    } catch (error) {
+      console.error('Error updating quick template:', error);
+      throw error;
+    }
+  }
+
+  async deleteQuickTemplate(id: number): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/quick-templates/${id}`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
+      });
+      await this.handleResponse(response);
+    } catch (error) {
+      console.error('Error deleting quick template:', error);
+      throw error;
+    }
+  }
+
+  async reorderQuickTemplates(reorderList: { id: number; displayOrder: number }[]): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/quick-templates/reorder`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(reorderList)
+      });
+      await this.handleResponse(response);
+    } catch (error) {
+      console.error('Error reordering quick templates:', error);
+      throw error;
+    }
+  }
+
+  // Category Admin / Category Head methods
+  async checkIsCategoryAdmin(userId: string): Promise<{ isCategoryAdmin: boolean; categoryIds: number[] }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/check/${userId}`, {
+        headers: this.getAuthHeaders()
+      });
+      if (!response.ok) return { isCategoryAdmin: false, categoryIds: [] };
+      return await response.json();
+    } catch (error) {
+      console.warn('Error checking category admin status:', error);
+      return { isCategoryAdmin: false, categoryIds: [] };
+    }
+  }
+
+  async getCategoryAdmins(): Promise<any[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins`, {
+        headers: this.getAuthHeaders()
+      });
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (error) {
+      console.warn('Error fetching category admins:', error);
+      return [];
+    }
   }
 }
 

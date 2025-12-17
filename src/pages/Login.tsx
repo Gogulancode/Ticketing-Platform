@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { login as apiLogin } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
-import BusinessHubLogo from '../components/BusinessHubLogo';
-import { AnimatedBusinessHubLogo } from '../components';
+import NivoLogo from '../components/NivoLogo';
+import { useBrandingSettings } from '../api/brandingApi';
+import { API_CONFIG } from '../config/api';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -12,8 +13,12 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const navigate = useNavigate();
   const { login: authLogin } = useAuth();
+  
+  // Fetch branding settings
+  const { data: branding, isLoading: brandingLoading } = useBrandingSettings();
 
   useEffect(() => {
     // Redirect to dashboard if already logged in
@@ -27,6 +32,21 @@ const Login: React.FC = () => {
     setEmail('');
     setPassword('');
   }, []);
+
+  // Reset logo error when branding data changes
+  useEffect(() => {
+    setLogoError(false);
+  }, [branding?.logoUrl]);
+
+  // Apply theme colors dynamically
+  useEffect(() => {
+    if (branding?.primaryColor) {
+      document.documentElement.style.setProperty('--primary-color', branding.primaryColor);
+    }
+    if (branding?.secondaryColor) {
+      document.documentElement.style.setProperty('--secondary-color', branding.secondaryColor);
+    }
+  }, [branding?.primaryColor, branding?.secondaryColor]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,41 +80,59 @@ const Login: React.FC = () => {
     }
   };
 
+  // Build logo URL
+  const logoUrl = branding?.logoUrl 
+    ? `${API_CONFIG.BASE_URL.replace('/api', '')}${branding.logoUrl}`
+    : null;
+
+  // Debug: Log branding data
+  console.log('🎨 Branding:', { branding, logoUrl, brandingLoading, logoError });
+
+  // Parse login title (handle \n for line breaks) - Default to Nivo branding
+  const loginTitle = (branding?.loginTitle || 'Hello,\nI\'m Nivo').replace(/\\n/g, '\n');
+  const loginSubtitle = branding?.loginSubtitle || 'I\'m here to streamline your business operations and boost productivity. Let me help you save time and enhance efficiency across your enterprise!';
+  const footerText = branding?.footerText || `© ${new Date().getFullYear()} Nivo. All rights reserved.`;
+  const primaryColor = branding?.primaryColor || '#2563eb';
+  const secondaryColor = branding?.secondaryColor || '#1e40af';
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       
       {/* Left Side - Branding Panel (Similar to SaleSkip) */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 relative overflow-hidden">
+      <div 
+        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+        style={{ 
+          background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` 
+        }}
+      >
         {/* Geometric Background Pattern */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-20 w-64 h-64 border border-white/20 rotate-12 rounded-lg"></div>
           <div className="absolute bottom-32 right-16 w-48 h-48 border border-white/20 -rotate-12 rounded-lg"></div>
           <div className="absolute top-1/2 left-1/3 w-32 h-32 border border-white/20 rotate-45 rounded-lg"></div>
         </div>
-        
+
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center items-start p-16 text-white max-w-lg">
-          {/* Business Hub Icon */}
+          {/* Nivo Logo above heading */}
           <div className="mb-8">
-            <BusinessHubLogo size="xl" className="text-white" />
+            <NivoLogo size="xl" showText={true} primaryColor="#DC2626" secondaryColor="#991B1B" textColor="#FFFFFF" />
           </div>
           
-          {/* Main Heading */}
-          <h1 className="text-5xl font-bold mb-6 leading-tight">
-            Hello,<br />
-            I'm Business Hub
+          {/* Main Heading - Dynamic */}
+          <h1 className="text-5xl font-bold mb-6 leading-tight whitespace-pre-line">
+            {loginTitle}
           </h1>
           
-          {/* Description */}
-          <p className="text-2xl text-blue-100 mb-8 leading-relaxed">
-            I'm here to streamline your business operations and boost productivity. 
-            Let me help you save time and enhance efficiency across your enterprise!
+          {/* Description - Dynamic */}
+          <p className="text-xl text-white/80 mb-8 leading-relaxed">
+            {loginSubtitle}
           </p>
           
-          {/* Company Branding */}
+          {/* Company Branding - Dynamic Footer */}
           <div className="mt-auto">
-            <p className="text-blue-200 text-sm">
-              © 2025 Babaji Shivram. All rights reserved.
+            <p className="text-white/60 text-sm">
+              {footerText}
             </p>
           </div>
         </div>
@@ -106,24 +144,47 @@ const Login: React.FC = () => {
           
           {/* Mobile Header - Company Logo */}
           <div className="lg:hidden text-center mb-12">
-            <div className="bg-blue-50 rounded-2xl p-8 inline-block mb-6">
-              <img 
-                src="/BABAJI LOGO.png" 
-                alt="Babaji Shivram" 
-                className="h-32 w-auto mx-auto"
-              />
+            <div className="bg-white rounded-2xl p-6 inline-block mb-6 shadow-sm">
+              {brandingLoading ? (
+                <div className="h-28 w-28 mx-auto animate-pulse bg-gray-200 rounded" />
+              ) : logoUrl && !logoError ? (
+                <img 
+                  src={logoUrl} 
+                  alt={branding?.appName || 'Company Logo'} 
+                  className="h-28 w-auto mx-auto"
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <img 
+                  src="/BABAJI LOGO.png" 
+                  alt="Babaji Shivram" 
+                  className="h-28 w-auto mx-auto"
+                />
+              )}
             </div>
           </div>
 
           {/* Login Header */}
           <div className="text-center mb-12">
-            {/* Company Logo for Desktop - Centered and Even Bigger */}
+            {/* Company Logo for Desktop - Centered */}
             <div className="hidden lg:flex justify-center mb-6">
-              <img 
-                src="/BABAJI LOGO.png" 
-                alt="Babaji Shivram" 
-                className="h-32 w-auto"
-              />
+              {brandingLoading ? (
+                <div className="h-32 w-32 animate-pulse bg-gray-200 rounded" />
+              ) : logoUrl && !logoError ? (
+                <img 
+                  src={logoUrl} 
+                  alt={branding?.appName || 'Company Logo'} 
+                  className="h-32 w-auto bg-white"
+                  style={{ backgroundColor: 'white' }}
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <img 
+                  src="/BABAJI LOGO.png" 
+                  alt="Babaji Shivram" 
+                  className="h-32 w-auto"
+                />
+              )}
             </div>
             
             <h2 className="text-3xl font-bold text-gray-900 mb-3">Welcome Back!</h2>
@@ -140,7 +201,7 @@ const Login: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full px-4 py-4 text-lg border-b-2 border-gray-200 focus:border-blue-600 focus:outline-none transition-colors bg-transparent"
+                className="w-full px-4 py-4 text-lg border-b-2 border-gray-200 focus:border-red-600 focus:outline-none transition-colors bg-transparent"
                 placeholder="Enter your email"
                 autoComplete="off"
                 name="email"
@@ -155,7 +216,7 @@ const Login: React.FC = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-4 text-lg border-b-2 border-gray-200 focus:border-blue-600 focus:outline-none transition-colors bg-transparent pr-12"
+                className="w-full px-4 py-4 text-lg border-b-2 border-gray-200 focus:border-red-600 focus:outline-none transition-colors bg-transparent pr-12"
                 placeholder="Password"
                 autoComplete="new-password"
                 name="password"
@@ -179,17 +240,18 @@ const Login: React.FC = () => {
             {/* Error Message */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="text-red-600 text-sm">{error}</div>
+                <div className="text-gray-600 text-sm">{error}</div>
               </div>
             )}
             
-            {/* Login Button */}
+            {/* Login Button - Uses branding primary color */}
             <button
               type="submit"
-              className="w-full py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+              className="w-full py-4 text-white text-lg font-semibold rounded-lg transition-colors flex items-center justify-center space-x-2"
+              style={{ backgroundColor: primaryColor }}
               disabled={loading}
             >
-              {loading && <AnimatedBusinessHubLogo size="sm" />}
+              {loading && <NivoLogo size="sm" showText={false} />}
               <span>{loading ? 'Signing in...' : 'Login Now'}</span>
             </button>
             

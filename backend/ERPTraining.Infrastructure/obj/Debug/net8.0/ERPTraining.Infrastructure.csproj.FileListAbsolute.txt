@@ -1,19 +1,19 @@
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\Data\modules.json
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\ERPTraining.Infrastructure.deps.json
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\ERPTraining.Infrastructure.runtimeconfig.json
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\ERPTraining.Infrastructure.dll
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\ERPTraining.Infrastructure.pdb
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\ERPTraining.Core.dll
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\ERPTraining.Core.pdb
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.csproj.AssemblyReference.cache
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.AssemblyInfoInputs.cache
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.AssemblyInfo.cs
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.csproj.CoreCompileInputs.cache
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.sourcelink.json
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTrain.E2C01E49.Up2Date
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.dll
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\refint\ERPTraining.Infrastructure.dll
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.pdb
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.genruntimeconfig.cache
-D:\BabajiShivram_training\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ref\ERPTraining.Infrastructure.dll
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.csproj.AssemblyReference.cache
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.AssemblyInfoInputs.cache
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.AssemblyInfo.cs
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.csproj.CoreCompileInputs.cache
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.sourcelink.json
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\Data\modules.json
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\ERPTraining.Infrastructure.deps.json
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\ERPTraining.Infrastructure.runtimeconfig.json
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\ERPTraining.Infrastructure.dll
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\ERPTraining.Infrastructure.pdb
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\ERPTraining.Core.dll
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\bin\Debug\net8.0\ERPTraining.Core.pdb
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTrain.E2C01E49.Up2Date
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.dll
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\refint\ERPTraining.Infrastructure.dll
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.pdb
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ERPTraining.Infrastructure.genruntimeconfig.cache
+D:\Ticketing Platform\backend\ERPTraining.Infrastructure\obj\Debug\net8.0\ref\ERPTraining.Infrastructure.dll

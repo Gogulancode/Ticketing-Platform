@@ -70,6 +70,74 @@ export interface TicketStatusConfig {
   allowedTransitions: number[]; // Array of status IDs this status can transition to
 }
 
+// Category Admin - users who can manage specific categories
+export interface CategoryAdmin {
+  id: number;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  categoryId: number;
+  categoryName: string;
+  canViewTickets: boolean;
+  canManageAgents: boolean;
+  canViewReports: boolean;
+  canManageSubcategories: boolean;
+  canConfigureSettings: boolean;
+  canManageSLA: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CategoryAdminCreateRequest {
+  userId: string;
+  categoryId: number;
+  canViewTickets?: boolean;
+  canManageAgents?: boolean;
+  canViewReports?: boolean;
+  canManageSubcategories?: boolean;
+  canConfigureSettings?: boolean;
+  canManageSLA?: boolean;
+}
+
+export interface CategoryAdminUpdateRequest {
+  canViewTickets?: boolean;
+  canManageAgents?: boolean;
+  canViewReports?: boolean;
+  canManageSubcategories?: boolean;
+  canConfigureSettings?: boolean;
+  canManageSLA?: boolean;
+  isActive?: boolean;
+}
+
+export interface CategoryAdminPermissions {
+  userId: string;
+  isCategoryAdmin: boolean;
+  categoryIds: number[];
+  categories: CategoryPermission[];
+}
+
+export interface CategoryPermission {
+  categoryId: number;
+  categoryName: string;
+  canViewTickets: boolean;
+  canManageAgents: boolean;
+  canViewReports: boolean;
+  canManageSubcategories: boolean;
+  canConfigureSettings: boolean;
+  canManageSLA: boolean;
+}
+
+export interface AvailableUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  fullName: string;
+  department: string;
+  isAgent: boolean;
+}
+
 export interface Agent {
   id: number;
   userId: string;
@@ -212,7 +280,7 @@ type UpdateTicketCategoryInput = Partial<TicketCategoryConfig> & {
 };
 
 class SettingsApiService {
-  protected baseUrl = import.meta.env.DEV ? 'http://localhost:5015/api' : API_CONFIG.BASE_URL;
+  protected baseUrl = import.meta.env.DEV ? 'http://localhost:5016/api' : API_CONFIG.BASE_URL;
 
   // Helper method to get auth headers
   protected getAuthHeaders(): Record<string, string> {
@@ -223,25 +291,201 @@ class SettingsApiService {
     };
   }
 
-  // Department configurations
+  // Department configurations (legacy - use getTicketDepartments for new code)
   async getDepartments(): Promise<Department[]> {
-    console.log('🔧 Using mock department data (API server not available)');
-    return this.getMockDepartments();
-    
-    /* API call disabled due to server instability
+    return this.getTicketDepartments();
+  }
+
+  // Ticket Department CRUD - uses /api/tickets/settings/departments
+  async getTicketDepartments(includeInactive: boolean = false): Promise<Department[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/Settings/departments`);
+      const url = `${this.baseUrl}/tickets/settings/departments${includeInactive ? '?includeInactive=true' : ''}`;
+      const response = await fetch(url);
       if (!response.ok) {
-        // Return mock data if API not available
+        console.warn('Departments API not available, using mock data');
         return this.getMockDepartments();
       }
       const data = await response.json();
-      return Array.isArray(data) ? data : data.departments || [];
+      // Map API response to Department interface
+      return (Array.isArray(data) ? data : []).map((d: { id: number; name: string; description?: string; isActive: boolean; sortOrder?: number; displayOrder?: number }) => ({
+        id: d.id,
+        name: d.name,
+        description: d.description,
+        isActive: d.isActive,
+        displayOrder: d.sortOrder ?? d.displayOrder ?? 0,
+        order: d.sortOrder ?? d.displayOrder ?? 0
+      }));
     } catch (error) {
       console.warn('Departments API not available, using mock data:', error);
       return this.getMockDepartments();
     }
-    */
+  }
+
+  async createTicketDepartment(department: Omit<Department, 'id' | 'order'>): Promise<Department> {
+    const response = await fetch(`${this.baseUrl}/tickets/settings/departments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: department.name,
+        description: department.description,
+        displayOrder: department.displayOrder ?? 0
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Failed to create department (HTTP ${response.status})`);
+    }
+    
+    const data = await response.json();
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      isActive: data.isActive,
+      displayOrder: data.sortOrder ?? data.displayOrder ?? 0,
+      order: data.sortOrder ?? data.displayOrder ?? 0
+    };
+  }
+
+  async updateTicketDepartment(id: number, department: Partial<Omit<Department, 'id' | 'order'>>): Promise<Department> {
+    const response = await fetch(`${this.baseUrl}/tickets/settings/departments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: department.name,
+        description: department.description,
+        displayOrder: department.displayOrder,
+        isActive: department.isActive
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to update department (HTTP ${response.status})`);
+    }
+    
+    const data = await response.json();
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      isActive: data.isActive,
+      displayOrder: data.sortOrder ?? data.displayOrder ?? 0,
+      order: data.sortOrder ?? data.displayOrder ?? 0
+    };
+  }
+
+  async deleteTicketDepartment(id: number): Promise<boolean> {
+    const response = await fetch(`${this.baseUrl}/tickets/settings/departments/${id}`, {
+      method: 'DELETE'
+    });
+    return response.ok;
+  }
+
+  // ========================================
+  // Category Admin Management
+  // ========================================
+
+  async getCategoryAdmins(): Promise<CategoryAdmin[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins`);
+      if (!response.ok) {
+        console.warn('Category admins API not available');
+        return [];
+      }
+      return await response.json();
+    } catch (error) {
+      console.warn('Error fetching category admins:', error);
+      return [];
+    }
+  }
+
+  async getCategoryAdminsByCategory(categoryId: number): Promise<CategoryAdmin[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/category/${categoryId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (error) {
+      console.warn('Error fetching category admins for category:', error);
+      return [];
+    }
+  }
+
+  async getCategoryAdminsByUser(userId: string): Promise<CategoryAdmin[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/user/${userId}`);
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (error) {
+      console.warn('Error fetching category admins for user:', error);
+      return [];
+    }
+  }
+
+  async getMyPermissions(): Promise<CategoryAdminPermissions | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/my-permissions`);
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      console.warn('Error fetching my permissions:', error);
+      return null;
+    }
+  }
+
+  async checkIsCategoryAdmin(userId: string): Promise<{ isCategoryAdmin: boolean; categoryIds: number[] }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/check/${userId}`);
+      if (!response.ok) return { isCategoryAdmin: false, categoryIds: [] };
+      return await response.json();
+    } catch (error) {
+      console.warn('Error checking category admin status:', error);
+      return { isCategoryAdmin: false, categoryIds: [] };
+    }
+  }
+
+  async getAvailableUsersForCategoryAdmin(): Promise<AvailableUser[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/available-users`);
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (error) {
+      console.warn('Error fetching available users:', error);
+      return [];
+    }
+  }
+
+  async createCategoryAdmin(request: CategoryAdminCreateRequest): Promise<CategoryAdmin> {
+    const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request)
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create category admin');
+    }
+    return await response.json();
+  }
+
+  async updateCategoryAdmin(id: number, request: CategoryAdminUpdateRequest): Promise<CategoryAdmin> {
+    const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request)
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update category admin');
+    }
+    return await response.json();
+  }
+
+  async deleteCategoryAdmin(id: number): Promise<boolean> {
+    const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/${id}`, {
+      method: 'DELETE'
+    });
+    return response.ok;
   }
 
   // Category configurations

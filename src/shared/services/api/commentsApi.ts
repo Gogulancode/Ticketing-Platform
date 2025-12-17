@@ -34,12 +34,14 @@ export interface AddCommentResponse {
   attachments?: CommentAttachment[];
 }
 
+import { API_CONFIG } from '../../../config/api';
+
 function getToken(): string | null {
   return localStorage.getItem('token');
 }
 
 class CommentsApi {
-  private baseUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/tickets-v2`;
+  private baseUrl = `${API_CONFIG.BASE_URL}/tickets-v2`;
 
   private getHeaders(): Record<string, string> {
     const token = getToken();

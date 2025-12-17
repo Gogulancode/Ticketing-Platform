@@ -105,7 +105,7 @@ const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onClose, context 
   const getPriorityColor = (priority: TicketPriority) => {
     switch (priority) {
       case TicketPriority.Urgent:
-        return 'text-red-600 bg-red-50 border-red-200';
+        return 'text-gray-600 bg-red-50 border-red-200';
       case TicketPriority.High:
         return 'text-orange-600 bg-orange-50 border-orange-200';
       case TicketPriority.Medium:
@@ -132,9 +132,9 @@ const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onClose, context 
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Context Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-medium text-blue-900 mb-1">Related to:</h3>
-            <p className="text-blue-700">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-1">Related to:</h3>
+            <p className="text-gray-700">
               {context.objectType}: {context.title || context.objectId}
             </p>
           </div>
@@ -149,13 +149,13 @@ const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onClose, context 
               id="title"
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
                 errors.title ? 'border-red-300' : 'border-gray-300'
               }`}
               placeholder="Brief summary of the issue"
             />
             {errors.title && (
-              <p className="text-red-600 text-sm mt-1">{errors.title}</p>
+              <p className="text-gray-600 text-sm mt-1">{errors.title}</p>
             )}
           </div>
 
@@ -169,13 +169,13 @@ const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onClose, context 
               rows={4}
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
                 errors.description ? 'border-red-300' : 'border-gray-300'
               }`}
               placeholder="Detailed description of the issue, including steps to reproduce if applicable"
             />
             {errors.description && (
-              <p className="text-red-600 text-sm mt-1">{errors.description}</p>
+              <p className="text-gray-600 text-sm mt-1">{errors.description}</p>
             )}
           </div>
 
@@ -190,7 +190,7 @@ const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onClose, context 
                   key={category}
                   className={`relative flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
                     formData.category === category
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-red-500 bg-red-50'
                       : 'border-gray-200 hover:bg-gray-50'
                   }`}
                 >
@@ -224,7 +224,7 @@ const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onClose, context 
                   key={priority}
                   className={`relative flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
                     formData.priority === priority
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-red-500 bg-red-50'
                       : 'border-gray-200 hover:bg-gray-50'
                   }`}
                 >
@@ -258,7 +258,7 @@ const NewTicketModal: React.FC<NewTicketModalProps> = ({ open, onClose, context 
             <button
               type="submit"
               disabled={createTicketMutation.isPending}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-medium transition-colors"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg font-medium transition-colors"
             >
               {createTicketMutation.isPending ? 'Creating...' : 'Create Ticket'}
             </button>

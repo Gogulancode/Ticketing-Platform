@@ -38,11 +38,11 @@ const TicketButton: React.FC<TicketButtonProps> = ({
   const getButtonStyles = () => {
     switch (variant) {
       case 'floating':
-        return 'fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl z-50';
+        return 'fixed bottom-6 right-6 bg-red-600 hover:bg-red-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl z-50';
       case 'inline':
-        return 'inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium';
+        return 'inline-flex items-center gap-2 text-gray-600 hover:text-gray-700 font-medium';
       default:
-        return 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center gap-2';
+        return 'bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center gap-2';
     }
   };
 

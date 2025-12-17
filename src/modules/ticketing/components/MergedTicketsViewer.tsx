@@ -140,7 +140,7 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
     
     const color = priorityConfig.color?.toLowerCase();
     if (color?.includes('#dc2626') || color?.includes('#ef4444') || color?.includes('red')) {
-      return 'bg-red-100 text-red-800';
+      return 'bg-red-100 text-gray-800';
     } else if (color?.includes('#f59e0b') || color?.includes('orange')) {
       return 'bg-orange-100 text-orange-800';
     } else if (color?.includes('yellow')) {
@@ -162,7 +162,7 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
     
     const color = statusConfig.color?.toLowerCase();
     if (color?.includes('#ef4444') || color?.includes('red')) {
-      return 'bg-red-100 text-red-800';
+      return 'bg-red-100 text-gray-800';
     } else if (color?.includes('#f59e0b') || color?.includes('yellow') || color?.includes('orange')) {
       return 'bg-yellow-100 text-yellow-800';
     } else if (color?.includes('#10b981') || color?.includes('green')) {
@@ -170,7 +170,7 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
     } else if (color?.includes('#6b7280') || color?.includes('gray')) {
       return 'bg-gray-100 text-gray-800';
     }
-    return 'bg-blue-100 text-blue-800';
+    return 'bg-red-100 text-gray-800';
   };
 
   const getStatusText = (status: number) => {
@@ -186,7 +186,7 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
-            <GitMerge className="h-6 w-6 text-blue-600" />
+            <GitMerge className="h-6 w-6 text-gray-600" />
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Merged Tickets Viewer</h2>
               <p className="text-sm text-gray-600">
@@ -216,7 +216,7 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
                   disabled={!canGoPrevious}
                   className={`flex items-center space-x-2 px-3 py-2 rounded ${
                     canGoPrevious 
-                      ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                      ? 'bg-red-600 text-white hover:bg-red-700' 
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
@@ -233,7 +233,7 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
                   disabled={!canGoNext}
                   className={`flex items-center space-x-2 px-3 py-2 rounded ${
                     canGoNext 
-                      ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                      ? 'bg-red-600 text-white hover:bg-red-700' 
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
@@ -264,7 +264,7 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
                         #{currentTicket.publicId}
                       </h1>
                       {currentTicket.id === currentTicketId && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                        <span className="px-2 py-1 bg-red-100 text-gray-800 text-xs font-medium rounded">
                           Current
                         </span>
                       )}
@@ -311,8 +311,8 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
               </div>
 
               {/* Quick Navigation to Other Tickets */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-blue-800 mb-3">Quick Jump to Other Tickets</h3>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-gray-800 mb-3">Quick Jump to Other Tickets</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                   {tickets.map((ticket, index) => (
                     <button
@@ -320,8 +320,8 @@ const MergedTicketsViewer: React.FC<MergedTicketsViewerProps> = ({
                       onClick={() => setCurrentIndex(index)}
                       className={`text-left p-3 rounded border transition-colors ${
                         index === currentIndex
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50 hover:border-blue-300'
+                          ? 'bg-red-600 text-white border-red-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:border-red-300'
                       }`}
                     >
                       <div className="font-medium">#{ticket.publicId}</div>

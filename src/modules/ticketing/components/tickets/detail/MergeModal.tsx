@@ -163,7 +163,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
       1: 'text-green-600 bg-green-100',
       2: 'text-yellow-600 bg-yellow-100', 
       3: 'text-orange-600 bg-orange-100',
-      4: 'text-red-600 bg-red-100'
+      4: 'text-gray-600 bg-red-100'
     };
     return colors[priority as keyof typeof colors] || 'text-gray-600 bg-gray-100';
   };
@@ -176,7 +176,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <GitMerge className="h-6 w-6 text-blue-600" />
+            <GitMerge className="h-6 w-6 text-gray-600" />
             <div>
               <h2 className="text-lg font-semibold text-gray-900">
                 Merge Tickets into #{getDisplayTicketNumber(ticket)}
@@ -204,7 +204,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
               placeholder="Search by ticket number (e.g., #123456) or title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
               autoFocus
             />
           </div>
@@ -213,7 +213,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
           <div className="space-y-3">
             {isSearching && (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
                 <p className="text-sm text-gray-500 mt-2">
                   {searchQuery ? 'Searching tickets...' : 'Loading tickets...'}
                 </p>
@@ -246,7 +246,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
                       key={searchTicket.id}
                       className={`p-3 border rounded-lg cursor-pointer transition-all ${
                         selectedTickets.has(searchTicket.id)
-                          ? 'border-blue-500 bg-blue-50'
+                          ? 'border-red-500 bg-red-50'
                           : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                       onClick={() => handleTicketSelect(searchTicket.id)}
@@ -278,7 +278,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
                         </div>
                         <div className="ml-4">
                           {selectedTickets.has(searchTicket.id) && (
-                            <Check className="h-5 w-5 text-blue-600" />
+                            <Check className="h-5 w-5 text-gray-600" />
                           )}
                         </div>
                       </div>
@@ -291,11 +291,11 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
 
           {/* Selected Tickets Summary */}
           {selectedTickets.size > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-medium text-blue-900 mb-2">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 mb-2">
                 Selected {selectedTickets.size} ticket(s) for merge
               </h3>
-              <p className="text-sm text-blue-700">
+              <p className="text-sm text-gray-700">
                 These tickets will be closed and all their comments and attachments will be moved to this ticket.
               </p>
             </div>
@@ -312,7 +312,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
                 onChange={(e) => setMergeReason(e.target.value)}
                 placeholder="Explain why these tickets are being merged..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
               />
             </div>
           )}
@@ -330,14 +330,14 @@ const MergeModal: React.FC<MergeModalProps> = ({ ticket, isOpen, onClose }) => {
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+              className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleMerge}
               disabled={selectedTickets.size === 0 || !mergeReason.trim() || mergeMutation.isPending}
-              className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2"
+              className="px-4 py-2 text-sm text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2"
             >
               {mergeMutation.isPending ? (
                 <>

@@ -1,52 +1,13 @@
 /**
  * Smart API fetch utility that works in both development and production
- * Automatically handles URL resolution for relative API paths
- * Dynamically detects API URL based on current domain
+ * Uses centralized API configuration for consistent URL resolution
  */
 
-// Get the correct API base URL
+import { API_CONFIG } from '../config/api';
+
+// Get the correct API base URL from centralized config
 const getApiBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
-  
-  // If explicit env URL is set and not localhost, use it
-  if (envUrl && envUrl !== 'http://localhost:5015/api') {
-    return envUrl;
-  }
-  
-  // In local development, use relative URLs that Vite will proxy
-  if (import.meta.env.DEV) {
-    return '/api';
-  }
-  
-  // In production, dynamically construct API URL based on current domain
-  if (typeof window !== 'undefined') {
-    const currentHost = window.location.hostname;
-    const protocol = window.location.protocol; // 'http:' or 'https:'
-    
-    // If running on localhost, use localhost API
-    if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-      return 'http://localhost:5015/api';
-    }
-    
-    // For production domains, construct API URL
-    // Pattern: If frontend is "support.domain.com", API is "api.domain.com"
-    // Or if frontend is "domain.com", API is "api.domain.com"
-    let apiHost = currentHost;
-    
-    // If hostname starts with "support.", replace with "api."
-    if (currentHost.startsWith('support.')) {
-      apiHost = currentHost.replace('support.', 'api.');
-    } 
-    // Otherwise, prepend "api." to the domain
-    else if (!currentHost.startsWith('api.')) {
-      apiHost = `api.${currentHost}`;
-    }
-    
-    return `${protocol}//${apiHost}/api`;
-  }
-  
-  // Fallback for SSR or other edge cases
-  return 'http://localhost:5015/api';
+  return API_CONFIG.BASE_URL;
 };
 
 /**

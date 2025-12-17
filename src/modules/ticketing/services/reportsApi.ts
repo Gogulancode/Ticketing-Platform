@@ -77,7 +77,8 @@ export interface ExportOptions {
 
 export type ReportStatistics = Record<string, unknown>;
 
-const API_BASE = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api'}/reports`;
+import { API_CONFIG } from '../../../config/api';
+const API_BASE = `${API_CONFIG.BASE_URL}/reports`;
 
 // Helper function to get auth headers
 function getAuthHeaders(): Record<string, string> {

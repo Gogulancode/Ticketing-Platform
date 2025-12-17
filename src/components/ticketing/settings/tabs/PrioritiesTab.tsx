@@ -108,11 +108,11 @@ const PriorityModal: React.FC<PriorityModalProps> = ({ isOpen, onClose, priority
               <input
                 {...register('name', { required: 'Priority name is required' })}
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="e.g., High, Medium, Low"
               />
               {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                <p className="mt-1 text-sm text-gray-600">{errors.name.message}</p>
               )}
             </div>
 
@@ -123,7 +123,7 @@ const PriorityModal: React.FC<PriorityModalProps> = ({ isOpen, onClose, priority
               <textarea
                 {...register('description')}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="Brief description of this priority level"
               />
             </div>
@@ -141,11 +141,11 @@ const PriorityModal: React.FC<PriorityModalProps> = ({ isOpen, onClose, priority
                 type="number"
                 min="1"
                 max="10"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="1-10 (1 = highest priority)"
               />
               {errors.level && (
-                <p className="mt-1 text-sm text-red-600">{errors.level.message}</p>
+                <p className="mt-1 text-sm text-gray-600">{errors.level.message}</p>
               )}
               <p className="mt-1 text-sm text-gray-500">
                 Lower numbers indicate higher priority (1 = highest)
@@ -160,7 +160,7 @@ const PriorityModal: React.FC<PriorityModalProps> = ({ isOpen, onClose, priority
                 <input
                   {...register('color')}
                   type="color"
-                  className="h-10 w-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="h-10 w-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
                 <span className="text-sm text-gray-500">
                   Choose a color to represent this priority level
@@ -173,7 +173,7 @@ const PriorityModal: React.FC<PriorityModalProps> = ({ isOpen, onClose, priority
                 <input
                   {...register('isActive')}
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
                 />
                 <span className="ml-2 text-sm text-gray-700">Active priority</span>
               </label>
@@ -194,7 +194,7 @@ const PriorityModal: React.FC<PriorityModalProps> = ({ isOpen, onClose, priority
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Saving...' : (priority ? 'Update' : 'Create')}
               </button>
@@ -276,7 +276,7 @@ const PrioritiesTab: React.FC = () => {
   };
 
   const getPriorityBadgeColor = (level: number) => {
-    if (level === 1) return 'bg-red-100 text-red-800';
+    if (level === 1) return 'bg-red-100 text-gray-800';
     if (level === 2) return 'bg-orange-100 text-orange-800';
     if (level === 3) return 'bg-yellow-100 text-yellow-800';
     if (level === 4) return 'bg-green-100 text-green-800';
@@ -290,7 +290,7 @@ const PrioritiesTab: React.FC = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
           >
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Add Priority
@@ -300,7 +300,7 @@ const PrioritiesTab: React.FC = () => {
               type="checkbox"
               checked={showInactive}
               onChange={(e) => setShowInactive(e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
             />
             <span>Show inactive only</span>
           </label>
@@ -315,7 +315,7 @@ const PrioritiesTab: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm"
             placeholder="Search priorities..."
           />
         </div>
@@ -325,7 +325,7 @@ const PrioritiesTab: React.FC = () => {
       {loading ? (
         <div className="bg-white shadow rounded-md p-8">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
             <p className="mt-2 text-sm text-gray-500">Loading priorities...</p>
           </div>
         </div>
@@ -342,7 +342,7 @@ const PrioritiesTab: React.FC = () => {
             </p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
             >
               <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
               Add Priority
@@ -373,7 +373,7 @@ const PrioritiesTab: React.FC = () => {
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           priority.isActive 
                             ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
+                            : 'bg-red-100 text-gray-800'
                         }`}>
                           {priority.isActive ? 'Active' : 'Inactive'}
                         </span>
@@ -401,14 +401,14 @@ const PrioritiesTab: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handleEdit(priority)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="text-gray-600 hover:text-gray-900"
                       title="Edit priority"
                     >
                       <PencilIcon className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => handleDelete(priority.id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-gray-600 hover:text-gray-900"
                       title="Delete priority"
                     >
                       <TrashIcon className="h-5 w-5" />
@@ -427,7 +427,7 @@ const PrioritiesTab: React.FC = () => {
         <h3 className="text-lg font-medium text-gray-900 mb-4">Priority Statistics</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{priorities.length}</div>
+            <div className="text-2xl font-bold text-gray-600">{priorities.length}</div>
             <div className="text-sm text-gray-500">Total Priorities</div>
           </div>
           <div className="text-center">
@@ -437,7 +437,7 @@ const PrioritiesTab: React.FC = () => {
             <div className="text-sm text-gray-500">Active Priorities</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-gray-600">
               {priorities.filter(p => p.level === 1).length}
             </div>
             <div className="text-sm text-gray-500">Critical Priorities</div>

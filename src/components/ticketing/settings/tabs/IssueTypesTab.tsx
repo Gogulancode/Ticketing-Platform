@@ -89,11 +89,11 @@ const IssueTypeModal: React.FC<IssueTypeModalProps> = ({ isOpen, onClose, issueT
               <input
                 {...register('name', { required: 'Name is required' })}
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="e.g., Bug, Feature Request, User Issue"
               />
               {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                <p className="mt-1 text-sm text-gray-600">{errors.name.message}</p>
               )}
             </div>
 
@@ -103,7 +103,7 @@ const IssueTypeModal: React.FC<IssueTypeModalProps> = ({ isOpen, onClose, issueT
               </label>
               <textarea
                 {...register('description')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 rows={3}
                 placeholder="Optional description"
               />
@@ -116,7 +116,7 @@ const IssueTypeModal: React.FC<IssueTypeModalProps> = ({ isOpen, onClose, issueT
               <input
                 {...register('color')}
                 type="color"
-                className="w-full h-10 px-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-10 px-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
             </div>
 
@@ -131,11 +131,11 @@ const IssueTypeModal: React.FC<IssueTypeModalProps> = ({ isOpen, onClose, issueT
                 })}
                 type="number"
                 min="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="1"
               />
               {errors.order && (
-                <p className="mt-1 text-sm text-red-600">{errors.order.message}</p>
+                <p className="mt-1 text-sm text-gray-600">{errors.order.message}</p>
               )}
             </div>
 
@@ -144,7 +144,7 @@ const IssueTypeModal: React.FC<IssueTypeModalProps> = ({ isOpen, onClose, issueT
                 {...register('isActive')}
                 type="checkbox"
                 id="isActive"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
               />
               <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
                 Active
@@ -155,14 +155,14 @@ const IssueTypeModal: React.FC<IssueTypeModalProps> = ({ isOpen, onClose, issueT
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
               >
                 {isSubmitting ? 'Saving...' : (issueType ? 'Update' : 'Create')}
               </button>
@@ -251,7 +251,7 @@ const IssueTypesTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
       </div>
     );
   }
@@ -267,7 +267,7 @@ const IssueTypesTab: React.FC = () => {
         </div>
         <button
           onClick={handleCreate}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
         >
           <PlusIcon className="h-4 w-4 mr-2" />
           Add Issue Type
@@ -282,7 +282,7 @@ const IssueTypesTab: React.FC = () => {
             placeholder="Search issue types..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
           />
         </div>
         <div className="flex items-center">
@@ -291,7 +291,7 @@ const IssueTypesTab: React.FC = () => {
             id="showInactive"
             checked={showInactive}
             onChange={(e) => setShowInactive(e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="h-4 w-4 text-gray-600 focus:ring-red-500 border-gray-300 rounded"
           />
           <label htmlFor="showInactive" className="ml-2 text-sm text-gray-700">
             Show inactive
@@ -326,14 +326,14 @@ const IssueTypesTab: React.FC = () => {
                     <span className="text-xs text-gray-400">Order: {issueType.order}</span>
                     <button
                       onClick={() => handleEdit(issueType)}
-                      className="text-gray-400 hover:text-blue-600 p-1"
+                      className="text-gray-400 hover:text-gray-600 p-1"
                       title="Edit"
                     >
                       <PencilIcon className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(issueType)}
-                      className="text-gray-400 hover:text-red-600 p-1"
+                      className="text-gray-400 hover:text-gray-600 p-1"
                       title="Delete"
                     >
                       <TrashIcon className="h-4 w-4" />

@@ -6,6 +6,8 @@ export { default as TicketingLayout } from './layout/TicketingLayout';
 // Views (Pages)
 export { default as TicketDashboard } from './views/TicketDashboard';
 export { default as TicketSettingsPage } from './views/TicketSettingsPage';
+export { default as SlaSettingsPage } from './views/SlaSettingsPage';
+export { default as AgentSettingsPage } from './views/AgentSettingsPage';
 export { default as MyTicketsPage } from './views/MyTicketsPage';
 export { default as NewTicketPage } from './views/NewTicketPage';
 export { default as TicketDetailPage } from './views/TicketDetailPage';

@@ -1,5 +1,6 @@
 // Client-side modules API functions
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5015/api';
+import { API_CONFIG } from '../../../config/api';
+const API_BASE = API_CONFIG.BASE_URL;
 
 interface Module {
   id: number;
