@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -298,7 +299,24 @@ export default function CreateTicketScreen({ navigation }: any) {
     try {
       const selectedPriority = priorities.find(p => p.id === priorityId);
       
-      const requestBody = {
+      // Convert attachments to base64
+      const attachmentRequests = [];
+      for (const attachment of attachments) {
+        try {
+          const base64Content = await FileSystem.readAsStringAsync(attachment.uri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          attachmentRequests.push({
+            fileName: attachment.name,
+            contentType: attachment.type,
+            base64Content: base64Content,
+          });
+        } catch (err) {
+          console.error('Error reading attachment:', attachment.name, err);
+        }
+      }
+      
+      const requestBody: any = {
         title: title.trim(),
         description: description.trim(),
         priority: selectedPriority?.level ?? 0,
@@ -308,6 +326,11 @@ export default function CreateTicketScreen({ navigation }: any) {
         departmentId: departmentId,
         customFieldValues: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
       };
+      
+      // Add attachments if any
+      if (attachmentRequests.length > 0) {
+        requestBody.attachments = attachmentRequests;
+      }
 
       const response = await fetch(`${serverUrl}/api/tickets`, {
         method: 'POST',
