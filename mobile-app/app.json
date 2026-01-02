@@ -1,4 +1,4 @@
-﻿{
+{
   "expo": {
     "name": "Nivo Support",
     "slug": "nivo-support",
@@ -14,9 +14,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.babajishivram.nivosupport",
+      "bundleIdentifier": "com.yourcompany.nivosupport",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -24,13 +26,12 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1337ec"
       },
-      "package": "com.babajishivram.nivosupport",
+      "package": "com.yourcompany.nivosupport",
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.VIBRATE"
-      ],
-      "edgeToEdgeEnabled": true
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -41,9 +42,15 @@
     ],
     "extra": {
       "environment": "development",
+      "apiUrls": {
+        "development": "http://10.0.2.2:5016",
+        "staging": "https://enrichbeauty.solutionsnextwave.com/api",
+        "production": "https://support.yourcompany.com/api"
+      },
       "eas": {
-        "projectId": "your-project-id-here"
+        "projectId": "a20ffd82-abd9-495a-b145-8217216b08e6"
       }
-    }
+    },
+    "owner": "gogulan_2003"
   }
 }

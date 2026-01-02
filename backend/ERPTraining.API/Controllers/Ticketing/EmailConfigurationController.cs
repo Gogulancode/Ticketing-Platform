@@ -22,7 +22,7 @@ public class CreateEmailAccountDto
 
 [ApiController]
 [Route("api/email-config")]
-// [Authorize] // Temporarily disabled for testing
+[Authorize(Roles = "Admin")]
 public class EmailConfigurationController_Disabled : ControllerBase
 {
     private readonly IEmailConfigurationService _emailConfigService;
@@ -173,7 +173,6 @@ public class EmailConfigurationController_Disabled : ControllerBase
     /// Creates a new email configuration
     /// </summary>
     [HttpPost]
-    // [Authorize(Roles = "Admin")] // Temporarily disabled for testing
     public async Task<ActionResult> CreateEmailConfiguration([FromBody] object configurationData)
     {
         try

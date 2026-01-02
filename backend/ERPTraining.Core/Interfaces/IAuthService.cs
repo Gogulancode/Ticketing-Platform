@@ -12,6 +12,7 @@ public interface IAuthService
     Task<List<string>> GetUserRolesAsync(string userId);
     Task<AuthResponseDto?> RefreshTokenAsync(string userId);
     Task<PasswordChangeResult> ChangePasswordAsync(string userId, string currentPassword, string newPassword);
+    Task<PasswordChangeResult> ResetPasswordAsync(string email, string newPassword);
 }
 
 public class PasswordChangeResult

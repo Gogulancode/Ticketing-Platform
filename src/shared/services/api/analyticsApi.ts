@@ -40,6 +40,15 @@ export interface DashboardAnalytics {
 import { API_CONFIG } from '../../../config/api';
 const API_BASE = API_CONFIG.BASE_URL;
 
+// Helper to get auth headers
+const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+};
+
 export const analyticsApi = {
   async getDashboardAnalytics(categoryIds?: number[]): Promise<DashboardAnalytics> {
     try {
@@ -51,7 +60,9 @@ export const analyticsApi = {
       const queryString = params.toString() ? `?${params.toString()}` : '';
       
       // Try the main analytics endpoint first
-      const response = await fetch(`${API_BASE}/analytics/dashboard${queryString}`);
+      const response = await fetch(`${API_BASE}/analytics/dashboard${queryString}`, {
+        headers: getAuthHeaders()
+      });
       if (response.ok) {
         return response.json();
       }
@@ -64,7 +75,9 @@ export const analyticsApi = {
       console.log('🔄 Building dashboard analytics from reports endpoints...');
       
       // Get all tickets for analysis
-      const allTicketsResponse = await fetch(`${API_BASE}/Reports/all-tickets`);
+      const allTicketsResponse = await fetch(`${API_BASE}/Reports/all-tickets`, {
+        headers: getAuthHeaders()
+      });
       if (!allTicketsResponse.ok) {
         throw new Error('Failed to fetch tickets data');
       }
@@ -129,7 +142,7 @@ export const analyticsApi = {
         { 
           agentId: "system", 
           agentName: "System Generated", 
-          email: "system@babajishivram.com", 
+          email: "system@example.com", 
           ticketsReceived: totalTickets, 
           averageResolutionTime: 0, 
           department: "General" 

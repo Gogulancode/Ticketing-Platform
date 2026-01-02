@@ -1,6 +1,7 @@
 using ERPTraining.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using ERPTraining.Core.Entities.Ticketing;
+using ERPTraining.Core.Entities;
 
 namespace ERPTraining.API.Services;
 
@@ -14,6 +15,7 @@ public class TicketAutoCloseService : BackgroundService
     private readonly ILogger<TicketAutoCloseService> _logger;
     private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(15); // Check every 15 minutes
     private readonly int _autoCloseHours = 48;
+    private string? _systemUserId; // Cached system user ID for audit logs
 
     public TicketAutoCloseService(
         IServiceProvider serviceProvider,
@@ -48,6 +50,20 @@ public class TicketAutoCloseService : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+        // Get or cache the system user ID (use admin user for audit logs)
+        if (string.IsNullOrEmpty(_systemUserId))
+        {
+            var adminUser = await context.Users
+                .FirstOrDefaultAsync(u => u.Email == "admin@ticketing.local", stoppingToken);
+            _systemUserId = adminUser?.Id;
+            
+            if (string.IsNullOrEmpty(_systemUserId))
+            {
+                _logger.LogWarning("No admin user found for audit logging. Skipping auto-close.");
+                return;
+            }
+        }
+
         var cutoffTime = DateTime.UtcNow.AddHours(-_autoCloseHours);
 
         // Find all resolved tickets (status = 4) that were resolved more than 48 hours ago
@@ -81,7 +97,7 @@ public class TicketAutoCloseService : BackgroundService
                     Field = "Status",
                     OldValue = "Resolved",
                     NewValue = "Closed (Auto-closed after 48 hours)",
-                    ChangedByUserId = "SYSTEM",
+                    ChangedByUserId = _systemUserId!,
                     ChangedAt = DateTime.UtcNow
                 };
                 context.AuditLogs.Add(auditLog);
@@ -93,7 +109,7 @@ public class TicketAutoCloseService : BackgroundService
                     TicketId = ticket.Id,
                     Body = "This ticket was automatically closed after 48 hours without being reopened.",
                     IsInternal = false,
-                    AuthorUserId = "SYSTEM",
+                    AuthorUserId = _systemUserId!,
                     CreatedAt = DateTime.UtcNow
                 };
                 context.TicketComments.Add(autoCloseComment);

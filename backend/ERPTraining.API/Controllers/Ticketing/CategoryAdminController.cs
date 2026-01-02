@@ -11,6 +11,7 @@ namespace ERPTraining.API.Controllers.Ticketing;
 /// </summary>
 [ApiController]
 [Route("api/tickets/settings/category-admins")]
+[Authorize]
 public class CategoryAdminController : ControllerBase
 {
     private readonly ICategoryAdminService _categoryAdminService;

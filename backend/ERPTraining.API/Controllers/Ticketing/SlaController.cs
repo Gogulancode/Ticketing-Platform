@@ -8,7 +8,7 @@ namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
 [Route("api/tickets/settings/sla")]
-// [Authorize] // Temporarily disabled for testing
+[Authorize]
 public class SlaController : ControllerBase
 {
     private readonly ISlaService _slaService;

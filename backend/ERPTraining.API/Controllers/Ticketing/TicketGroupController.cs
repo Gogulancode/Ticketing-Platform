@@ -8,7 +8,7 @@ namespace ERPTraining.API.Controllers.Ticketing;
 [ApiController]
 [Route("api/tickets/settings/groups")]
 [Route("api/tickets/settings/agent-groups")] // Alias for frontend compatibility
-// Temporarily disabled for testing: [Authorize]
+[Authorize]
 public class TicketGroupController : ControllerBase
 {
     private readonly ITicketGroupService _groupService;

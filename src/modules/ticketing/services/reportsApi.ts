@@ -115,6 +115,7 @@ export const reportsApi = {
     if (filters?.startDate) params.append('startDate', filters.startDate);
     if (filters?.endDate) params.append('endDate', filters.endDate);
     if (filters?.department) params.append('department', filters.department);
+    if (filters?.category) params.append('category', filters.category);
     
     const response = await fetch(`${API_BASE}/agent-performance?${params}`, {
       headers: getAuthHeaders(),

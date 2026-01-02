@@ -7,14 +7,13 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Settings from './pages/Settings';
 import Dashboard from './pages/Dashboard';
-import Tickets from './pages/Tickets';
 import TicketDetail from './pages/TicketDetail';
 import NewTicket from './pages/NewTicket';
 import MyTickets from './pages/MyTickets';
+import Reports from './pages/Reports';
 
-// Import settings store to ensure theme is initialized
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _settingsStore = useSettingsStore;
+// Initialize settings store to ensure theme is loaded
+void useSettingsStore.getState();
 
 // Global action event bus for tray actions
 export const actionEventBus = {
@@ -69,6 +68,7 @@ function AppRoutes() {
         <Route path="tickets/new" element={<NewTicket />} />
         <Route path="tickets/:id" element={<TicketDetail />} />
         <Route path="my-tickets" element={<MyTickets />} />
+        <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>

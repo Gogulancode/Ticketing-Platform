@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Clock, AlertCircle, 
   Loader2, User, MessageSquare, Send, Paperclip, Download,
-  X, RotateCcw, Forward, Reply, Mail, Timer
+  X, RotateCcw, Forward, Reply, Mail, Timer, Save
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -18,6 +18,8 @@ interface Ticket {
   priority: number;
   category: number | null;
   categoryId: number | null;
+  subcategoryId?: number | null;
+  departmentId?: number | null;
   createdAt: string;
   updatedAt?: string;
   closedAt?: string;
@@ -26,8 +28,69 @@ interface Ticket {
   createdByEmail?: string;
   createdByUser?: { id: string; firstName: string; lastName: string; email: string };
   assignedToName?: string;
+  assignedToUserId?: string;
   assignedToUser?: { id: string; firstName: string; lastName: string; email: string };
   attachments?: { id: number; fileName: string; fileSize: number }[];
+  customFieldValues?: { customFieldId: number; value: string }[];
+}
+
+interface Category {
+  id: number;
+  name: string;
+  isActive: boolean;
+}
+
+interface SubCategory {
+  id: number;
+  name: string;
+  categoryId: number;
+  isActive: boolean;
+}
+
+interface PriorityLevel {
+  id: number;
+  name: string;
+  level: number;
+  isActive: boolean;
+}
+
+interface StatusConfig {
+  id: number;
+  name: string;
+  isActive: boolean;
+}
+
+interface Agent {
+  id: number;
+  userId: string;
+  name: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface CustomField {
+  id: number;
+  name: string;
+  label: string;
+  placeholder?: string;
+  type: string;
+  isRequired: boolean;
+  options?: string[];
+  isActive?: boolean;
+}
+
+interface Collaborator {
+  id: number;
+  userId: string;
+  user?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
+  role: string;
+  addedAt: string;
 }
 
 interface Comment {
@@ -47,13 +110,14 @@ const statusMap: Record<number, string> = {
   3: 'Pending',
   4: 'Resolved',
   5: 'Closed',
+  1009: 'Merged',
 };
 
 const priorityMap: Record<number, string> = {
-  1: 'Low',
-  2: 'Medium',
-  3: 'High',
-  4: 'Critical',
+  0: 'Low',
+  1: 'Medium',
+  2: 'High',
+  3: 'Critical',
 };
 
 const statusColors: Record<string, string> = {
@@ -62,6 +126,7 @@ const statusColors: Record<string, string> = {
   'Pending': 'bg-orange-100 text-orange-700',
   'Resolved': 'bg-green-100 text-green-700',
   'Closed': 'bg-gray-100 text-gray-700',
+  'Merged': 'bg-purple-100 text-purple-700',
 };
 
 const priorityColors: Record<string, string> = {
@@ -74,13 +139,42 @@ const priorityColors: Record<string, string> = {
 export default function TicketDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { serverUrl, token } = useAuthStore();
+  const { serverUrl, token, user } = useAuthStore();
+  
+  // Check if user is Admin or Agent
+  const isAgent = user?.role === 'Admin' || user?.role === 'Agent' || 
+                  user?.roles?.includes('Admin') || user?.roles?.includes('Agent') ||
+                  user?.role === 'CategoryAdmin' || user?.roles?.includes('CategoryAdmin');
   
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Property editing state for agents
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
+  const [priorities, setPriorities] = useState<PriorityLevel[]>([]);
+  const [statuses, setStatuses] = useState<StatusConfig[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  
+  const [editedCategory, setEditedCategory] = useState<number | null>(null);
+  const [editedSubcategory, setEditedSubcategory] = useState<number | null>(null);
+  const [editedPriority, setEditedPriority] = useState<number | null>(null);
+  const [editedStatus, setEditedStatus] = useState<number | null>(null);
+  const [editedAgent, setEditedAgent] = useState<string | null>(null);
+  const [editedCustomFields, setEditedCustomFields] = useState<Record<string, string>>({});
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isSavingProperties, setIsSavingProperties] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  
+  // Collaborators state
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [showAddCollaborator, setShowAddCollaborator] = useState(false);
+  const [selectedCollaboratorId, setSelectedCollaboratorId] = useState<string>('');
+  const [isAddingCollaborator, setIsAddingCollaborator] = useState(false);
   
   // Attachments
   const [commentAttachments, setCommentAttachments] = useState<File[]>([]);
@@ -145,12 +239,250 @@ export default function TicketDetail() {
     if (id) {
       loadTicket();
       loadComments();
+      if (isAgent) {
+        loadSettings();
+        loadCollaborators();
+      }
     }
-  }, [id]);
+  }, [id, isAgent]);
+
+  // Initialize edited values when ticket loads
+  useEffect(() => {
+    if (ticket) {
+      setEditedCategory(ticket.categoryId || null);
+      setEditedSubcategory(ticket.subcategoryId || null);
+      setEditedPriority(ticket.priority);
+      setEditedStatus(ticket.status);
+      setEditedAgent(ticket.assignedToUserId || ticket.assignedToUser?.id || null);
+      
+      // Initialize custom field values
+      const customValues: Record<string, string> = {};
+      if (ticket.customFieldValues && Array.isArray(ticket.customFieldValues)) {
+        ticket.customFieldValues.forEach((cf) => {
+          customValues[cf.customFieldId.toString()] = cf.value || '';
+        });
+      }
+      setEditedCustomFields(customValues);
+      setHasChanges(false);
+    }
+  }, [ticket]);
+
+  // Load custom fields when category/subcategory changes
+  useEffect(() => {
+    if (editedCategory && editedSubcategory && isAgent) {
+      loadCustomFields(editedCategory, editedSubcategory);
+    }
+  }, [editedCategory, editedSubcategory, isAgent]);
+
+  const loadSettings = async () => {
+    setIsLoadingSettings(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      const [catRes, subRes, prioRes, statusRes, agentsRes] = await Promise.all([
+        fetch(`${serverUrl}/api/tickets/settings/categories`, { headers }),
+        fetch(`${serverUrl}/api/tickets/settings/subcategories`, { headers }),
+        fetch(`${serverUrl}/api/tickets/settings/priorities`, { headers }),
+        fetch(`${serverUrl}/api/tickets/settings/statuses`, { headers }),
+        fetch(`${serverUrl}/api/tickets/settings/agents`, { headers }),
+      ]);
+
+      if (catRes.ok) {
+        const data = await catRes.json();
+        setCategories((data || []).filter((c: Category) => c.isActive !== false));
+      }
+      if (subRes.ok) {
+        const data = await subRes.json();
+        setSubcategories((data || []).filter((s: SubCategory) => s.isActive !== false));
+      }
+      if (prioRes.ok) {
+        const data = await prioRes.json();
+        setPriorities((data || []).filter((p: PriorityLevel) => p.isActive !== false).sort((a: PriorityLevel, b: PriorityLevel) => a.level - b.level));
+      }
+      if (statusRes.ok) {
+        const data = await statusRes.json();
+        setStatuses((data || []).filter((s: StatusConfig) => s.isActive !== false));
+      }
+      if (agentsRes.ok) {
+        const data = await agentsRes.json();
+        setAgents(data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  };
+
+  const loadCustomFields = async (catId: number, subId: number) => {
+    try {
+      const response = await fetch(
+        `${serverUrl}/api/tickets/settings/custom-fields?categoryId=${catId}&subcategoryId=${subId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setCustomFields((data || []).filter((f: CustomField) => f.isActive !== false));
+      }
+    } catch (error) {
+      console.error('Failed to load custom fields:', error);
+    }
+  };
+
+  // Load collaborators
+  const loadCollaborators = async () => {
+    try {
+      const response = await fetch(`${serverUrl}/api/tickets/${id}/collaborators`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCollaborators(data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load collaborators:', error);
+    }
+  };
+
+  // Add collaborator
+  const addCollaborator = async () => {
+    if (!selectedCollaboratorId) return;
+    
+    setIsAddingCollaborator(true);
+    try {
+      const response = await fetch(`${serverUrl}/api/tickets/${id}/collaborators`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId: selectedCollaboratorId }),
+      });
+
+      if (response.ok) {
+        toast.success('Collaborator added successfully');
+        setSelectedCollaboratorId('');
+        setShowAddCollaborator(false);
+        loadCollaborators();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.message || 'Failed to add collaborator');
+      }
+    } catch (error) {
+      toast.error('Failed to add collaborator');
+    } finally {
+      setIsAddingCollaborator(false);
+    }
+  };
+
+  // Remove collaborator
+  const removeCollaborator = async (collaboratorId: number) => {
+    try {
+      const response = await fetch(`${serverUrl}/api/tickets/${id}/collaborators/${collaboratorId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        toast.success('Collaborator removed');
+        loadCollaborators();
+      } else {
+        toast.error('Failed to remove collaborator');
+      }
+    } catch (error) {
+      toast.error('Failed to remove collaborator');
+    }
+  };
+
+  // Get available agents for collaborators (exclude current collaborators and assigned agent)
+  const availableCollaborators = agents.filter(a => 
+    !collaborators.some(c => c.userId === a.userId) && 
+    a.userId !== editedAgent
+  );
+
+  // Handle property changes
+  const handlePropertyChange = (field: string, value: number | string | null) => {
+    setHasChanges(true);
+    switch (field) {
+      case 'category':
+        setEditedCategory(value as number);
+        setEditedSubcategory(null); // Reset subcategory
+        break;
+      case 'subcategory':
+        setEditedSubcategory(value as number);
+        break;
+      case 'priority':
+        setEditedPriority(value as number);
+        break;
+      case 'status':
+        setEditedStatus(value as number);
+        break;
+      case 'agent':
+        setEditedAgent(value as string);
+        break;
+    }
+  };
+
+  const handleCustomFieldChange = (fieldId: number, value: string) => {
+    setHasChanges(true);
+    setEditedCustomFields(prev => ({ ...prev, [fieldId.toString()]: value }));
+  };
+
+  const saveProperties = async () => {
+    if (!ticket) return;
+    
+    setIsSavingProperties(true);
+    try {
+      // Find the priority level from priority ID
+      const selectedPriority = priorities.find(p => p.id === editedPriority);
+      
+      const updateData: any = {
+        categoryId: editedCategory,
+        subcategoryId: editedSubcategory,
+        priority: selectedPriority?.level ?? editedPriority,
+        status: editedStatus,
+        assignedToUserId: editedAgent || null,
+      };
+
+      // Add custom field values if any
+      if (Object.keys(editedCustomFields).length > 0) {
+        updateData.customFieldValues = editedCustomFields;
+      }
+
+      const response = await fetch(`${serverUrl}/api/tickets-v2/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (response.ok) {
+        toast.success('Ticket updated successfully!');
+        setHasChanges(false);
+        loadTicket(); // Reload to get updated data
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.message || 'Failed to update ticket');
+      }
+    } catch (error) {
+      console.error('Failed to save properties:', error);
+      toast.error('Failed to save changes');
+    } finally {
+      setIsSavingProperties(false);
+    }
+  };
+
+  // Get filtered subcategories based on selected category
+  const filteredSubcategories = editedCategory 
+    ? subcategories.filter(s => s.categoryId === editedCategory)
+    : [];
 
   const loadTicket = async () => {
     try {
-      const response = await fetch(`${serverUrl}/api/tickets/${id}`, {
+      // Use V2 endpoint which returns customFieldValues
+      const response = await fetch(`${serverUrl}/api/tickets-v2/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -170,7 +502,8 @@ export default function TicketDetail() {
 
   const loadComments = async () => {
     try {
-      const response = await fetch(`${serverUrl}/api/tickets/${id}/comments`, {
+      // Use V2 endpoint which returns authorName properly
+      const response = await fetch(`${serverUrl}/api/tickets-v2/${id}/comments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -358,7 +691,7 @@ export default function TicketDetail() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${serverUrl}/api/tickets/${id}/reopen`, {
+      const response = await fetch(`${serverUrl}/api/tickets-v2/${id}/reopen`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -501,68 +834,71 @@ export default function TicketDetail() {
         )}
       </div>
 
-      {/* Content */}
+      {/* Content - Two Column Layout with Properties Sidebar for Agents */}
       <div className="flex-1 overflow-auto p-6">
-        {/* Ticket Description */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-          <h2 className="text-sm font-medium text-gray-500 mb-2">Description</h2>
-          <p className="text-gray-900 whitespace-pre-wrap">{ticket.description}</p>
-          
-          {/* Ticket Attachments */}
-          {ticket.attachments && ticket.attachments.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Attachments</h3>
-              <div className="flex flex-wrap gap-2">
-                {ticket.attachments.map((att) => (
-                  <a
-                    key={att.id}
-                    href={`${serverUrl}/api/tickets-v2/attachments/${att.id}/download`}
-                    download={att.fileName}
-                    className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors"
-                  >
-                    <Paperclip className="w-4 h-4" />
-                    <span>{att.fileName}</span>
-                    <Download className="w-4 h-4" />
-                  </a>
-                ))}
+        <div className={`flex gap-6 ${isAgent ? '' : ''}`}>
+          {/* Main Content */}
+          <div className={isAgent ? 'flex-1' : 'w-full'}>
+            {/* Ticket Description */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+              <h2 className="text-sm font-medium text-gray-500 mb-2">Description</h2>
+              <p className="text-gray-900 whitespace-pre-wrap">{ticket.description}</p>
+              
+              {/* Ticket Attachments */}
+              {ticket.attachments && ticket.attachments.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Attachments</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {ticket.attachments.map((att) => (
+                      <a
+                        key={att.id}
+                        href={`${serverUrl}/api/tickets-v2/attachments/${att.id}/download`}
+                        download={att.fileName}
+                        className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors"
+                      >
+                        <Paperclip className="w-4 h-4" />
+                        <span>{att.fileName}</span>
+                        <Download className="w-4 h-4" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                <div className="flex items-center gap-1">
+                  <User className="w-4 h-4" />
+                  <span>Created by {
+                    ticket.createdByUser 
+                      ? `${ticket.createdByUser.firstName} ${ticket.createdByUser.lastName}`.trim() || ticket.createdByUser.email
+                      : ticket.createdByName || 'Unknown'
+                  }</span>
+                </div>
+                {ticket.createdByUser?.email && (
+                  <div className="flex items-center gap-1">
+                    <Mail className="w-4 h-4" />
+                    <span>{ticket.createdByUser.email}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  <span>{format(parseISO(ticket.createdAt), 'MMM d, yyyy h:mm a')}</span>
+                </div>
+                {(ticket.assignedToName || ticket.assignedToUser) && (
+                  <div className="flex items-center gap-1">
+                    <User className="w-4 h-4" />
+                    <span>Assigned to {
+                      ticket.assignedToUser
+                        ? `${ticket.assignedToUser.firstName} ${ticket.assignedToUser.lastName}`.trim() || ticket.assignedToUser.email
+                        : ticket.assignedToName
+                    }</span>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-          
-          <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-6 text-sm text-gray-500">
-            <div className="flex items-center gap-1">
-              <User className="w-4 h-4" />
-              <span>Created by {
-                ticket.createdByUser 
-                  ? `${ticket.createdByUser.firstName} ${ticket.createdByUser.lastName}`.trim() || ticket.createdByUser.email
-                  : ticket.createdByName || 'Unknown'
-              }</span>
-            </div>
-            {ticket.createdByUser?.email && (
-              <div className="flex items-center gap-1">
-                <Mail className="w-4 h-4" />
-                <span>{ticket.createdByUser.email}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              <span>{format(parseISO(ticket.createdAt), 'MMM d, yyyy h:mm a')}</span>
-            </div>
-            {(ticket.assignedToName || ticket.assignedToUser) && (
-              <div className="flex items-center gap-1">
-                <User className="w-4 h-4" />
-                <span>Assigned to {
-                  ticket.assignedToUser
-                    ? `${ticket.assignedToUser.firstName} ${ticket.assignedToUser.lastName}`.trim() || ticket.assignedToUser.email
-                    : ticket.assignedToName
-                }</span>
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* Comments Section */}
-        <div className="bg-white rounded-xl border border-gray-200">
+            {/* Comments Section */}
+            <div className="bg-white rounded-xl border border-gray-200">
           <div className="p-4 border-b border-gray-200">
             <h2 className="font-medium text-gray-900 flex items-center gap-2">
               <MessageSquare className="w-5 h-5" />
@@ -688,6 +1024,243 @@ export default function TicketDetail() {
                 <AlertCircle className="w-4 h-4" />
                 This ticket is closed and cannot be reopened.
               </p>
+            </div>
+          )}
+        </div>
+          </div>
+
+          {/* Properties Sidebar - Only for Agents/Admins */}
+          {isAgent && (
+            <div className="w-80 flex-shrink-0">
+              <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-0">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-900">Properties</h3>
+                  {hasChanges && (
+                    <button
+                      onClick={saveProperties}
+                      disabled={isSavingProperties}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    >
+                      {isSavingProperties ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      Save
+                    </button>
+                  )}
+                </div>
+
+                {isLoadingSettings ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Status */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">Status</label>
+                      <select
+                        value={editedStatus || ''}
+                        onChange={(e) => handlePropertyChange('status', parseInt(e.target.value))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {statuses.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                        {statuses.length === 0 && (
+                          <>
+                            <option value={1}>Open</option>
+                            <option value={2}>In Progress</option>
+                            <option value={3}>Pending</option>
+                            <option value={4}>Resolved</option>
+                            <option value={5}>Closed</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+
+                    {/* Priority */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">Priority</label>
+                      <select
+                        value={editedPriority ?? ''}
+                        onChange={(e) => handlePropertyChange('priority', parseInt(e.target.value))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {priorities.length > 0 ? (
+                          priorities.map(p => (
+                            <option key={p.id} value={p.level}>{p.name}</option>
+                          ))
+                        ) : (
+                          <>
+                            <option value={0}>Low</option>
+                            <option value={1}>Medium</option>
+                            <option value={2}>High</option>
+                            <option value={3}>Critical</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">Category</label>
+                      <select
+                        value={editedCategory || ''}
+                        onChange={(e) => handlePropertyChange('category', parseInt(e.target.value))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Select category</option>
+                        {categories.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Subcategory */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">Subcategory</label>
+                      <select
+                        value={editedSubcategory || ''}
+                        onChange={(e) => handlePropertyChange('subcategory', parseInt(e.target.value))}
+                        disabled={!editedCategory}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                      >
+                        <option value="">Select subcategory</option>
+                        {filteredSubcategories.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Custom Fields - Right after Subcategory */}
+                    {customFields.length > 0 && (
+                      <div className="pt-2 border-t border-gray-100">
+                        <p className="text-xs font-medium text-gray-500 mb-3">Custom Fields</p>
+                        {customFields.map(field => (
+                          <div key={field.id} className="mb-3">
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              {field.placeholder || field.name || field.label} {field.isRequired && <span className="text-red-500">*</span>}
+                            </label>
+                            {field.type === 'select' ? (
+                              <select
+                                value={editedCustomFields[field.id.toString()] || ''}
+                                onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              >
+                                <option value="">Select...</option>
+                                {field.options?.map((opt, i) => (
+                                  <option key={i} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            ) : field.type === 'textarea' ? (
+                              <textarea
+                                value={editedCustomFields[field.id.toString()] || ''}
+                                onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                rows={2}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+                              />
+                            ) : (
+                              <input
+                                type={field.type === 'number' ? 'number' : 'text'}
+                                value={editedCustomFields[field.id.toString()] || ''}
+                                onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Assigned Agent */}
+                    <div className="pt-2 border-t border-gray-100">
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">Assigned Agent</label>
+                      <select
+                        value={editedAgent || ''}
+                        onChange={(e) => handlePropertyChange('agent', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Unassigned</option>
+                        {agents.map(a => (
+                          <option key={a.userId} value={a.userId}>
+                            {a.name || `${a.firstName || ''} ${a.lastName || ''}`.trim() || a.email}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Collaborators */}
+                    <div className="pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-medium text-gray-500">Collaborators</p>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddCollaborator(!showAddCollaborator)}
+                          className="text-xs text-blue-600 hover:text-blue-700"
+                        >
+                          {showAddCollaborator ? 'Cancel' : '+ Add'}
+                        </button>
+                      </div>
+                      
+                      {showAddCollaborator && (
+                        <div className="mb-3 flex gap-2">
+                          <select
+                            value={selectedCollaboratorId}
+                            onChange={(e) => setSelectedCollaboratorId(e.target.value)}
+                            className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">Select agent...</option>
+                            {availableCollaborators.map(a => (
+                              <option key={a.id} value={a.id}>
+                                {a.firstName} {a.lastName}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={addCollaborator}
+                            disabled={!selectedCollaboratorId || isAddingCollaborator}
+                            className="px-2 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            {isAddingCollaborator ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
+                          </button>
+                        </div>
+                      )}
+                      
+                      {collaborators.length === 0 ? (
+                        <p className="text-xs text-gray-400 italic">No collaborators</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {collaborators.map(collab => (
+                            <div key={collab.id} className="flex items-center justify-between py-1.5 px-2 bg-gray-50 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                                  <User className="w-3 h-3 text-blue-600" />
+                                </div>
+                                <span className="text-sm text-gray-700">
+                                  {collab.user ? `${collab.user.firstName} ${collab.user.lastName}` : 'Unknown'}
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => removeCollaborator(collab.id)}
+                                className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                title="Remove collaborator"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Updated indicator */}
+                    {hasChanges && (
+                      <div className="pt-2 text-xs text-amber-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        You have unsaved changes
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

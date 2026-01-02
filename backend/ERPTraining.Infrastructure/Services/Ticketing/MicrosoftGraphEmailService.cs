@@ -26,7 +26,7 @@ public class MicrosoftGraphEmailService : IEmailService
     {
         _configuration = configuration;
         _logger = logger;
-        _serviceAccountEmail = configuration["MicrosoftGraph:ServiceAccountEmail"] ?? "ithelpdesk@babajishivram.com";
+        _serviceAccountEmail = configuration["MicrosoftGraph:ServiceAccountEmail"] ?? "support@example.com"; // TODO: Configure in appsettings
 
         // Initialize Graph client with app-only authentication
         var clientId = configuration["MicrosoftGraph:ClientId"];
@@ -183,6 +183,84 @@ public class MicrosoftGraphEmailService : IEmailService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error sending email to {ToEmail}", toEmail);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Sends an email with CC recipients using Microsoft Graph API
+    /// </summary>
+    public async Task SendEmailWithCcAsync(
+        string toEmail,
+        IEnumerable<string>? ccEmails,
+        string subject,
+        string body,
+        bool isHtml = true,
+        IEnumerable<OutgoingEmailAttachment>? attachments = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var ccList = ccEmails?.Where(e => !string.IsNullOrWhiteSpace(e)).ToList() ?? new List<string>();
+            _logger.LogInformation("Sending email to {ToEmail} with {CcCount} CC recipients, subject: {Subject}", 
+                toEmail, ccList.Count, subject);
+
+            var message = new Message
+            {
+                Subject = subject,
+                Body = new ItemBody
+                {
+                    ContentType = isHtml ? BodyType.Html : BodyType.Text,
+                    Content = body
+                },
+                ToRecipients = new List<Recipient>
+                {
+                    new Recipient
+                    {
+                        EmailAddress = new EmailAddress { Address = toEmail }
+                    }
+                },
+                CcRecipients = ccList.Select(cc => new Recipient
+                {
+                    EmailAddress = new EmailAddress { Address = cc }
+                }).ToList()
+            };
+
+            if (attachments != null)
+            {
+                var fileAttachments = new List<Microsoft.Graph.Models.Attachment>();
+                foreach (var attachment in attachments)
+                {
+                    if (attachment?.Content == null || attachment.Content.Length == 0) continue;
+                    var contentType = string.IsNullOrWhiteSpace(attachment.ContentType)
+                        ? "application/octet-stream" : attachment.ContentType;
+                    fileAttachments.Add(new Microsoft.Graph.Models.FileAttachment
+                    {
+                        OdataType = "#microsoft.graph.fileAttachment",
+                        Name = attachment.FileName,
+                        ContentType = contentType,
+                        ContentBytes = attachment.Content
+                    });
+                }
+                if (fileAttachments.Count > 0) message.Attachments = fileAttachments;
+            }
+
+            await _graphServiceClient.Users[_serviceAccountEmail]
+                .SendMail
+                .PostAsync(new Microsoft.Graph.Users.Item.SendMail.SendMailPostRequestBody
+                {
+                    Message = message,
+                    SaveToSentItems = true
+                }, requestConfiguration: config =>
+                {
+                    config.Headers.Add("ConsistencyLevel", "eventual");
+                }, cancellationToken);
+
+            _logger.LogInformation("Email sent successfully to {ToEmail} with {CcCount} CC recipients", toEmail, ccList.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending email with CC to {ToEmail}", toEmail);
             throw;
         }
     }

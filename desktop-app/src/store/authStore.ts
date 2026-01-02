@@ -1,12 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// Get default server URL from environment variable (set at build time)
+const DEFAULT_SERVER_URL = import.meta.env.VITE_DEFAULT_SERVER_URL || 'http://localhost:5016';
+
 interface User {
-  id: number;
+  id: number | string;
   email: string;
   firstName: string;
   lastName: string;
-  role: string;
+  role?: string;
+  roles?: string[];
   department?: string;
 }
 
@@ -25,7 +29,7 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       token: null,
-      serverUrl: 'http://localhost:5016',
+      serverUrl: DEFAULT_SERVER_URL,
       isAuthenticated: false,
       
       login: (user, token) => set({ 

@@ -1,0 +1,34 @@
+# EAS Build Ignore File
+# Reduces upload size by excluding unnecessary files
+
+# Native build folders (EAS generates these fresh)
+android/
+ios/
+
+# Development files
+*.txt
+*.md
+!README.md
+
+# Test files
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# IDE and editor files
+.vscode/
+.idea/
+
+# Local env files
+.env.local
+.env.development.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

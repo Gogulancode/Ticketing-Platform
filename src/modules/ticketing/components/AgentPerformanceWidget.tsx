@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Clock, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
 
@@ -25,6 +25,7 @@ interface AgentPerformance {
 
 interface AgentPerformanceWidgetProps {
   department?: string | null;
+  categoryIds?: number[];
 }
 
 const PLACEHOLDER_NAME_REGEX = /^agent\s+\d+$/i;
@@ -46,15 +47,40 @@ const getAgentDisplayName = (agent: AgentPerformance) => {
   return 'Unassigned Agent';
 };
 
-const AgentPerformanceWidget: React.FC<AgentPerformanceWidgetProps> = ({ department }) => {
+// Empty array constant to avoid creating new references on each render
+const EMPTY_CATEGORY_IDS: number[] = [];
+
+const AgentPerformanceWidget: React.FC<AgentPerformanceWidgetProps> = ({ department, categoryIds }) => {
   const [agents, setAgents] = useState<AgentPerformance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Use stable reference for categoryIds - fallback to constant empty array
+  const stableCategoryIds = categoryIds ?? EMPTY_CATEGORY_IDS;
+  
+  // Use ref to track the categoryIds to avoid infinite re-renders on array comparison
+  const categoryIdsRef = useRef<string>(JSON.stringify(stableCategoryIds));
+  const isFetchingRef = useRef(false);
+  const hasFetchedRef = useRef(false);
 
   const fetchAgentPerformance = useCallback(async () => {
+    // Prevent concurrent fetches
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    
     try {
       setLoading(true);
-      const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/agent-performance?days=7`, {
+      
+      // Parse categoryIds from the stable ref
+      const currentCategoryIds = JSON.parse(categoryIdsRef.current) as number[];
+      
+      // Build URL with category filter if provided (for Category Admins)
+      const params = new URLSearchParams({ days: '7' });
+      if (currentCategoryIds.length > 0) {
+        params.append('categoryIds', currentCategoryIds.join(','));
+      }
+      
+      const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/agent-performance?${params}`, {
         headers: getAuthHeaders()
       });
       if (!response.ok) {
@@ -81,12 +107,26 @@ const AgentPerformanceWidget: React.FC<AgentPerformanceWidgetProps> = ({ departm
       setAgents([]);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, [department]);
 
+  // Update the ref when categoryIds actually change (by value) and fetch
   useEffect(() => {
-    fetchAgentPerformance();
-  }, [fetchAgentPerformance]);
+    const newCategoryIdsString = JSON.stringify(stableCategoryIds);
+    const categoryIdsChanged = categoryIdsRef.current !== newCategoryIdsString;
+    
+    // Update ref if changed
+    if (categoryIdsChanged) {
+      categoryIdsRef.current = newCategoryIdsString;
+    }
+    
+    // Only fetch if: first mount OR categoryIds actually changed by value
+    if (!hasFetchedRef.current || categoryIdsChanged) {
+      hasFetchedRef.current = true;
+      fetchAgentPerformance();
+    }
+  }, [stableCategoryIds, fetchAgentPerformance]);
 
   const getPerformanceColor = (rate: number) => {
     if (rate >= 80) return 'text-green-600 bg-green-100';

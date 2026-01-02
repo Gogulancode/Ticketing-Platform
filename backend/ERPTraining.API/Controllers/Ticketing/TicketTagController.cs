@@ -7,7 +7,7 @@ namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
 [Route("api/tickets/settings/tags")]
-// [Authorize] // Temporarily disabled for testing
+[Authorize]
 public class TicketTagController : ControllerBase
 {
     private readonly ITicketTagService _tagService;

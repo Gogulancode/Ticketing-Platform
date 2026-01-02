@@ -71,7 +71,8 @@ export enum TicketStatus {
   InProgress = 2,     // Database ID 2 = "In Progress"
   OnHold = 3,         // Database ID 3 = "On Hold"
   Resolved = 4,       // Database ID 4 = "Resolved"
-  Closed = 5          // Database ID 5 = "Closed"
+  Closed = 5,         // Database ID 5 = "Closed"
+  Merged = 1009       // Database ID 1009 = "Merged"
 }
 
 export enum TicketPriority {

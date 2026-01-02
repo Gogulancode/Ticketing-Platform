@@ -79,7 +79,7 @@ public class DatabaseAuthService : IAuthService
 
             _logger.LogInformation("User {UserId} ({Email}) logged in successfully", user.Id, user.Email);
 
-            return BuildAuthResponse(user, roles.ToList());
+            return await BuildAuthResponseAsync(user, roles.ToList());
         }
         catch (Exception ex)
         {
@@ -126,7 +126,7 @@ public class DatabaseAuthService : IAuthService
             var roles = await _userManager.GetRolesAsync(user);
             _logger.LogInformation("User {UserId} ({Email}) registered successfully", user.Id, user.Email);
 
-            return BuildAuthResponse(user, roles.ToList());
+            return await BuildAuthResponseAsync(user, roles.ToList());
         }
         catch (Exception ex)
         {
@@ -143,7 +143,7 @@ public class DatabaseAuthService : IAuthService
             if (user == null) return null;
 
             var roles = await _userManager.GetRolesAsync(user);
-            return CreateUserDto(user, roles.ToList());
+            return await CreateUserDtoAsync(user, roles.ToList());
         }
         catch (Exception ex)
         {
@@ -173,7 +173,7 @@ public class DatabaseAuthService : IAuthService
             }
 
             var roles = await _userManager.GetRolesAsync(user);
-            return CreateUserDto(user, roles.ToList());
+            return await CreateUserDtoAsync(user, roles.ToList());
         }
         catch (Exception ex)
         {
@@ -232,7 +232,7 @@ public class DatabaseAuthService : IAuthService
             if (user == null || !user.IsActive) return null;
 
             var roles = await _userManager.GetRolesAsync(user);
-            return BuildAuthResponse(user, roles.ToList());
+            return await BuildAuthResponseAsync(user, roles.ToList());
         }
         catch (Exception ex)
         {
@@ -274,8 +274,34 @@ public class DatabaseAuthService : IAuthService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private static UserDto CreateUserDto(User user, List<string> roles)
+    private async Task<UserDto> CreateUserDtoAsync(User user, List<string> roles)
     {
+        // Check if user is a Category Admin - wrapped in try-catch for database schema compatibility
+        var isCategoryAdmin = false;
+        var categoryIds = new List<int>();
+        
+        try
+        {
+            var categoryAdminEntries = await _context.CategoryAdmins
+                .Where(ca => ca.UserId == user.Id && ca.IsActive)
+                .ToListAsync();
+            
+            isCategoryAdmin = categoryAdminEntries.Any();
+            categoryIds = categoryAdminEntries.Select(ca => ca.CategoryId).ToList();
+        }
+        catch (Exception ex)
+        {
+            // Log but don't fail login if CategoryAdmins table has schema issues
+            _logger.LogWarning(ex, "Failed to check CategoryAdmin status for user {UserId}, proceeding without category admin data", user.Id);
+        }
+        
+        // If user is a category admin, add CategoryAdmin to their roles for frontend use
+        var effectiveRoles = roles.ToList();
+        if (isCategoryAdmin && !effectiveRoles.Contains("CategoryAdmin"))
+        {
+            effectiveRoles.Add("CategoryAdmin");
+        }
+        
         return new UserDto
         {
             Id = user.Id,
@@ -288,17 +314,19 @@ public class DatabaseAuthService : IAuthService
             JoinDate = user.JoinDate,
             Avatar = user.Avatar,
             IsActive = user.IsActive,
-            Roles = roles
+            Roles = effectiveRoles,
+            IsCategoryAdmin = isCategoryAdmin,
+            CategoryIds = categoryIds
         };
     }
 
-    private AuthResponseDto BuildAuthResponse(User user, List<string> roles)
+    private async Task<AuthResponseDto> BuildAuthResponseAsync(User user, List<string> roles)
     {
         var expiryHours = int.TryParse(_config["Jwt:ExpiryInHours"], out var hours) ? hours : 24;
         return new AuthResponseDto
         {
             Token = GenerateJwtToken(user, roles),
-            User = CreateUserDto(user, roles),
+            User = await CreateUserDtoAsync(user, roles),
             Expires = DateTime.UtcNow.AddHours(expiryHours)
         };
     }
@@ -338,6 +366,38 @@ public class DatabaseAuthService : IAuthService
         {
             _logger.LogError(ex, "Error changing password for user {UserId}", userId);
             return PasswordChangeResult.Failed("An error occurred while changing password", "Exception");
+        }
+    }
+
+    public async Task<PasswordChangeResult> ResetPasswordAsync(string email, string newPassword)
+    {
+        try
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                _logger.LogWarning("Reset password failed: User {Email} not found", email);
+                return PasswordChangeResult.Failed("User not found", "UserNotFound");
+            }
+
+            // Generate password reset token and reset
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+            
+            if (!result.Succeeded)
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                _logger.LogWarning("Reset password failed for user {Email}: {Errors}", email, errors);
+                return PasswordChangeResult.Failed(errors, "ValidationFailed");
+            }
+
+            _logger.LogInformation("Password reset successfully for user {Email}", email);
+            return PasswordChangeResult.Succeeded();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting password for user {Email}", email);
+            return PasswordChangeResult.Failed("An error occurred while resetting password", "Exception");
         }
     }
 }

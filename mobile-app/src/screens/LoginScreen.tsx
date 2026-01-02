@@ -10,32 +10,41 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
+import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuthStore();
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter email and password');
+    if (!username.trim() || !password.trim()) {
+      Alert.alert('Error', 'Please enter username and password');
       return;
     }
 
-    const success = await login(email.trim(), password);
-    if (!success) {
-      Alert.alert('Login Failed', 'Invalid email or password. Please try again.');
+    try {
+      await login(username.trim(), password);
+    } catch (error: any) {
+      const message = error?.message || 'Invalid username or password. Please try again.';
+      Alert.alert('Login Failed', message);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      
+      {/* Background elements */}
+      <View style={styles.bgCircle1} />
+      <View style={styles.bgCircle2} />
+      
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
@@ -43,42 +52,41 @@ export default function LoginScreen() {
         {/* Logo and Header */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <Ionicons name="headset" size={40} color={Colors.primary} />
+            <Image 
+              source={require('../../assets/EnrichLogo.jpeg')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
+          <Text style={styles.brandName}>Enrich</Text>
           <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Log in to your agent workspace</Text>
+          <Text style={styles.subtitle}>Log in to your workspace</Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
-          {/* Email Input */}
+          {/* Username Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email or Username</Text>
+            <Text style={styles.label}>Username</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your email or username"
-              placeholderTextColor={Colors.gray400}
-              value={email}
-              onChangeText={setEmail}
+              placeholder="Enter your username"
+              placeholderTextColor="rgba(255, 255, 255, 0.4)"
+              value={username}
+              onChangeText={setUsername}
               autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
+              autoComplete="username"
             />
           </View>
 
           {/* Password Input */}
           <View style={styles.inputGroup}>
-            <View style={styles.labelRow}>
-              <Text style={styles.label}>Password</Text>
-              <TouchableOpacity>
-                <Text style={styles.forgotPassword}>Forgot Password?</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.label}>Password</Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={[styles.input, styles.passwordInput]}
                 placeholder="••••••••"
-                placeholderTextColor={Colors.gray400}
+                placeholderTextColor="rgba(255, 255, 255, 0.4)"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -91,11 +99,13 @@ export default function LoginScreen() {
                 <Ionicons
                   name={showPassword ? 'eye' : 'eye-off'}
                   size={24}
-                  color={Colors.gray400}
+                  color="rgba(255, 255, 255, 0.5)"
                 />
               </TouchableOpacity>
             </View>
           </View>
+
+
 
           {/* Login Button */}
           <TouchableOpacity
@@ -104,44 +114,16 @@ export default function LoginScreen() {
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color={Colors.white} />
+              <ActivityIndicator color="#000000" />
             ) : (
-              <Text style={styles.loginButtonText}>Log In</Text>
+              <Text style={styles.loginButtonText}>Sign In</Text>
             )}
-          </TouchableOpacity>
-
-          {/* Biometric Login */}
-          <TouchableOpacity style={styles.biometricButton}>
-            <Ionicons name="finger-print" size={22} color={Colors.gray600} />
-            <Text style={styles.biometricText}>Login with Biometrics</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Divider */}
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>Or continue with</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        {/* Social Login */}
-        <View style={styles.socialButtons}>
-          <TouchableOpacity style={styles.socialButton}>
-            <Ionicons name="logo-google" size={20} color={Colors.textPrimary} />
-            <Text style={styles.socialButtonText}>Google</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
-            <Ionicons name="business" size={20} color={Colors.textPrimary} />
-            <Text style={styles.socialButtonText}>SSO</Text>
           </TouchableOpacity>
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Don't have an account?{' '}
-            <Text style={styles.contactAdmin}>Contact Admin</Text>
-          </Text>
+          <Text style={styles.footerText}>Powered by Enrich</Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -151,7 +133,25 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#000000',
+  },
+  bgCircle1: {
+    position: 'absolute',
+    top: -50,
+    left: -50,
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+  },
+  bgCircle2: {
+    position: 'absolute',
+    bottom: 100,
+    right: -100,
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    backgroundColor: 'rgba(99, 102, 241, 0.06)',
   },
   content: {
     flex: 1,
@@ -163,24 +163,40 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.xl,
-    backgroundColor: `${Colors.primary}15`,
+    width: 100,
+    height: 100,
+    borderRadius: 24,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
-    ...Shadows.soft,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+    overflow: 'hidden',
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+  },
+  brandName: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: 2,
+    marginBottom: Spacing.md,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.textPrimary,
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#ffffff',
     marginBottom: Spacing.xs,
   },
   subtitle: {
-    fontSize: FontSizes.lg,
-    color: Colors.textSecondary,
+    fontSize: FontSizes.md,
+    color: 'rgba(255, 255, 255, 0.5)',
   },
   form: {
     gap: Spacing.lg,
@@ -188,32 +204,21 @@ const styles = StyleSheet.create({
   inputGroup: {
     gap: Spacing.sm,
   },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   label: {
     fontSize: FontSizes.sm,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: 'rgba(255, 255, 255, 0.7)',
     marginLeft: Spacing.xs,
-  },
-  forgotPassword: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: Colors.primary,
   },
   input: {
     height: 56,
-    backgroundColor: Colors.white,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     paddingHorizontal: Spacing.lg,
     fontSize: FontSizes.lg,
-    color: Colors.textPrimary,
-    ...Shadows.soft,
+    color: '#ffffff',
   },
   passwordContainer: {
     position: 'relative',
@@ -232,12 +237,16 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     height: 56,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#ffffff',
     borderRadius: BorderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: Spacing.sm,
-    ...Shadows.primary,
+    marginTop: Spacing.lg,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   loginButtonDisabled: {
     opacity: 0.7,
@@ -245,77 +254,14 @@ const styles = StyleSheet.create({
   loginButtonText: {
     fontSize: FontSizes.lg,
     fontWeight: '700',
-    color: Colors.white,
-  },
-  biometricButton: {
-    flexDirection: 'row',
-    height: 56,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.md,
-    ...Shadows.soft,
-  },
-  biometricText: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: Spacing.xxl,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  dividerText: {
-    marginHorizontal: Spacing.lg,
-    fontSize: FontSizes.xs,
-    fontWeight: '600',
-    color: Colors.gray400,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  socialButtons: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
-  },
-  socialButton: {
-    flex: 1,
-    flexDirection: 'row',
-    height: 48,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.md,
-    ...Shadows.soft,
-  },
-  socialButtonText: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: Colors.textPrimary,
+    color: '#000000',
   },
   footer: {
-    marginTop: 'auto',
-    paddingVertical: Spacing.xxl,
     alignItems: 'center',
+    marginTop: 40,
   },
   footerText: {
     fontSize: FontSizes.sm,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-  },
-  contactAdmin: {
-    color: Colors.primary,
-    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.3)',
   },
 });

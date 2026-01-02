@@ -35,9 +35,10 @@ const SlaSettingsPage: React.FC = () => {
           : [];
         const normalizedRoles = roles.map((role: string) => role.toLowerCase());
         
-        const isAdmin = adminRoles.some(role => 
-          singleRole.includes(role.toLowerCase()) || 
-          normalizedRoles.some((r: string) => r.includes(role.toLowerCase()))
+        // Use exact matching to prevent "categoryadmin" from matching "admin"
+        const isAdmin = adminRoles.some(adminRole => 
+          singleRole === adminRole.toLowerCase() || 
+          normalizedRoles.some((r: string) => r === adminRole.toLowerCase())
         );
         
         if (isAdmin) {

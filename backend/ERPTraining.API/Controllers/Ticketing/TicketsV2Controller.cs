@@ -420,9 +420,9 @@ public class TicketsV2Controller : ControllerBase
                 mergedReader.Close();
                 
                                 var customFieldSql = @"
-                                        SELECT tcfv.CustomFieldId, tcfv.Value, cf.FieldName, cf.FieldName as FieldLabel
+                                        SELECT tcfv.CustomFieldId, tcfv.Value, cf.Name as FieldName, cf.Label as FieldLabel
                                         FROM TicketFieldValues tcfv
-                                        INNER JOIN TicketFieldSettings cf ON tcfv.CustomFieldId = cf.Id
+                                        INNER JOIN CustomFields cf ON tcfv.CustomFieldId = cf.Id
                                         WHERE tcfv.TicketId = @TicketId
                                             AND cf.IsActive = 1";
                 
@@ -676,6 +676,8 @@ public class TicketsV2Controller : ControllerBase
                 }
                 
                 // Update main ticket fields
+                // Set ResolvedAt when status changes to Resolved (4)
+                // Set FirstResponseAt if this is the first response from non-creator
                 var sql = @"
                     UPDATE Tickets SET 
                         Title = COALESCE(@Title, Title),
@@ -687,7 +689,15 @@ public class TicketsV2Controller : ControllerBase
                         SubcategoryId = COALESCE(@SubcategoryId, SubcategoryId),
                         DepartmentId = COALESCE(@DepartmentId, DepartmentId),
                         AssignedToUserId = COALESCE(@AssignedToUserId, AssignedToUserId),
-                        UpdatedAt = @UpdatedAt
+                        UpdatedAt = @UpdatedAt,
+                        ResolvedAt = CASE 
+                            WHEN @Status = 4 AND ResolvedAt IS NULL THEN @UpdatedAt 
+                            ELSE ResolvedAt 
+                        END,
+                        FirstResponseAt = CASE 
+                            WHEN FirstResponseAt IS NULL AND CreatedByUserId != @CurrentUserId THEN @UpdatedAt 
+                            ELSE FirstResponseAt 
+                        END
                     WHERE Id = @TicketId";
                     
                 using var command = new SqlCommand(sql, connection, transaction);
@@ -702,6 +712,11 @@ public class TicketsV2Controller : ControllerBase
                 command.Parameters.AddWithValue("@DepartmentId", (object?)request.DepartmentId ?? DBNull.Value);
                 command.Parameters.AddWithValue("@AssignedToUserId", (object?)request.AssignedToUserId ?? DBNull.Value);
                 command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
+                var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                                 ?? User.FindFirst("sub")?.Value
+                                 ?? User.FindFirst("userId")?.Value
+                                 ?? "";
+                command.Parameters.AddWithValue("@CurrentUserId", currentUserId);
                 
                 var rowsAffected = await command.ExecuteNonQueryAsync();
                 
@@ -724,7 +739,7 @@ public class TicketsV2Controller : ControllerBase
                             
                             // First, try to update existing custom field value
                             var updateCustomFieldSql = @"
-                                UPDATE TicketCustomFieldValues 
+                                UPDATE TicketFieldValues 
                                 SET Value = @Value, UpdatedAt = @UpdatedAt
                                 WHERE TicketId = @TicketId AND CustomFieldId = @CustomFieldId";
                             
@@ -740,7 +755,7 @@ public class TicketsV2Controller : ControllerBase
                             if (customFieldRowsAffected == 0)
                             {
                                 var insertCustomFieldSql = @"
-                                    INSERT INTO TicketCustomFieldValues (TicketId, CustomFieldId, Value, CreatedAt, UpdatedAt)
+                                    INSERT INTO TicketFieldValues (TicketId, CustomFieldId, Value, CreatedAt, UpdatedAt)
                                     VALUES (@TicketId, @CustomFieldId, @Value, @CreatedAt, @UpdatedAt)";
                                 
                                 using var insertCmd = new SqlCommand(insertCustomFieldSql, connection, transaction);
@@ -1742,7 +1757,11 @@ public class TicketsV2Controller : ControllerBase
 
     // REPLY TO EMAIL FUNCTIONALITY
     [HttpPost("{ticketId:guid}/reply-email")]
-    public async Task<ActionResult> ReplyToEmail(Guid ticketId, [FromForm] string replyMessage, [FromForm] List<IFormFile>? attachments = null)
+    public async Task<ActionResult> ReplyToEmail(
+        Guid ticketId, 
+        [FromForm] string replyMessage, 
+        [FromForm] List<IFormFile>? attachments = null,
+        [FromForm] string? ccEmails = null)
     {
         try
         {
@@ -1755,6 +1774,14 @@ public class TicketsV2Controller : ControllerBase
             {
                 return Unauthorized(new { error = "User not authenticated" });
             }
+
+            // Parse CC emails (comma-separated)
+            var ccEmailList = string.IsNullOrWhiteSpace(ccEmails)
+                ? new List<string>()
+                : ccEmails.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(e => e.Trim())
+                    .Where(e => !string.IsNullOrEmpty(e) && e.Contains("@"))
+                    .ToList();
 
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync();
@@ -1818,11 +1845,39 @@ Please do not remove the ticket number from the subject line to ensure proper tr
                 .Select(a => new OutgoingEmailAttachment(a.FileName, a.ContentType, a.Data))
                 .ToList();
 
-            // Send the email (with attachments if provided)
-            await SendEmail(createdByEmail, subject, emailBody, outgoingAttachments);
+            // Send the email with CC recipients if provided
+            if (ccEmailList.Count > 0)
+            {
+                await _emailService.SendEmailWithCcAsync(createdByEmail, ccEmailList, subject, emailBody, false, outgoingAttachments);
+                _logger.LogInformation("Email reply sent to {To} with {CcCount} CC recipients for ticket {TicketId}", 
+                    createdByEmail, ccEmailList.Count, ticketId);
+            }
+            else
+            {
+                await SendEmail(createdByEmail, subject, emailBody, outgoingAttachments);
+            }
+
+            // Save CC recipients as ticket participants for future email matching
+            foreach (var ccEmail in ccEmailList)
+            {
+                var participantSql = @"
+                    IF NOT EXISTS (SELECT 1 FROM TicketParticipants WHERE TicketId = @TicketId AND Email = @Email)
+                    BEGIN
+                        INSERT INTO TicketParticipants (Id, TicketId, Email, ParticipantType, AddedAt, AddedByUserId, IsActive)
+                        VALUES (@Id, @TicketId, @Email, 'CC', @AddedAt, @AddedByUserId, 1)
+                    END";
+                using var participantCmd = new SqlCommand(participantSql, connection);
+                participantCmd.Parameters.AddWithValue("@Id", Guid.NewGuid());
+                participantCmd.Parameters.AddWithValue("@TicketId", ticketId);
+                participantCmd.Parameters.AddWithValue("@Email", ccEmail);
+                participantCmd.Parameters.AddWithValue("@AddedAt", DateTime.UtcNow);
+                participantCmd.Parameters.AddWithValue("@AddedByUserId", userId);
+                await participantCmd.ExecuteNonQueryAsync();
+            }
             
             // Add the reply as a comment to the ticket FIRST (so we have a commentId for attachments)
             var commentId = Guid.NewGuid();
+            var ccNote = ccEmailList.Count > 0 ? $"\nCC: {string.Join(", ", ccEmailList)}" : "";
             var attachmentNote = preparedAttachments.Any() ? "\n📎 Includes attachments" : "";
             var addCommentSql = @"
                 INSERT INTO TicketComments (Id, TicketId, Body, AuthorUserId, IsInternal, CreatedAt)
@@ -1831,7 +1886,7 @@ Please do not remove the ticket number from the subject line to ensure proper tr
             using var commentCommand = new SqlCommand(addCommentSql, connection);
             commentCommand.Parameters.AddWithValue("@Id", commentId);
             commentCommand.Parameters.AddWithValue("@TicketId", ticketId);
-            commentCommand.Parameters.AddWithValue("@Body", $"[EMAIL REPLY SENT]{attachmentNote}\n\n{replyMessage}");
+            commentCommand.Parameters.AddWithValue("@Body", $"[EMAIL REPLY SENT]{ccNote}{attachmentNote}\n\n{replyMessage}");
             commentCommand.Parameters.AddWithValue("@AuthorUserId", userId);
             commentCommand.Parameters.AddWithValue("@IsInternal", false);
             commentCommand.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
@@ -2009,6 +2064,23 @@ Support Team";
                 .ToList();
 
             await SendEmail(recipientEmail, subject, emailBody, outgoingAttachments);
+
+            // Save forward recipient as ticket participant for future email matching
+            var participantSql = @"
+                IF NOT EXISTS (SELECT 1 FROM TicketParticipants WHERE TicketId = @TicketId AND Email = @Email)
+                BEGIN
+                    INSERT INTO TicketParticipants (Id, TicketId, Email, Name, ParticipantType, AddedAt, AddedByUserId, IsActive)
+                    VALUES (@Id, @TicketId, @Email, @Name, 'Forward', @AddedAt, @AddedByUserId, 1)
+                END";
+            using var participantCmd = new SqlCommand(participantSql, connection);
+            participantCmd.Parameters.AddWithValue("@Id", Guid.NewGuid());
+            participantCmd.Parameters.AddWithValue("@TicketId", ticketId);
+            participantCmd.Parameters.AddWithValue("@Email", recipientEmail);
+            participantCmd.Parameters.AddWithValue("@Name", (object?)recipientName ?? DBNull.Value);
+            participantCmd.Parameters.AddWithValue("@AddedAt", DateTime.UtcNow);
+            participantCmd.Parameters.AddWithValue("@AddedByUserId", userId);
+            await participantCmd.ExecuteNonQueryAsync();
+            _logger.LogInformation("Saved forward recipient {Email} as participant for ticket {TicketId}", recipientEmail, ticketId);
             
             // Add the forward action as a comment to the ticket FIRST (so we have a commentId for attachments)
             var commentId = Guid.NewGuid();
@@ -2169,7 +2241,7 @@ Support Team";
             var creatorIdFromEmail = await findCreatorCommand.ExecuteScalarAsync();
             var createdByUserId = creatorIdFromEmail?.ToString() ?? "system";
             
-            // Get IT category ID (for emails to ithelpdesk@babajishivram.com)
+            // Get IT category ID (for emails to IT support)
             int? categoryId = null;
             var getCategorySql = "SELECT Id FROM TicketCategories WHERE LOWER(Name) LIKE '%it%' AND IsActive = 1";
             using var getCategoryCommand = new SqlCommand(getCategorySql, connection);
@@ -2485,7 +2557,7 @@ Support Team";
     }
 
     [HttpGet("custom-fields/analytics")]
-    public async Task<ActionResult> GetCustomFieldAnalytics([FromQuery] int days = 7)
+    public async Task<ActionResult> GetCustomFieldAnalytics([FromQuery] int days = 7, [FromQuery] string? categoryIds = null)
     {
         try
         {
@@ -2495,20 +2567,35 @@ Support Team";
             var endDate = GetUtcNow();
             var startDate = endDate.AddDays(-days);
 
-            _logger.LogInformation($"Getting custom field analytics for date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
+            // Parse category IDs if provided (for Category Admin filtering)
+            var categoryIdList = new List<int>();
+            if (!string.IsNullOrEmpty(categoryIds))
+            {
+                categoryIdList = categoryIds.Split(',')
+                    .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
+                    .Where(id => id > 0)
+                    .ToList();
+            }
+
+            _logger.LogInformation($"Getting custom field analytics for date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}, categoryIds: {categoryIds ?? "all"}");
+
+            // Add category filter if provided
+            var categoryFilter = categoryIdList.Any() 
+                ? $"AND t.CategoryId IN ({string.Join(",", categoryIdList)})" 
+                : "";
 
             // Simplified query for faster implementation
-            var sql = @"
+            var sql = $@"
                 SELECT 
                     cf.Label as CustomFieldName,
                     tfv.Value as CustomFieldValue,
                     ISNULL(cat.Name, 'Uncategorized') as CategoryName,
                     ISNULL(subcat.Name, 'Uncategorized') as SubcategoryName,
                     COUNT(*) as TotalTickets,
-                    SUM(CASE WHEN t.Status = 0 THEN 1 ELSE 0 END) as OpenCount,
-                    SUM(CASE WHEN t.Status = 1 THEN 1 ELSE 0 END) as InProgressCount,
-                    SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as ResolvedCount,
-                    SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ClosedCount
+                    SUM(CASE WHEN t.Status = 1 THEN 1 ELSE 0 END) as OpenCount,
+                    SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as InProgressCount,
+                    SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ResolvedCount,
+                    SUM(CASE WHEN t.Status = 5 THEN 1 ELSE 0 END) as ClosedCount
                 FROM Tickets t
                 INNER JOIN TicketFieldValues tfv ON t.Id = tfv.TicketId
                 INNER JOIN CustomFields cf ON tfv.CustomFieldId = cf.Id
@@ -2520,6 +2607,7 @@ Support Team";
                     AND cf.IsDeleted = 0
                     AND tfv.Value IS NOT NULL 
                     AND tfv.Value != ''
+                    {categoryFilter}
                 GROUP BY cf.Label, tfv.Value, cat.Name, subcat.Name
                 ORDER BY CategoryName, SubcategoryName, CustomFieldName, TotalTickets DESC";
 
@@ -2616,7 +2704,7 @@ Support Team";
     }
 
     [HttpGet("department-analytics")]
-    public async Task<ActionResult> GetDepartmentAnalytics([FromQuery] int days = 7)
+    public async Task<ActionResult> GetDepartmentAnalytics([FromQuery] int days = 7, [FromQuery] string? categoryIds = null)
     {
         try
         {
@@ -2626,20 +2714,35 @@ Support Team";
             var endDate = GetUtcNow();
             var startDate = endDate.AddDays(-days);
 
-            _logger.LogInformation($"Getting department analytics for date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
+            // Parse category IDs if provided (for Category Admin filtering)
+            var categoryIdList = new List<int>();
+            if (!string.IsNullOrEmpty(categoryIds))
+            {
+                categoryIdList = categoryIds.Split(',')
+                    .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
+                    .Where(id => id > 0)
+                    .ToList();
+            }
 
-            var sql = @"
+            _logger.LogInformation($"Getting department analytics for date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}, categoryIds: {categoryIds ?? "all"}");
+
+            var categoryFilter = categoryIdList.Any() 
+                ? $"AND t.CategoryId IN ({string.Join(",", categoryIdList)})" 
+                : "";
+
+            var sql = $@"
                 SELECT 
                     ISNULL(d.Name, 'Unassigned') as DepartmentName,
                     COUNT(*) as TotalTickets,
-                    SUM(CASE WHEN t.Status = 0 THEN 1 ELSE 0 END) as OpenCount,
-                    SUM(CASE WHEN t.Status = 1 THEN 1 ELSE 0 END) as InProgressCount,
-                    SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as ResolvedCount,
-                    SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ClosedCount
+                    SUM(CASE WHEN t.Status = 1 THEN 1 ELSE 0 END) as OpenCount,
+                    SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as InProgressCount,
+                    SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ResolvedCount,
+                    SUM(CASE WHEN t.Status = 5 THEN 1 ELSE 0 END) as ClosedCount
                 FROM Tickets t
                 LEFT JOIN TicketDepartments d ON t.DepartmentId = d.Id
                 WHERE t.CreatedAt >= @StartDate 
                     AND t.CreatedAt <= @EndDate
+                    {categoryFilter}
                 GROUP BY d.Name
                 ORDER BY TotalTickets DESC";
 
@@ -2690,7 +2793,7 @@ Support Team";
     }
 
     [HttpGet("agent-performance")]
-    public async Task<ActionResult> GetAgentPerformance([FromQuery] int days = 7)
+    public async Task<ActionResult> GetAgentPerformance([FromQuery] int days = 7, [FromQuery] string? categoryIds = null)
     {
         try
         {
@@ -2700,17 +2803,31 @@ Support Team";
             var endDate = GetUtcNow();
             var startDate = endDate.AddDays(-days);
 
-            _logger.LogInformation($"Getting agent performance for date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
+            // Parse category IDs if provided (for Category Admin filtering)
+            var categoryIdList = new List<int>();
+            if (!string.IsNullOrEmpty(categoryIds))
+            {
+                categoryIdList = categoryIds.Split(',')
+                    .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
+                    .Where(id => id > 0)
+                    .ToList();
+            }
 
-            var sql = @"
+            _logger.LogInformation($"Getting agent performance for date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}, categoryIds: {categoryIds ?? "all"}");
+
+            var categoryFilter = categoryIdList.Any() 
+                ? $"AND t.CategoryId IN ({string.Join(",", categoryIdList)})" 
+                : "";
+
+            var sql = $@"
                 WITH AgentStats AS (
                     SELECT 
                         t.AssignedToUserId,
                         COUNT(*) as TotalTickets,
-                        SUM(CASE WHEN t.Status = 0 THEN 1 ELSE 0 END) as OpenCount,
-                        SUM(CASE WHEN t.Status = 1 THEN 1 ELSE 0 END) as InProgressCount,
-                        SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as ResolvedCount,
-                        SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ClosedCount,
+                        SUM(CASE WHEN t.Status = 1 THEN 1 ELSE 0 END) as OpenCount,
+                        SUM(CASE WHEN t.Status = 2 THEN 1 ELSE 0 END) as InProgressCount,
+                        SUM(CASE WHEN t.Status = 4 THEN 1 ELSE 0 END) as ResolvedCount,
+                        SUM(CASE WHEN t.Status = 5 THEN 1 ELSE 0 END) as ClosedCount,
                         AVG(CASE 
                             WHEN t.ResolvedAt IS NOT NULL AND t.CreatedAt IS NOT NULL 
                             THEN DATEDIFF(hour, t.CreatedAt, t.ResolvedAt) 
@@ -2720,6 +2837,7 @@ Support Team";
                     WHERE t.CreatedAt >= @StartDate 
                         AND t.CreatedAt <= @EndDate
                         AND t.AssignedToUserId IS NOT NULL
+                        {categoryFilter}
                     GROUP BY t.AssignedToUserId
                 )
                 , OrderedAgentStats AS (
@@ -2766,8 +2884,12 @@ Support Team";
                 var resolvedCount = (int)reader["ResolvedCount"];
                 var resolutionRate = agentTotalTickets > 0 ? Math.Round((double)resolvedCount / agentTotalTickets * 100, 1) : 0;
                 
-                var avgHours = reader["AvgResolutionHours"] != DBNull.Value ? 
-                    (double?)reader["AvgResolutionHours"] : null;
+                // Handle AvgResolutionHours - can be int, double, or DBNull
+                double? avgHours = null;
+                if (reader["AvgResolutionHours"] != DBNull.Value)
+                {
+                    avgHours = Convert.ToDouble(reader["AvgResolutionHours"]);
+                }
                 
                 var avgResolutionTime = avgHours.HasValue ? 
                     (avgHours.Value < 24 ? $"{avgHours.Value:F1}h" : $"{avgHours.Value / 24:F1}d") : "N/A";

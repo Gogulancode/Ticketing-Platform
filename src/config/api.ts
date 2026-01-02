@@ -25,9 +25,15 @@ const getApiBaseUrl = (): string => {
       return DEFAULT_LOCAL_API; // Always use local backend for development
     }
 
+    // Staging domain - enrichbeauty
+    if (currentHost === 'enrichbeauty.solutionsnextwave.com') {
+      return `${window.location.protocol}//enrichbeauty.solutionsnextwave.com/api/api`;
+    }
+
     // Production domain - ALWAYS use HTTP port 81 (no SSL configured)
-    if (currentHost === 'businesshub.babajishivram.com') {
-      return 'http://businesshub.babajishivram.com:81/api';
+    // TODO: Replace with your production domain
+    if (currentHost === 'your-production-domain.com') {
+      return 'http://your-production-domain.com:81/api';
     }
 
     // If we are on an unknown host but running in the browser, respect explicit env override
@@ -62,7 +68,7 @@ console.log('🔧 API Configuration:', {
   fullLocation: typeof window !== 'undefined' ? window.location.href : 'server-side',
   detectedEnvironment: typeof window !== 'undefined' ? 
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'LOCAL_DEV' :
-     window.location.hostname === 'businesshub.babajishivram.com' ? 'PRODUCTION_DOMAIN' : 'UNKNOWN') : 'SERVER_SIDE'
+     window.location.hostname === 'your-production-domain.com' ? 'PRODUCTION_DOMAIN' : 'UNKNOWN') : 'SERVER_SIDE'
 });
 
 export const API_CONFIG = {

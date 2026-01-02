@@ -15,6 +15,10 @@ public class UserDto
     public string? Avatar { get; set; }
     public bool IsActive { get; set; }
     public List<string> Roles { get; set; } = new();
+    
+    // Category Admin specific properties
+    public bool IsCategoryAdmin { get; set; }
+    public List<int> CategoryIds { get; set; } = new();
 }
 
 public class RegisterDto

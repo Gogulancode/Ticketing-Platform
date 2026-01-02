@@ -300,7 +300,9 @@ class SettingsApiService {
   async getTicketDepartments(includeInactive: boolean = false): Promise<Department[]> {
     try {
       const url = `${this.baseUrl}/tickets/settings/departments${includeInactive ? '?includeInactive=true' : ''}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.warn('Departments API not available, using mock data');
         return this.getMockDepartments();
@@ -324,7 +326,7 @@ class SettingsApiService {
   async createTicketDepartment(department: Omit<Department, 'id' | 'order'>): Promise<Department> {
     const response = await fetch(`${this.baseUrl}/tickets/settings/departments`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify({
         name: department.name,
         description: department.description,
@@ -351,7 +353,7 @@ class SettingsApiService {
   async updateTicketDepartment(id: number, department: Partial<Omit<Department, 'id' | 'order'>>): Promise<Department> {
     const response = await fetch(`${this.baseUrl}/tickets/settings/departments/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify({
         name: department.name,
         description: department.description,
@@ -377,7 +379,8 @@ class SettingsApiService {
 
   async deleteTicketDepartment(id: number): Promise<boolean> {
     const response = await fetch(`${this.baseUrl}/tickets/settings/departments/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: this.getAuthHeaders()
     });
     return response.ok;
   }
@@ -388,7 +391,9 @@ class SettingsApiService {
 
   async getCategoryAdmins(): Promise<CategoryAdmin[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins`);
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.warn('Category admins API not available');
         return [];
@@ -402,7 +407,9 @@ class SettingsApiService {
 
   async getCategoryAdminsByCategory(categoryId: number): Promise<CategoryAdmin[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/category/${categoryId}`);
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/category/${categoryId}`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) return [];
       return await response.json();
     } catch (error) {
@@ -413,7 +420,9 @@ class SettingsApiService {
 
   async getCategoryAdminsByUser(userId: string): Promise<CategoryAdmin[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/user/${userId}`);
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/user/${userId}`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) return [];
       return await response.json();
     } catch (error) {
@@ -424,7 +433,9 @@ class SettingsApiService {
 
   async getMyPermissions(): Promise<CategoryAdminPermissions | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/my-permissions`);
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/my-permissions`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) return null;
       return await response.json();
     } catch (error) {
@@ -435,7 +446,9 @@ class SettingsApiService {
 
   async checkIsCategoryAdmin(userId: string): Promise<{ isCategoryAdmin: boolean; categoryIds: number[] }> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/check/${userId}`);
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/check/${userId}`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) return { isCategoryAdmin: false, categoryIds: [] };
       return await response.json();
     } catch (error) {
@@ -446,7 +459,9 @@ class SettingsApiService {
 
   async getAvailableUsersForCategoryAdmin(): Promise<AvailableUser[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/available-users`);
+      const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/available-users`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) return [];
       return await response.json();
     } catch (error) {
@@ -458,7 +473,7 @@ class SettingsApiService {
   async createCategoryAdmin(request: CategoryAdminCreateRequest): Promise<CategoryAdmin> {
     const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(request)
     });
     if (!response.ok) {
@@ -471,7 +486,7 @@ class SettingsApiService {
   async updateCategoryAdmin(id: number, request: CategoryAdminUpdateRequest): Promise<CategoryAdmin> {
     const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(request)
     });
     if (!response.ok) {
@@ -483,7 +498,8 @@ class SettingsApiService {
 
   async deleteCategoryAdmin(id: number): Promise<boolean> {
     const response = await fetch(`${this.baseUrl}/tickets/settings/category-admins/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: this.getAuthHeaders()
     });
     return response.ok;
   }
@@ -492,7 +508,9 @@ class SettingsApiService {
   async getTicketCategories(includeInactive: boolean = false): Promise<TicketCategoryConfig[]> {
     try {
       const url = `${this.baseUrl}/tickets/settings/categories${includeInactive ? '?includeInactive=true' : ''}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.warn('Categories API not available, using mock data');
         return this.getMockCategories();
@@ -518,7 +536,9 @@ class SettingsApiService {
       
       if (params.toString()) url += `?${params.toString()}`;
       
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.warn('Sub-categories API not available, using mock data');
         return this.getMockSubCategories().filter(sc => !categoryId || sc.categoryId === categoryId);
@@ -563,7 +583,9 @@ class SettingsApiService {
   async getPriorityLevels(includeInactive: boolean = false): Promise<PriorityLevel[]> {
     try {
       const url = `${this.baseUrl}/tickets/settings/priorities${includeInactive ? '?includeInactive=true' : ''}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.warn('Priorities API not available, using mock data');
         return this.getMockPriorityLevels();
@@ -586,7 +608,9 @@ class SettingsApiService {
   async getTicketStatuses(includeInactive: boolean = false): Promise<TicketStatusConfig[]> {
     try {
       const url = `${this.baseUrl}/tickets/settings/statuses${includeInactive ? '?includeInactive=true' : ''}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.warn('Statuses API not available, using mock data');
         return this.getMockTicketStatuses();
@@ -608,7 +632,8 @@ class SettingsApiService {
   async deleteCategory(id: number): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/categories/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
       });
       return response.ok;
     } catch (error) {
@@ -620,7 +645,8 @@ class SettingsApiService {
   async deleteSubCategory(id: number): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/subcategories/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
       });
       return response.ok;
     } catch (error) {
@@ -632,7 +658,8 @@ class SettingsApiService {
   async deletePriority(id: number): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/priorities/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
       });
       return response.ok;
     } catch (error) {
@@ -644,7 +671,8 @@ class SettingsApiService {
   async deleteStatus(id: number): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/statuses/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
       });
       return response.ok;
     } catch (error) {
@@ -665,9 +693,7 @@ class SettingsApiService {
 
     const response = await fetch(`${this.baseUrl}/tickets/settings/categories`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(request)
     });
     
@@ -706,9 +732,7 @@ class SettingsApiService {
 
       const response = await fetch(`${this.baseUrl}/tickets/settings/categories/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(payload)
       });
       
@@ -828,7 +852,8 @@ class SettingsApiService {
   async deleteEmailAccount(id: string): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/email-accounts/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
       });
       
       if (!response.ok) {
@@ -931,7 +956,8 @@ class SettingsApiService {
   async deleteTicketGroup(id: number): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/groups/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
       });
       
       if (!response.ok) {
@@ -1090,7 +1116,8 @@ class SettingsApiService {
   async deleteCategoryEmailMapping(id: number): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/tickets/settings/email-mappings/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
       });
       
       if (!response.ok) {
@@ -1689,7 +1716,7 @@ class SettingsApiService {
       {
         id: '1',
         displayName: 'IT Helpdesk',
-        email: 'ithelpdesk@babajishivram.com',
+        email: 'support@example.com',
         clientId: '35426f76-0667-4347-a8fd-f961ce997bd3',
         clientSecret: '***CONFIGURED***',
         tenantId: '309806d5-10e6-4203-836f-3d6ae8fecf6a',
@@ -1702,7 +1729,7 @@ class SettingsApiService {
       {
         id: '2',
         displayName: 'HR Support',
-        email: 'hr-support@babajishivram.com',
+        email: 'hr-support@example.com',
         clientId: '35426f76-0667-4347-a8fd-f961ce997bd3',
         clientSecret: '***CONFIGURED***',
         tenantId: '309806d5-10e6-4203-836f-3d6ae8fecf6a',
@@ -1715,7 +1742,7 @@ class SettingsApiService {
       {
         id: '3',
         displayName: 'Finance Helpdesk',
-        email: 'finance-support@babajishivram.com',
+        email: 'finance-support@example.com',
         clientId: '35426f76-0667-4347-a8fd-f961ce997bd3',
         clientSecret: '***CONFIGURED***',
         tenantId: '309806d5-10e6-4203-836f-3d6ae8fecf6a',
@@ -3084,7 +3111,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
         tenantId: '309806d5-10e6-4203-836f-3d6ae8fecf6a',
         clientId: '35426f76-0667-4347-a8fd-f961ce997bd3',
         clientSecret: '***CONFIGURED***',
-        email: 'ithelpdesk@babajishivram.com',
+        email: 'support@example.com',
         categoryId: 1,
         isActive: true,
         processIncomingEmails: true,
@@ -3098,7 +3125,7 @@ class EnhancedSettingsApiService extends SettingsApiService {
         tenantId: '309806d5-10e6-4203-836f-3d6ae8fecf6a',
         clientId: '35426f76-0667-4347-a8fd-f961ce997bd3',
         clientSecret: '***CONFIGURED***',
-        email: 'hr-support@babajishivram.com',
+        email: 'hr-support@example.com',
         categoryId: 4,
         isActive: true,
         processIncomingEmails: true,

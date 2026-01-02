@@ -10,6 +10,9 @@
     "dev": "vite",
     "dev:electron": "vite",
     "build": "tsc && vite build && electron-builder",
+    "build:dev": "tsc && vite build --mode development && electron-builder",
+    "build:staging": "tsc && vite build --mode staging && electron-builder",
+    "build:prod": "tsc && vite build --mode production && electron-builder",
     "build:win": "npm run build -- --win",
     "build:mac": "npm run build -- --mac",
     "build:linux": "npm run build -- --linux",
@@ -65,7 +68,7 @@
     "win": {
       "target": [
         {
-          "target": "dir",
+          "target": "nsis",
           "arch": ["x64"]
         }
       ],

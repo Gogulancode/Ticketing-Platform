@@ -24,55 +24,29 @@ using ERPTraining.API.Hubs;
 using ERPTraining.API.Middleware;
 using ERPTraining.Core.Interfaces.Chat;
 using ERPTraining.Infrastructure.Services.Chat;
-using Serilog;
-using Serilog.Events;
-using AspNetCoreRateLimit;
 using HealthChecks.UI.Client;
 
-// Configure Serilog early for bootstrap logging
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-    .MinimumLevel.Override("System", LogEventLevel.Warning)
-    .Enrich.FromLogContext()
-    .Enrich.WithMachineName()
-    .Enrich.WithThreadId()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
+var builder = WebApplication.CreateBuilder(args);
 
-try
+// Configure IST timezone for the application
+var timeZoneConfig = builder.Configuration.GetSection("TimeZone");
+var useIST = timeZoneConfig.GetValue<bool>("UseIST", true);
+if (useIST)
 {
-    Log.Information("Starting Ticketing Platform API");
-    
-    var builder = WebApplication.CreateBuilder(args);
-
-    // Configure Serilog from appsettings
-    builder.Host.UseSerilog((context, services, configuration) => configuration
-        .ReadFrom.Configuration(context.Configuration)
-        .ReadFrom.Services(services)
-        .Enrich.FromLogContext()
-        .Enrich.WithMachineName()
-        .Enrich.WithThreadId());
-
-    // Configure IST timezone for the application
-    var timeZoneConfig = builder.Configuration.GetSection("TimeZone");
-    var useIST = timeZoneConfig.GetValue<bool>("UseIST", true);
-    if (useIST)
+    try
     {
         TimeZoneInfo.ClearCachedData();
         var istTimeZone = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
-        Log.Information("Application configured for timezone: {TimeZone}", istTimeZone.DisplayName);
+        Console.WriteLine($"Application configured for timezone: {istTimeZone.DisplayName}");
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Could not configure India Standard Time timezone, using server default: {ex.Message}");
+    }
+}
 
-    // ========================================
-    // RATE LIMITING CONFIGURATION
-    // ========================================
-    builder.Services.AddMemoryCache();
-    builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("RateLimiting:IpRateLimiting"));
-    builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
-    builder.Services.AddInMemoryRateLimiting();
-
-    // ========================================
-    // HEALTH CHECKS CONFIGURATION
+// ========================================
+// HEALTH CHECKS CONFIGURATION
     // ========================================
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
     builder.Services.AddHealthChecks()
@@ -116,11 +90,12 @@ try
                     "http://localhost:5182",  // Alternative frontend port
                     "http://localhost:3000",  // React dev server alternative
                     "http://localhost:8080",  // Generic dev server port
-                    "https://businesshub.babajishivram.com",  // Production domain (HTTPS)
-                    "http://businesshub.babajishivram.com",   // Production domain (HTTP)
-                    "http://businesshub.babajishivram.com:81", // Production API over HTTP port 81
-                    "https://businesshub.babajishivram.com:449", // Production API over HTTPS port 449
-                    "http://support.solutionsnextwave.com"    // Staging
+                    // TODO: Add your production domains here
+                    // "https://your-production-domain.com",  // Production domain (HTTPS)
+                    // "http://your-production-domain.com",   // Production domain (HTTP)
+                    "http://support.solutionsnextwave.com",   // Old Staging
+                    "http://enrichbeauty.solutionsnextwave.com",  // New Staging
+                    "https://enrichbeauty.solutionsnextwave.com"  // New Staging (HTTPS)
                   )
                   .AllowAnyMethod()
                   .AllowAnyHeader()
@@ -129,9 +104,14 @@ try
     });
 
     // ========================================
+    // MEMORY CACHE CONFIGURATION
+    // ========================================
+    builder.Services.AddMemoryCache();
+
+    // ========================================
     // DATABASE CONFIGURATION
     // ========================================
-    Log.Information("Using connection string: {ConnectionString}", connectionString?.Substring(0, Math.Min(50, connectionString?.Length ?? 0)) + "...");
+    Console.WriteLine($"Using connection string: {connectionString?.Substring(0, Math.Min(50, connectionString?.Length ?? 0))}...");
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(connectionString)
                .EnableDetailedErrors());
@@ -304,6 +284,14 @@ builder.Services.AddSwaggerGen(c =>
     // ========================================
     var app = builder.Build();
 
+    // Configure path base for sub-application hosting (e.g., under /api)
+    var pathBase = builder.Configuration.GetValue<string>("PathBase");
+    if (!string.IsNullOrEmpty(pathBase))
+    {
+        app.UsePathBase(pathBase);
+        Console.WriteLine($"Application configured with path base: {pathBase}");
+    }
+
     // Seed database with initial data (roles, admin user)
     using (var scope = app.Services.CreateScope())
     {
@@ -314,7 +302,7 @@ builder.Services.AddSwaggerGen(c =>
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "An error occurred while seeding the database");
+            Console.WriteLine($"An error occurred while seeding the database: {ex.Message}");
         }
     }
 
@@ -325,23 +313,17 @@ builder.Services.AddSwaggerGen(c =>
     // Enable forwarded headers (must be first for load balancing)
     app.UseForwardedHeaders();
     
-    // Add Serilog request logging
-    app.UseSerilogRequestLogging(options =>
-    {
-        options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
-        options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
-        {
-            diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
-            diagnosticContext.Set("UserAgent", httpContext.Request.Headers["User-Agent"].FirstOrDefault());
-            diagnosticContext.Set("ClientIP", httpContext.Connection.RemoteIpAddress?.ToString());
-        };
-    });
+    // Request logging (Serilog disabled for shared hosting compatibility)
+    // To re-enable, add Serilog.AspNetCore package and uncomment:
+    // app.UseSerilogRequestLogging();
     
     // Security Headers (OWASP)
     app.UseSecurityHeaders();
     
-    // Rate Limiting
-    app.UseIpRateLimiting();
+    // Rate Limiting disabled for shared hosting compatibility
+    // To re-enable, add AspNetCoreRateLimit package and uncomment:
+    // var enableRateLimiting = builder.Configuration.GetValue<bool>("RateLimiting:EnableRateLimiting", true);
+    // if (enableRateLimiting) { app.UseIpRateLimiting(); }
     
     // Swagger (enabled for all environments)
     app.UseSwagger();
@@ -376,14 +358,5 @@ builder.Services.AddSwaggerGen(c =>
     // Map SignalR Hubs
     app.MapHub<ChatHub>("/hubs/chat");
 
-    Log.Information("Application started successfully");
+    Console.WriteLine("Application started successfully");
     app.Run();
-}
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Application terminated unexpectedly");
-}
-finally
-{
-    Log.CloseAndFlush();
-}

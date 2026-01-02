@@ -23,12 +23,14 @@ using CustomField = ERPTraining.Core.Entities.Ticketing.CustomField;
 using TicketCategoryEntity = ERPTraining.Core.Entities.Tickets.TicketCategory;
 using TicketPriorityEntity = ERPTraining.Core.Entities.Tickets.TicketPriority;
 using TicketStatusEntity = ERPTraining.Core.Entities.Tickets.TicketStatus;
+using Microsoft.AspNetCore.Authorization;
 // Groups endpoints moved to dedicated TicketGroupsController
 
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
 [Route("api/tickets/settings")] // Keep original path so frontend stays untouched
+[Authorize]
 public class TicketSettingsController : ControllerBase
 {
     private readonly IA_TicketSettingsService _service;
@@ -783,7 +785,7 @@ public class TicketSettingsController : ControllerBase
             {
                 enabled = true,
                 processingEnabled = true,
-                supportedDomains = new[] { "babajishivram.com" },
+                supportedDomains = new[] { "example.com" }, // TODO: Replace with your domain
                 categories = await _context.TicketCategories
                     .Where(c => c.IsActive)
                     .Select(c => new { id = c.Id, name = c.Name })

@@ -53,9 +53,9 @@ const ReportsRouteGuard: React.FC<ReportsRouteGuardProps> = ({
           : [];
         const normalizedRoles = roles.map((role: string) => role.toLowerCase());
         
-        // Check if Admin
-        const userIsAdmin = adminRoles.some(role => 
-          singleRole.includes(role.toLowerCase()) || normalizedRoles.some((r: string) => r.includes(role.toLowerCase()))
+        // Check if Admin - use exact matching to prevent "categoryadmin" from matching "admin"
+        const userIsAdmin = adminRoles.some(adminRole => 
+          singleRole === adminRole.toLowerCase() || normalizedRoles.some((r: string) => r === adminRole.toLowerCase())
         );
         
         if (userIsAdmin) {
@@ -65,12 +65,12 @@ const ReportsRouteGuard: React.FC<ReportsRouteGuardProps> = ({
           return;
         }
         
-        // Check if Agent (includes Agent, Senior Agent, Team Lead)
+        // Check if Agent (includes Agent, Senior Agent, Team Lead) - use exact matching
         const agentRoles = ['agent', 'senior agent', 'team lead'];
         const userIsAgent = Boolean(
           currentUser.isAgent ||
-          agentRoles.some(agentRole => singleRole.includes(agentRole)) ||
-          normalizedRoles.some((role: string) => agentRoles.some(agentRole => role.includes(agentRole)))
+          agentRoles.some(agentRole => singleRole === agentRole) ||
+          normalizedRoles.some((role: string) => agentRoles.some(agentRole => role === agentRole))
         );
         
         if (userIsAgent) {

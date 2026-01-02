@@ -32,9 +32,9 @@ public class PublicEmailConfigController_Disabled : ControllerBase
             {
                 enabled = true,
                 processingEnabled = true,
-                supportedDomains = new[] { "babajishivram.com" },
-                defaultFromEmail = "noreply@babajishivram.com",
-                defaultFromName = "Babaji Shivram Support",
+                supportedDomains = new[] { "example.com" }, // TODO: Replace with your domain
+                defaultFromEmail = "noreply@example.com", // TODO: Replace with your email
+                defaultFromName = "Support Team",
                 maxEmailsPerBatch = 50,
                 processingIntervalMinutes = 5,
                 categories = await _context.TicketCategories
@@ -70,7 +70,7 @@ public class PublicEmailConfigController_Disabled : ControllerBase
                     displayName = m.DisplayName,
                     categoryId = m.CategoryId,
                     isActive = m.IsActive,
-                    isDefault = m.Id == 4, // Hardcode for now - ithelpdesk@babajishivram.com
+                    isDefault = m.Id == 4, // TODO: Configure default email mailbox ID
                     department = "IT Support",
                     keywords = m.KeywordMappings ?? "",
                     defaultPriority = 2,

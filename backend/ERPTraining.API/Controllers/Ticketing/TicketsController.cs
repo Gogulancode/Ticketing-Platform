@@ -761,7 +761,7 @@ public class TicketsController : ControllerBase
                         }
                         
                         var sql = @"
-                            INSERT INTO TicketCustomFieldValues (TicketId, CustomFieldId, Value, CreatedAt, UpdatedAt)
+                            INSERT INTO TicketFieldValues (TicketId, CustomFieldId, Value, CreatedAt, UpdatedAt)
                             VALUES (@TicketId, @CustomFieldId, @Value, @CreatedAt, @UpdatedAt)";
                         
                         using var command = new SqlCommand(sql, connection);

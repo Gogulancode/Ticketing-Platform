@@ -264,4 +264,15 @@ public class AuthService : IAuthService
 
         return Task.FromResult(PasswordChangeResult.Succeeded());
     }
+
+    public Task<PasswordChangeResult> ResetPasswordAsync(string email, string newPassword)
+    {
+        // Dummy implementation
+        if (DummyPasswords.ContainsKey(email))
+        {
+            DummyPasswords[email] = newPassword;
+            return Task.FromResult(PasswordChangeResult.Succeeded());
+        }
+        return Task.FromResult(PasswordChangeResult.Failed("User not found", "UserNotFound"));
+    }
 }

@@ -122,8 +122,8 @@ export default function Settings() {
           
           <div className="space-y-4">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl font-semibold text-red-600">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="text-2xl font-semibold text-blue-600">
                   {user?.firstName?.[0]}{user?.lastName?.[0]}
                 </span>
               </div>
@@ -270,8 +270,8 @@ export default function Settings() {
 
         {/* App Info */}
         <div className="text-center text-sm text-gray-400 mt-8">
-          <p>Nova Ticketing v{appVersion}</p>
-          <p className="mt-1">© 2025 All rights reserved</p>
+          <p>Enrich Support v{appVersion}</p>
+          <p className="mt-1">© 2025 Enrich. All rights reserved</p>
         </div>
       </div>
     </div>

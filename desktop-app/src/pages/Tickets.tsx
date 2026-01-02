@@ -46,12 +46,12 @@ const statusMap: Record<number, string> = {
   5: 'Closed',
 };
 
-// Priority mapping (from API integers)
+// Priority mapping (from API integers - matches backend TicketPriority enum)
 const priorityMap: Record<number, string> = {
-  1: 'Low',
-  2: 'Medium',
-  3: 'High',
-  4: 'Critical',
+  0: 'Low',
+  1: 'Medium',
+  2: 'High',
+  3: 'Critical',
 };
 
 const statusColors: Record<string, string> = {
@@ -373,7 +373,7 @@ function TicketDetailView({ ticket, onBack, onUpdated }: TicketDetailViewProps) 
 
   const loadTicketDetails = async () => {
     try {
-      const response = await fetch(`${serverUrl}/api/tickets/${ticket.id}`, {
+      const response = await fetch(`${serverUrl}/api/tickets-v2/${ticket.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -387,7 +387,7 @@ function TicketDetailView({ ticket, onBack, onUpdated }: TicketDetailViewProps) 
 
   const loadComments = async () => {
     try {
-      const response = await fetch(`${serverUrl}/api/tickets/${ticket.id}/comments`, {
+      const response = await fetch(`${serverUrl}/api/tickets-v2/${ticket.id}/comments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -418,7 +418,7 @@ function TicketDetailView({ ticket, onBack, onUpdated }: TicketDetailViewProps) 
         formData.append('attachments', file);
       });
 
-      const response = await fetch(`${serverUrl}/api/tickets/${ticket.id}/comments-with-attachments`, {
+      const response = await fetch(`${serverUrl}/api/tickets-v2/${ticket.id}/comments-with-attachments`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -489,7 +489,7 @@ function TicketDetailView({ ticket, onBack, onUpdated }: TicketDetailViewProps) 
       formData.append('recipientEmail', forwardEmail.trim());
       formData.append('forwardMessage', forwardMessage.trim());
 
-      const response = await fetch(`${serverUrl}/api/tickets/${ticket.id}/forward-email`, {
+      const response = await fetch(`${serverUrl}/api/tickets-v2/${ticket.id}/forward-email`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -521,7 +521,7 @@ function TicketDetailView({ ticket, onBack, onUpdated }: TicketDetailViewProps) 
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${serverUrl}/api/tickets/${ticket.id}/reopen`, {
+      const response = await fetch(`${serverUrl}/api/tickets-v2/${ticket.id}/reopen`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -24,7 +24,7 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({
     const checkUserRole = async () => {
       try {
         const currentUser = await getCurrentUser();
-        const adminRoles = ['Admin', 'SuperAdmin', 'Administrator'];
+        const adminRoles = ['admin', 'superadmin', 'administrator'];
         const singleRole = (currentUser.role || '').toString().toLowerCase();
         const roles = Array.isArray(currentUser.roles)
           ? currentUser.roles
@@ -40,11 +40,12 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({
           : [];
         const normalizedRoles = roles.map((role: string) => role.toLowerCase());
         
-        const userIsAdmin = adminRoles.some(role => 
-          singleRole.includes(role.toLowerCase()) || normalizedRoles.some((r: string) => r.includes(role.toLowerCase()))
+        // Use exact matching - "categoryadmin" should NOT match "admin"
+        const userIsAdmin = adminRoles.some(adminRole => 
+          singleRole === adminRole || normalizedRoles.some((r: string) => r === adminRole)
         );
         
-        // Only Admins have access to protected routes (Settings, Users)
+        // Only full Admins have access to protected routes (Settings, Users)
         const hasAccess = userIsAdmin;
         setIsAuthorized(hasAccess);
         

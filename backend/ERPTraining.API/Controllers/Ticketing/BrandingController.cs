@@ -63,7 +63,7 @@ public class BrandingController : ControllerBase
     /// Update branding settings (admin only)
     /// </summary>
     [HttpPut]
-    [Authorize(Roles = "Admin,admin")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<BrandingSettingsDto>> UpdateBrandingSettings([FromBody] UpdateBrandingSettingsRequest request)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -116,7 +116,7 @@ public class BrandingController : ControllerBase
     /// Upload logo image (admin only)
     /// </summary>
     [HttpPost("logo")]
-    [Authorize(Roles = "Admin,admin")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<LogoUploadResponse>> UploadLogo(IFormFile file)
     {
         if (file == null || file.Length == 0)
@@ -233,7 +233,7 @@ public class BrandingController : ControllerBase
     /// Delete logo (admin only)
     /// </summary>
     [HttpDelete("logo")]
-    [Authorize(Roles = "Admin,admin")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> DeleteLogo()
     {
         var settings = await _context.BrandingSettings.FirstOrDefaultAsync();
@@ -278,7 +278,7 @@ public class BrandingController : ControllerBase
     /// Upload favicon (admin only)
     /// </summary>
     [HttpPost("favicon")]
-    [Authorize(Roles = "Admin,admin")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<LogoUploadResponse>> UploadFavicon(IFormFile file)
     {
         if (file == null || file.Length == 0)

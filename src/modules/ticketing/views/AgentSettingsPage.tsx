@@ -58,9 +58,10 @@ const AgentSettingsPage: React.FC = () => {
           : [];
         const normalizedRoles = roles.map((role: string) => role.toLowerCase());
         
-        const isAdmin = adminRoles.some(role => 
-          singleRole.includes(role.toLowerCase()) || 
-          normalizedRoles.some((r: string) => r.includes(role.toLowerCase()))
+        // Use exact matching to prevent "categoryadmin" from matching "admin"
+        const isAdmin = adminRoles.some(adminRole => 
+          singleRole === adminRole.toLowerCase() || 
+          normalizedRoles.some((r: string) => r === adminRole.toLowerCase())
         );
         
         if (isAdmin) {
@@ -105,26 +106,45 @@ const AgentSettingsPage: React.FC = () => {
     checkAuthorization();
   }, [navigate]);
 
-  const loadAgents = async (_catIds: number[]) => {
+  const loadAgents = async (catIds: number[]) => {
     try {
-      // Load agents - for now we load all agents and filter by department/category
+      // Load agents only for the Category Head's categories
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_CONFIG.BASE_URL}/tickets/settings/agents`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      
+      // Fetch agents for each category and combine results
+      const allAgents: Agent[] = [];
+      const seenAgentIds = new Set<number>();
+      
+      for (const categoryId of catIds) {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/tickets/settings/agents/for-category/${categoryId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          // Add agents if not already seen (avoid duplicates)
+          for (const agent of data) {
+            if (!seenAgentIds.has(agent.id)) {
+              seenAgentIds.add(agent.id);
+              allAgents.push({
+                id: agent.id,
+                name: agent.name,
+                email: agent.email,
+                role: 'Agent',
+                isActive: agent.isActive,
+                departmentIds: [categoryId],
+                userId: agent.userId
+              });
+            }
+          }
         }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        console.log('👥 Loaded agents:', data?.length || 0, 'agents');
-        // TODO: Filter agents that belong to any of the user's categories
-        // For now, show all agents
-        setAgents(data);
-      } else {
-        console.error('Failed to load agents:', response.status, await response.text());
-        setError('Failed to load agents');
       }
+      
+      console.log('👥 Loaded agents for categories', catIds, ':', allAgents.length, 'agents');
+      setAgents(allAgents);
     } catch (err) {
       console.error('Failed to load agents:', err);
       setError('Failed to load agents');

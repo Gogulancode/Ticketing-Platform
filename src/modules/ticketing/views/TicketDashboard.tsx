@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, Plus, Shield, ShieldCheck } from 'lucide-react';
 import { analyticsApi, DashboardAnalytics } from '../../../shared/services/api/analyticsApi';
@@ -47,6 +47,7 @@ interface MyTicketSummary {
     waiting: number;
     resolved: number;
     closed: number;
+    merged: number;
   };
 }
 
@@ -63,7 +64,8 @@ const PERSONAL_STATUS_CONFIG: Array<{
   { key: 'inProgress', label: 'In Progress', accent: 'text-amber-600', bg: 'bg-amber-50', description: 'Being worked on' },
   { key: 'waiting', label: 'Waiting', accent: 'text-purple-600', bg: 'bg-purple-50', description: 'On hold / blocked' },
   { key: 'resolved', label: 'Resolved', accent: 'text-emerald-600', bg: 'bg-emerald-50', description: 'Completed but open' },
-  { key: 'closed', label: 'Closed', accent: 'text-slate-600', bg: 'bg-slate-100', description: 'Fully completed' }
+  { key: 'closed', label: 'Closed', accent: 'text-slate-600', bg: 'bg-slate-100', description: 'Fully completed' },
+  { key: 'merged', label: 'Merged', accent: 'text-indigo-600', bg: 'bg-indigo-50', description: 'Combined tickets' }
 ];
 
 const TicketDashboard: React.FC = () => {
@@ -81,6 +83,15 @@ const TicketDashboard: React.FC = () => {
   const [myTicketsError, setMyTicketsError] = useState<string | null>(null);
   const showAnalytics = isAdmin || isAgent || isCategoryAdmin;
 
+  // Memoize the categoryIds to pass to widgets to prevent infinite re-renders
+  // Only Category Admins (not full admins) get their category IDs passed
+  const widgetCategoryIds = useMemo(() => {
+    if (isCategoryAdmin && !isAdmin && _categoryAdminCategoryIds.length > 0) {
+      return _categoryAdminCategoryIds;
+    }
+    return undefined;
+  }, [isCategoryAdmin, isAdmin, _categoryAdminCategoryIds]);
+
   const loadMyTicketSummary = useCallback(async () => {
     try {
       setMyTicketsError(null);
@@ -90,7 +101,8 @@ const TicketDashboard: React.FC = () => {
         inProgress: 0,
         waiting: 0,
         resolved: 0,
-        closed: 0
+        closed: 0,
+        merged: 0
       };
 
       tickets.forEach((ticket: Ticket) => {
@@ -106,6 +118,9 @@ const TicketDashboard: React.FC = () => {
             break;
           case TicketStatus.OnHold:
             statusCounts.waiting += 1;
+            break;
+          case TicketStatus.Merged:
+            statusCounts.merged += 1;
             break;
           default:
             statusCounts.new += 1;
@@ -141,8 +156,8 @@ const TicketDashboard: React.FC = () => {
           const department = currentUser.department || null;
           setUserDepartment(department);
           
-          // Check if user is admin (you can adjust this logic based on your role structure)
-          const adminRoles = ['Admin', 'SuperAdmin', 'Administrator'];
+          // Check if user is admin - use exact matching to avoid "categoryadmin" matching "admin"
+          const adminRoles = ['admin', 'superadmin', 'administrator'];
           const singleRole = (currentUser.role || '').toString().toLowerCase();
           const roles = Array.isArray(currentUser.roles)
             ? currentUser.roles
@@ -157,18 +172,19 @@ const TicketDashboard: React.FC = () => {
                 .filter(Boolean)
             : [];
           const normalizedRoles = roles.map((role: string) => role.toLowerCase());
-          const userIsAdmin = adminRoles.some(role => 
-            singleRole.includes(role.toLowerCase()) || normalizedRoles.some((r: string) => r.includes(role.toLowerCase()))
+          // Use exact matching - check if role equals admin role exactly
+          const userIsAdmin = adminRoles.some(adminRole => 
+            singleRole === adminRole || normalizedRoles.some((r: string) => r === adminRole)
           );
           setIsAdmin(userIsAdmin);
           localIsAdmin = userIsAdmin;
 
-          // Check if Agent (includes Agent, Senior Agent, Team Lead)
-          const agentRoles = ['agent', 'senior agent', 'team lead'];
+          // Check if Agent - use exact matching
+          const agentRoles = ['agent', 'senior agent', 'team lead', 'senioragent', 'teamlead'];
           const userIsAgent = Boolean(
             currentUser.isAgent ||
-            agentRoles.some(agentRole => singleRole.includes(agentRole)) ||
-            normalizedRoles.some(role => agentRoles.some(agentRole => role.includes(agentRole)))
+            agentRoles.some(agentRole => singleRole === agentRole) ||
+            normalizedRoles.some((role: string) => agentRoles.some(agentRole => role === agentRole))
           );
           setIsAgent(userIsAgent);
 
@@ -355,7 +371,10 @@ const TicketDashboard: React.FC = () => {
             
             {/* Custom Field Analytics Widget */}
             <div className="lg:col-span-2">
-              <QuickCustomFieldAnalytics days={7} />
+              <QuickCustomFieldAnalytics 
+                days={7} 
+                categoryIds={widgetCategoryIds}
+              />
             </div>
 
             {/* Quick Actions Widget */}
@@ -365,12 +384,19 @@ const TicketDashboard: React.FC = () => {
             
             {/* Weekly Department Widget */}
             <div className="lg:col-span-1">
-              <WeeklyDepartmentWidget department={userDepartment} showAllDepartments={showAnalytics} />
+              <WeeklyDepartmentWidget 
+                department={userDepartment} 
+                showAllDepartments={isAdmin} 
+                categoryIds={widgetCategoryIds}
+              />
             </div>
 
             {/* Agent Performance Widget */}
             <div className="lg:col-span-1">
-              <AgentPerformanceWidget department={showAnalytics ? undefined : userDepartment} />
+              <AgentPerformanceWidget 
+                department={isAdmin ? undefined : userDepartment} 
+                categoryIds={widgetCategoryIds}
+              />
             </div>
 
           </div>

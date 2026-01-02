@@ -10,7 +10,16 @@ function getToken(): string | null {
   return localStorage.getItem('token');
 }
 
+// Rate limit tracking to prevent retry storms
+let rateLimitedUntil: number = 0;
+
 async function apiFetch(path: string, options: { [key: string]: any } = {}): Promise<any> {
+  // Check if we're currently rate limited
+  if (Date.now() < rateLimitedUntil) {
+    const waitTime = Math.ceil((rateLimitedUntil - Date.now()) / 1000);
+    throw new Error(`Rate limited. Please wait ${waitTime} seconds.`);
+  }
+
   const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -18,6 +27,17 @@ async function apiFetch(path: string, options: { [key: string]: any } = {}): Pro
     ...(options.headers || {}),
   };
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  
+  // Handle rate limiting (429)
+  if (res.status === 429) {
+    // Get retry-after header or default to 60 seconds
+    const retryAfter = res.headers.get('Retry-After');
+    const waitSeconds = retryAfter ? parseInt(retryAfter, 10) : 60;
+    rateLimitedUntil = Date.now() + (waitSeconds * 1000);
+    console.warn(`⚠️ Rate limited. Waiting ${waitSeconds} seconds before retry.`);
+    throw new Error(`Too many requests. Please wait ${waitSeconds} seconds.`);
+  }
+  
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }

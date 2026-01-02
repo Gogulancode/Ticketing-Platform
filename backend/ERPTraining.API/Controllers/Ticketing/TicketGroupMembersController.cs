@@ -1,11 +1,13 @@
 using ERPTraining.Core.Ticketing.Settings.DTOs;
 using ERPTraining.Core.Ticketing.Settings.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
 [Route("api/tickets/settings/groups/{groupId:int}/members")]
+[Authorize]
 public class TicketGroupMembersController : ControllerBase
 {
     private readonly IA_TicketSettingsService _service;

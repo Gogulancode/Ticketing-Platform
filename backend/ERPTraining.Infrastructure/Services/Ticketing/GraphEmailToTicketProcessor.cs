@@ -161,6 +161,47 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
             }
         }
 
+        // Try to find ticket by sender email in TicketParticipants (for CC'd and forwarded recipients)
+        var senderEmail = email.FromEmail?.ToLowerInvariant();
+        if (!string.IsNullOrEmpty(senderEmail))
+        {
+            var participantMatch = await dbContext.Set<TicketParticipant>()
+                .Where(tp => tp.Email.ToLower() == senderEmail && tp.IsActive)
+                .OrderByDescending(tp => tp.AddedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (participantMatch != null)
+            {
+                var ticket = await dbContext.Tickets
+                    .FirstOrDefaultAsync(t => t.Id == participantMatch.TicketId, cancellationToken);
+                
+                if (ticket != null)
+                {
+                    _logger.LogInformation("Matched email from {Email} to ticket {TicketId} via TicketParticipants", 
+                        senderEmail, ticket.Id);
+                    return ticket;
+                }
+            }
+        }
+
+        // Try to find ticket where sender is the creator
+        if (!string.IsNullOrEmpty(senderEmail))
+        {
+            var creatorTicket = await dbContext.Tickets
+                .Include(t => t.CreatedByUser)
+                .Where(t => t.CreatedByUser != null && t.CreatedByUser.Email!.ToLower() == senderEmail)
+                .Where(t => t.CreatedAt > DateTime.UtcNow.AddDays(-30)) // Within last 30 days
+                .OrderByDescending(t => t.UpdatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (creatorTicket != null && IsSimilarSubject(creatorTicket.Title, email.Subject))
+            {
+                _logger.LogInformation("Matched email from creator {Email} to recent ticket {TicketId} by similar subject", 
+                    senderEmail, creatorTicket.Id);
+                return creatorTicket;
+            }
+        }
+
         // Try to find recent ticket from same sender with similar subject
         // Note: Since Ticket entity doesn't have RequesterEmail, we'll match by title similarity only
         var similarTicket = await dbContext.Tickets
@@ -673,13 +714,13 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
                   .Replace("&nbsp;", " ");
 
         // IMPORTANT: Remove the External Email warning - this appears at the START of emails
-        // Full pattern: "External Email: This email has not been originated from babajishivram.com. 
+        // Full pattern: "External Email: This email has not been originated from [your-domain].com. 
         //               Do not click on attachments or links/URLs unless the sender is reliable or trustworthy. 
         //               You could be a victim of phishing, malware, or viruses. Ok"
         var externalEmailPatterns = new[]
         {
             // Full external email warning (may span multiple lines after HTML conversion)
-            @"External\s*Email\s*:?\s*This\s+email\s+has\s+not\s+been\s+originated\s+from\s+babajishivram\.com\.?[\s\S]*?(?:phishing|malware|viruses)[\s\S]*?(?:Ok\.?)?",
+            @"External\s*Email\s*:?\s*This\s+email\s+has\s+not\s+been\s+originated\s+from\s+[\w.-]+\.com\.?[\s\S]*?(?:phishing|malware|viruses)[\s\S]*?(?:Ok\.?)?",
             // Catch just the "External Email:" header
             @"External\s*Email\s*:[\s\S]*?(?=Attn|Dear|Hi|Hello|Subject|\w+\s+Sir|\w+\s+Ma'am|$)",
             // Specific fragments that might remain after partial HTML parsing - very specific patterns first

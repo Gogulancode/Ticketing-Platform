@@ -25,7 +25,8 @@ import {
   TicketAnalyticsPage,
   UserManagementPage,
   SlaSettingsPage,
-  AgentSettingsPage
+  AgentSettingsPage,
+  DownloadsPage
 } from '@/modules/ticketing';
 import TicketPublicIdRedirect from './modules/ticketing/views/TicketPublicIdRedirect';
 
@@ -123,6 +124,7 @@ function App() {
               <Route path="settings/sla" element={<SlaSettingsPage />} />
               <Route path="settings/agents" element={<AgentSettingsPage />} />
               <Route path="users" element={<UserManagementPage />} />
+              <Route path="downloads" element={<DownloadsPage />} />
               <Route path="profile" element={<Profile />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="by-public-id/:publicId" element={<TicketPublicIdRedirect />} />

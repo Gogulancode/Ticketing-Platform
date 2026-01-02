@@ -63,7 +63,7 @@ export default function NewTicket() {
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
   const [departmentId, setDepartmentId] = useState('');
-  const [priority, setPriority] = useState(2);
+  const [priority, setPriority] = useState(0);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string | number | string[]>>({});
   const [attachments, setAttachments] = useState<File[]>([]);
   
@@ -139,14 +139,40 @@ export default function NewTicket() {
         loadedDepartments = (deptList || []).filter((d: Department) => d.isActive !== false);
         setDepartments(loadedDepartments);
         
+        console.log('🔍 User department from store:', user?.department);
+        console.log('🔍 Available departments:', loadedDepartments.map((d: Department) => d.name));
+        
         // Pre-select user's department if available
         if (user?.department && loadedDepartments.length > 0) {
           const userDepartment = loadedDepartments.find(
-            (dept: Department) => dept.name.toLowerCase() === user.department?.toLowerCase()
+            (dept: Department) => dept.name.toLowerCase().trim() === user.department?.toLowerCase().trim()
           );
           if (userDepartment) {
             setDepartmentId(userDepartment.id.toString());
             console.log('✅ Pre-selected department:', userDepartment.name);
+          } else {
+            console.log('❌ No matching department found for:', user.department);
+          }
+        } else {
+          console.log('⚠️ User department not set, fetching from API...');
+          // Try to get fresh user data from API
+          try {
+            const meResponse = await fetch(`${serverUrl}/api/auth/me`, { headers });
+            if (meResponse.ok) {
+              const userData = await meResponse.json();
+              console.log('📥 Fresh user data:', userData);
+              if (userData.department) {
+                const freshDept = loadedDepartments.find(
+                  (dept: Department) => dept.name.toLowerCase().trim() === userData.department.toLowerCase().trim()
+                );
+                if (freshDept) {
+                  setDepartmentId(freshDept.id.toString());
+                  console.log('✅ Pre-selected department from API:', freshDept.name);
+                }
+              }
+            }
+          } catch (err) {
+            console.error('Failed to fetch user data:', err);
           }
         }
       }
@@ -552,50 +578,7 @@ export default function NewTicket() {
             </div>
           </div>
 
-          {/* Department & Priority */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Department <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={departmentId}
-                  onChange={(e) => setDepartmentId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  required
-                >
-                  <option value="">Select department</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                >
-                  {priorities.length > 0 ? (
-                    priorities.map(p => (
-                      <option key={p.id} value={p.level}>{p.name}</option>
-                    ))
-                  ) : (
-                    <>
-                      <option value={1}>Low</option>
-                      <option value={2}>Medium</option>
-                      <option value={3}>High</option>
-                      <option value={4}>Critical</option>
-                    </>
-                  )}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Custom Fields */}
+          {/* Custom Fields - Shown after subcategory is selected */}
           {customFields.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <h3 className="text-sm font-medium text-gray-700 mb-4">Additional Information</h3>
@@ -611,6 +594,57 @@ export default function NewTicket() {
               </div>
             </div>
           )}
+
+          {/* Priority & Department */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                >
+                  {priorities.length > 0 ? (
+                    priorities.map(p => (
+                      <option key={p.id} value={p.level}>{p.name}</option>
+                    ))
+                  ) : (
+                    <>
+                      <option value={0}>Low</option>
+                      <option value={1}>Medium</option>
+                      <option value={2}>High</option>
+                      <option value={3}>Critical</option>
+                    </>
+                  )}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Department <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={departmentId}
+                  onChange={(e) => setDepartmentId(e.target.value)}
+                  disabled={!!departmentId && !!user?.department}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                    departmentId && user?.department 
+                      ? 'bg-gray-100 text-gray-600 cursor-not-allowed' 
+                      : 'focus:ring-2 focus:ring-red-500 focus:border-red-500'
+                  }`}
+                  required
+                >
+                  <option value="">Select department</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {departmentId && user?.department ? 'Linked to your account' : 'Select your department'}
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Attachments */}
           <div className="bg-white rounded-xl border border-gray-200 p-4">

@@ -38,6 +38,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<TicketCollaborator> TicketCollaborators { get; set; }
     public DbSet<Core.Entities.Tickets.TicketConfiguration> TicketConfigurations { get; set; }
+    public DbSet<TicketParticipant> TicketParticipants { get; set; }
 
     // Ticket Settings
     public DbSet<ERPTraining.Core.Entities.Tickets.TicketCategory> TicketCategories { get; set; }
@@ -343,6 +344,23 @@ public class ApplicationDbContext : IdentityDbContext<User>
         builder.Entity<TicketCollaborator>()
             .HasIndex(tc => tc.UserId);
 
+        // TicketParticipant (tracks CC'd and forwarded email recipients)
+        builder.Entity<TicketParticipant>()
+            .HasOne(tp => tp.Ticket)
+            .WithMany()
+            .HasForeignKey(tp => tp.TicketId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<TicketParticipant>()
+            .HasIndex(tp => tp.TicketId);
+
+        builder.Entity<TicketParticipant>()
+            .HasIndex(tp => tp.Email);
+
+        builder.Entity<TicketParticipant>()
+            .HasIndex(tp => new { tp.TicketId, tp.Email })
+            .IsUnique();
+
         // ========================================
         // EMAIL CONFIGURATION
         // ========================================
@@ -396,7 +414,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<CategoryAdmin>()
-            .HasOne<TicketCategory>()
+            .HasOne(ca => ca.Category)
             .WithMany(c => c.CategoryAdmins)
             .HasForeignKey(ca => ca.CategoryId)
             .OnDelete(DeleteBehavior.Cascade);

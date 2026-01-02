@@ -1,15 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, AlertCircle } from 'lucide-react';
-import { API_CONFIG } from '../../../config/api';
-
-// Helper function to get auth headers
-const getAuthHeaders = (): Record<string, string> => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
-};
+import { useAuthStore } from '../store/authStore';
 
 interface CustomFieldAnalyticsProps {
   days?: number;
@@ -57,112 +48,75 @@ interface CustomFieldAnalyticsResponse {
   data: CategoryAnalytics[];
 }
 
-// Empty array constant to avoid creating new references on each render
-const EMPTY_CATEGORY_IDS: number[] = [];
-
-const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({ 
+const CustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({ 
   days = 7, 
   className = '',
-  categoryIds
+  categoryIds = []
 }) => {
+  const { serverUrl, token } = useAuthStore();
   const [data, setData] = useState<CustomFieldAnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Use stable reference for categoryIds - fallback to constant empty array
-  const stableCategoryIds = categoryIds ?? EMPTY_CATEGORY_IDS;
-  
-  // Use ref to track the categoryIds to avoid infinite re-renders on array comparison
-  const categoryIdsRef = useRef<string>(JSON.stringify(stableCategoryIds));
-  const isFetchingRef = useRef(false);
-  const hasFetchedRef = useRef(false);
-  const daysRef = useRef(days);
 
-  const loadData = useCallback(async () => {
-    // Prevent concurrent fetches
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-    
-    try {
-      setLoading(true);
-      console.log('📊 Loading custom field analytics...');
-      
-      // Parse categoryIds from the stable ref
-      const currentCategoryIds = JSON.parse(categoryIdsRef.current) as number[];
-      
-      // Build URL with category filter if provided
-      const params = new URLSearchParams({ days: daysRef.current.toString() });
-      if (currentCategoryIds.length > 0) {
-        params.append('categoryIds', currentCategoryIds.join(','));
-      }
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/custom-fields/analytics?${params}`, {
-        headers: getAuthHeaders()
-      });
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
-      }
-      
-      let result = (await response.json()) as CustomFieldAnalyticsResponse;
-      
-      // Client-side filtering as fallback if API doesn't support categoryIds
-      if (currentCategoryIds.length > 0 && result.data) {
-        // Get category names for the provided IDs
-        const catResponse = await fetch(`${API_CONFIG.BASE_URL}/tickets/settings/categories`, {
-          headers: getAuthHeaders()
-        });
-        if (catResponse.ok) {
-          const categories = await catResponse.json();
-          const allowedCategoryNames = categories
-            .filter((c: { id: number }) => currentCategoryIds.includes(c.id))
-            .map((c: { name: string }) => c.name.toLowerCase());
-          
-          // Filter data to only include allowed categories
-          result.data = result.data.filter((cat: CategoryAnalytics) => 
-            allowedCategoryNames.includes(cat.categoryName.toLowerCase())
-          );
-          
-          // Recalculate summary
-          const totalTickets = result.data.reduce((sum: number, cat: CategoryAnalytics) => sum + cat.totalTickets, 0);
-          result.summary = {
-            ...result.summary,
-            totalCategories: result.data.length,
-            totalTickets
-          };
-        }
-      }
-      
-      console.log('✅ Analytics loaded:', result);
-      setData(result);
-    } catch (err) {
-      console.error('❌ Failed to load analytics:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load data');
-    } finally {
-      setLoading(false);
-      isFetchingRef.current = false;
-    }
-  }, []);
-
-  // Single useEffect to handle both initial load and changes
   useEffect(() => {
-    const newCategoryIdsString = JSON.stringify(stableCategoryIds);
-    const categoryIdsChanged = categoryIdsRef.current !== newCategoryIdsString;
-    const daysChanged = daysRef.current !== days;
-    
-    // Update refs if changed
-    if (categoryIdsChanged) {
-      categoryIdsRef.current = newCategoryIdsString;
-    }
-    if (daysChanged) {
-      daysRef.current = days;
-    }
-    
-    // Only fetch if: first mount OR categoryIds/days actually changed by value
-    if (!hasFetchedRef.current || categoryIdsChanged || daysChanged) {
-      hasFetchedRef.current = true;
-      loadData();
-    }
-  }, [stableCategoryIds, days, loadData]);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        
+        // Build URL with category filter if provided
+        const params = new URLSearchParams({ days: days.toString() });
+        if (categoryIds.length > 0) {
+          params.append('categoryIds', categoryIds.join(','));
+        }
+        
+        const response = await fetch(`${serverUrl}/api/tickets-v2/custom-fields/analytics?${params}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+        
+        let result = await response.json();
+        
+        // Client-side filtering as fallback if API doesn't support categoryIds
+        if (categoryIds.length > 0 && result.data) {
+          // Get category names for the provided IDs (if not already filtered by API)
+          const catResponse = await fetch(`${serverUrl}/api/tickets/settings/categories`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (catResponse.ok) {
+            const categories = await catResponse.json();
+            const allowedCategoryNames = categories
+              .filter((c: any) => categoryIds.includes(c.id))
+              .map((c: any) => c.name.toLowerCase());
+            
+            // Filter data to only include allowed categories
+            result.data = result.data.filter((cat: CategoryAnalytics) => 
+              allowedCategoryNames.includes(cat.categoryName.toLowerCase())
+            );
+            
+            // Recalculate summary
+            const totalTickets = result.data.reduce((sum: number, cat: CategoryAnalytics) => sum + cat.totalTickets, 0);
+            result.summary = {
+              ...result.summary,
+              totalCategories: result.data.length,
+              totalTickets
+            };
+          }
+        }
+        
+        setData(result);
+      } catch (err) {
+        console.error('Failed to load analytics:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [days, serverUrl, token, categoryIds]);
 
   const getStatusBadge = (type: 'open' | 'inProgress' | 'resolved' | 'closed', count: number) => {
     const badges: Record<'open' | 'inProgress' | 'resolved' | 'closed', string> = {
@@ -203,7 +157,7 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
           <AlertCircle className="h-5 w-5 text-gray-600" />
         </div>
         <div className="text-center py-4">
-          <p className="text-gray-600">Error: {error}</p>
+          <p className="text-gray-600 text-sm">Analytics not available</p>
         </div>
       </div>
     );
@@ -216,9 +170,9 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
           <h3 className="text-lg font-semibold text-gray-900">Custom Field Analytics</h3>
           <BarChart3 className="h-5 w-5 text-gray-600" />
         </div>
-        <div className="text-center py-8">
-          <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">No custom field data found for the last {days} days</p>
+        <div className="text-center py-6">
+          <BarChart3 className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-600 text-sm">No custom field data found for the last {days} days</p>
         </div>
       </div>
     );
@@ -236,7 +190,7 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
         <TrendingUp className="h-5 w-5 text-gray-600" />
       </div>
 
-      {/* Summary */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="text-center p-3 bg-red-50 rounded-lg">
           <div className="text-2xl font-bold text-gray-600">{data.summary.totalCategories}</div>
@@ -253,7 +207,7 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
       </div>
 
       {/* Data by Category */}
-      <div className="space-y-4">
+      <div className="space-y-4 max-h-[400px] overflow-y-auto">
         {data.data.map((category, catIndex) => (
           <div key={catIndex} className="border border-gray-200 rounded-lg overflow-hidden">
             <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
@@ -278,10 +232,10 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
                         
                         <div className="space-y-2">
                           {field.values.map((value, valueIndex) => (
-                            <div key={valueIndex} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                              <div className="flex items-center space-x-3">
+                            <div key={valueIndex} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0 text-sm">
+                              <div className="flex items-center space-x-2">
                                 <span className="font-semibold text-gray-800">{value.value}</span>
-                                <span className="text-sm text-gray-500">({value.totalTickets} tickets)</span>
+                                <span className="text-gray-500">({value.totalTickets} tickets)</span>
                               </div>
                               
                               <div className="flex items-center space-x-2">
@@ -289,7 +243,7 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
                                 {getStatusBadge('inProgress', value.inProgressCount)}
                                 {getStatusBadge('resolved', value.resolvedCount)}
                                 {getStatusBadge('closed', value.closedCount)}
-                                <span className="text-sm font-medium text-green-600">
+                                <span className="text-xs font-medium text-green-600">
                                   {value.resolutionRate}% resolved
                                 </span>
                               </div>
@@ -309,4 +263,4 @@ const QuickCustomFieldAnalytics: React.FC<CustomFieldAnalyticsProps> = ({
   );
 };
 
-export default QuickCustomFieldAnalytics;
+export default CustomFieldAnalytics;

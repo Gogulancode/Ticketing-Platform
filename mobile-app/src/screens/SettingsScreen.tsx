@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  TextInput,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,8 +65,23 @@ const SettingItem: React.FC<SettingItemProps> = ({
 );
 
 export default function SettingsScreen({ navigation }: any) {
-  const { user, logout } = useAuthStore();
+  const { user, logout, serverUrl, setServerUrl, token } = useAuthStore();
   const { notifications, sounds, setNotifications, setSounds } = useSettingsStore();
+  const [showServerModal, setShowServerModal] = useState(false);
+  const [tempServerUrl, setTempServerUrl] = useState(serverUrl);
+  
+  // Edit Profile Modal State
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editFirstName, setEditFirstName] = useState(user?.firstName || '');
+  const [editLastName, setEditLastName] = useState(user?.lastName || '');
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  
+  // Change Password Modal State
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -76,7 +94,99 @@ export default function SettingsScreen({ navigation }: any) {
     );
   };
 
-  const isAgent = user?.role === 'Admin' || user?.role === 'Agent' || user?.role === 'CategoryAdmin';
+  const handleSaveServerUrl = () => {
+    if (tempServerUrl.trim()) {
+      setServerUrl(tempServerUrl.trim());
+      setShowServerModal(false);
+      Alert.alert('Success', 'Server URL updated. Please logout and login again for changes to take effect.');
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!editFirstName.trim() || !editLastName.trim()) {
+      Alert.alert('Error', 'Please enter both first and last name');
+      return;
+    }
+    
+    setIsUpdatingProfile(true);
+    try {
+      const response = await fetch(`${serverUrl}/api/users/${user?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          firstName: editFirstName.trim(),
+          lastName: editLastName.trim(),
+        }),
+      });
+      
+      if (response.ok) {
+        // Update local user state
+        const updatedUser = { ...user, firstName: editFirstName.trim(), lastName: editLastName.trim() };
+        useAuthStore.setState({ user: updatedUser as any });
+        setShowEditProfileModal(false);
+        Alert.alert('Success', 'Profile updated successfully');
+      } else {
+        const error = await response.text();
+        Alert.alert('Error', error || 'Failed to update profile');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update profile');
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all password fields');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'New passwords do not match');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      Alert.alert('Error', 'New password must be at least 6 characters');
+      return;
+    }
+    
+    setIsChangingPassword(true);
+    try {
+      const response = await fetch(`${serverUrl}/api/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+      
+      if (response.ok) {
+        setShowPasswordModal(false);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        Alert.alert('Success', 'Password changed successfully');
+      } else {
+        const error = await response.text();
+        Alert.alert('Error', error || 'Failed to change password');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to change password');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const isAgent = user?.role === 'Admin' || user?.role === 'Agent' || user?.role === 'CategoryAdmin' || user?.isAgent;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -131,14 +241,23 @@ export default function SettingsScreen({ navigation }: any) {
               iconColor={Colors.success}
               title="Edit Profile"
               showChevron
-              onPress={() => Alert.alert('Coming Soon', 'Profile editing will be available soon')}
+              onPress={() => {
+                setEditFirstName(user?.firstName || '');
+                setEditLastName(user?.lastName || '');
+                setShowEditProfileModal(true);
+              }}
             />
             <SettingItem
               icon="key"
               iconColor={Colors.warning}
               title="Change Password"
               showChevron
-              onPress={() => Alert.alert('Coming Soon', 'Password change will be available soon')}
+              onPress={() => {
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+                setShowPasswordModal(true);
+              }}
             />
             {isAgent && (
               <SettingItem
@@ -163,14 +282,14 @@ export default function SettingsScreen({ navigation }: any) {
               title="About"
               subtitle="Version 1.0.0"
               showChevron
-              onPress={() => Alert.alert('Nivo Support', 'Version 1.0.0\n\nBuilt with React Native & Expo')}
+              onPress={() => Alert.alert('Enrich Support', 'Version 1.0.0\n\nBuilt with React Native & Expo')}
             />
             <SettingItem
               icon="help-circle"
               iconColor={Colors.success}
               title="Help & Support"
               showChevron
-              onPress={() => Alert.alert('Help', 'Contact support@babajishivram.com for assistance')}
+              onPress={() => Alert.alert('Help', 'Contact support@enrich.com for assistance')}
             />
           </View>
         </View>
@@ -182,9 +301,152 @@ export default function SettingsScreen({ navigation }: any) {
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Nivo Support v1.0.0</Text>
+          <Text style={styles.footerText}>Enrich Support v1.0.0</Text>
         </View>
       </ScrollView>
+
+      {/* Server URL Modal - Hidden, kept for admin use */}
+      <Modal
+        visible={showServerModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowServerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Server URL</Text>
+            <Text style={styles.modalSubtitle}>Enter your backend server URL</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={tempServerUrl}
+              onChangeText={setTempServerUrl}
+              placeholder="https://api.example.com"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setShowServerModal(false)}
+              >
+                <Text style={styles.modalButtonCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSave]}
+                onPress={handleSaveServerUrl}
+              >
+                <Text style={styles.modalButtonSaveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Profile Modal */}
+      <Modal
+        visible={showEditProfileModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEditProfileModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Profile</Text>
+            <Text style={styles.modalSubtitle}>Update your profile information</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={editFirstName}
+              onChangeText={setEditFirstName}
+              placeholder="First Name"
+              autoCapitalize="words"
+            />
+            <TextInput
+              style={[styles.modalInput, { marginTop: Spacing.sm }]}
+              value={editLastName}
+              onChangeText={setEditLastName}
+              placeholder="Last Name"
+              autoCapitalize="words"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setShowEditProfileModal(false)}
+                disabled={isUpdatingProfile}
+              >
+                <Text style={styles.modalButtonCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSave]}
+                onPress={handleUpdateProfile}
+                disabled={isUpdatingProfile}
+              >
+                {isUpdatingProfile ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
+                  <Text style={styles.modalButtonSaveText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Change Password Modal */}
+      <Modal
+        visible={showPasswordModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPasswordModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Change Password</Text>
+            <Text style={styles.modalSubtitle}>Enter your current and new password</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              placeholder="Current Password"
+              secureTextEntry
+            />
+            <TextInput
+              style={[styles.modalInput, { marginTop: Spacing.sm }]}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder="New Password"
+              secureTextEntry
+            />
+            <TextInput
+              style={[styles.modalInput, { marginTop: Spacing.sm }]}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Confirm New Password"
+              secureTextEntry
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setShowPasswordModal(false)}
+                disabled={isChangingPassword}
+              >
+                <Text style={styles.modalButtonCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSave]}
+                onPress={handleChangePassword}
+                disabled={isChangingPassword}
+              >
+                {isChangingPassword ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
+                  <Text style={styles.modalButtonSaveText}>Change</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -317,5 +579,64 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: FontSizes.xs,
     color: Colors.gray400,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+  modalSubtitle: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    fontSize: FontSizes.md,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.lg,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: Colors.gray100,
+  },
+  modalButtonCancelText: {
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  modalButtonSave: {
+    backgroundColor: Colors.primary,
+  },
+  modalButtonSaveText: {
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: Colors.white,
   },
 });

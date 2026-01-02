@@ -12,7 +12,7 @@ namespace ERPTraining.API.Controllers;
 
 [ApiController]
 [Route("api/users")]
-// [Authorize] - Temporarily disabled for testing
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -766,6 +766,46 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
+    /// Toggle user active status (activate/deactivate)
+    /// </summary>
+    /// <param name="id">The user ID</param>
+    /// <param name="request">Status update details</param>
+    /// <returns>Success message</returns>
+    [HttpPatch("{id}/status")]
+    public async Task<ActionResult<object>> UpdateUserStatus(string id, [FromBody] UpdateUserStatusRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Updating status for user {UserId} to IsActive={IsActive}", id, request.IsActive);
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null)
+            {
+                return NotFound(new { message = $"User with ID {id} not found" });
+            }
+
+            user.IsActive = request.IsActive;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("User {UserId} status updated to IsActive={IsActive}", id, request.IsActive);
+
+            return Ok(new 
+            { 
+                success = true, 
+                message = $"User {(request.IsActive ? "activated" : "deactivated")} successfully",
+                isActive = user.IsActive
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating status for user {UserId}", id);
+            return StatusCode(500, new { message = "Error updating user status", error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Delete a user
     /// </summary>
     [HttpDelete("{id}")]
@@ -806,4 +846,9 @@ public class CreateUserRequest
 public class AdminResetPasswordRequest
 {
     public string NewPassword { get; set; } = string.Empty;
+}
+
+public class UpdateUserStatusRequest
+{
+    public bool IsActive { get; set; }
 }

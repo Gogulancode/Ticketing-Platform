@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Shield, ShieldCheck, Building2, RefreshCw, 
   Ticket, Clock, Users, BarChart3, AlertCircle, CheckCircle,
-  Loader2, XCircle, PauseCircle
+  Loader2, XCircle, PauseCircle, Search, GitMerge
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import CustomFieldAnalytics from '../components/CustomFieldAnalytics';
 import toast from 'react-hot-toast';
 
 interface DashboardAnalytics {
@@ -25,6 +26,7 @@ interface MyTicketSummary {
     waiting: number;
     resolved: number;
     closed: number;
+    merged: number;
   };
 }
 
@@ -42,7 +44,8 @@ const PERSONAL_STATUS_CONFIG: Array<{
   { key: 'inProgress', label: 'In Progress', accent: 'text-amber-600', bg: 'bg-amber-50', icon: Loader2, description: 'Being worked on' },
   { key: 'waiting', label: 'Waiting', accent: 'text-purple-600', bg: 'bg-purple-50', icon: PauseCircle, description: 'On hold / blocked' },
   { key: 'resolved', label: 'Resolved', accent: 'text-emerald-600', bg: 'bg-emerald-50', icon: CheckCircle, description: 'Completed but open' },
-  { key: 'closed', label: 'Closed', accent: 'text-slate-600', bg: 'bg-slate-100', icon: XCircle, description: 'Fully completed' }
+  { key: 'closed', label: 'Closed', accent: 'text-slate-600', bg: 'bg-slate-100', icon: XCircle, description: 'Fully completed' },
+  { key: 'merged', label: 'Merged', accent: 'text-indigo-600', bg: 'bg-indigo-50', icon: GitMerge, description: 'Combined tickets' }
 ];
 
 export default function Dashboard() {
@@ -78,7 +81,8 @@ export default function Dashboard() {
         inProgress: 0,
         waiting: 0,
         resolved: 0,
-        closed: 0
+        closed: 0,
+        merged: 0
       };
 
       tickets.forEach((ticket: any) => {
@@ -87,14 +91,17 @@ export default function Dashboard() {
           case 4: statusCounts.resolved += 1; break;
           case 5: statusCounts.closed += 1; break;
           case 3: statusCounts.waiting += 1; break;
+          case 1009: statusCounts.merged += 1; break;
           default: statusCounts.new += 1; break;
         }
       });
 
       setMyTicketSummary({ total: tickets.length, statusCounts });
+      setApiStatus('live'); // API call succeeded
     } catch (error) {
       console.error('Failed to load ticket summary:', error);
       setMyTicketSummary(null);
+      setApiStatus('mock');
     }
   }, [serverUrl, token]);
 
@@ -183,18 +190,24 @@ export default function Dashboard() {
         
         // Check user role from stored user info
         if (user) {
-          const userRole = (user.role || '').toLowerCase();
+          // Handle both 'role' (string) and 'roles' (array) formats - use array for proper matching
+          const userRolesArray: string[] = Array.isArray((user as any).roles) 
+            ? (user as any).roles.map((r: string) => r.toLowerCase())
+            : [(user.role || '').toLowerCase()];
           
-          localIsAdmin = userRole.includes('admin') || userRole.includes('superadmin') || userRole.includes('administrator');
-          localIsAgent = userRole.includes('agent') || userRole.includes('team lead');
+          // Exact role matching to avoid "categoryadmin" matching "admin"
+          localIsAdmin = userRolesArray.some((r: string) => r === 'admin' || r === 'superadmin' || r === 'administrator');
+          localIsAgent = userRolesArray.some((r: string) => r === 'agent' || r === 'team lead' || r === 'teamlead');
+          localIsCategoryAdmin = userRolesArray.includes('categoryadmin');
           
           setIsAdmin(localIsAdmin);
           setIsAgent(localIsAgent);
+          setIsCategoryAdmin(localIsCategoryAdmin);
         }
         
         // Check category admin status
         try {
-          const response = await fetch(`${serverUrl}/api/tickets/settings/category-admin/check/${user?.id}`, {
+          const response = await fetch(`${serverUrl}/api/tickets/settings/category-admins/check/${user?.id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (response.ok) {
@@ -297,13 +310,23 @@ export default function Dashboard() {
         </div>
       )}
       
-      {/* API Status */}
-      <div className={`rounded-lg p-2 text-xs font-medium ${
+      {/* API Status - Matching Web Design */}
+      <div className={`rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 ${
         apiStatus === 'live' 
           ? 'bg-green-50 text-green-700 border border-green-200' 
           : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
       }`}>
-        {apiStatus === 'live' ? '✅ Live Data Connected' : '⚠️ Using Mock Data'}
+        {apiStatus === 'live' ? (
+          <>
+            <CheckCircle className="w-4 h-4" />
+            <span>Live Data Connected - Real-time analytics from database</span>
+          </>
+        ) : (
+          <>
+            <AlertCircle className="w-4 h-4" />
+            <span>Using Mock Data</span>
+          </>
+        )}
       </div>
 
       {showAnalytics ? (
@@ -314,18 +337,18 @@ export default function Dashboard() {
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
                   {isAdmin 
-                    ? 'Analytics Dashboard' 
+                    ? 'Ticketing Analytics Dashboard - All Departments' 
                     : isCategoryAdmin 
-                      ? `Category Admin Dashboard`
-                      : 'Agent Dashboard'
+                      ? `Category Admin Dashboard - ${categoryAdminCategoryNames.join(', ')}`
+                      : 'Agent Ticketing Dashboard'
                   }
                 </h1>
                 <p className="text-gray-600 text-sm mt-1">
                   {isAdmin 
-                    ? 'All departments overview' 
+                    ? 'Complete business intelligence overview for all departments' 
                     : isCategoryAdmin
-                      ? `Managing: ${categoryAdminCategoryNames.join(', ')}`
-                      : 'Your assigned tickets and performance'
+                      ? 'Analytics and insights for your assigned categories'
+                      : 'Analytics and insights across every department'
                   }
                 </p>
               </div>
@@ -425,9 +448,16 @@ export default function Dashboard() {
                       <span className="text-green-600">{formatTime(agent.averageResolutionTime)} avg</span>
                     </div>
                   </div>
-                ))}
-              </div>
+                ))}n              </div>
             </div>
+          )}
+
+          {/* Custom Field Analytics - Category Admin Feature */}
+          {(isAdmin || isCategoryAdmin) && (
+            <CustomFieldAnalytics 
+              days={7} 
+              categoryIds={isCategoryAdmin && !isAdmin ? categoryAdminCategoryIds : undefined}
+            />
           )}
 
           {/* Quick Actions */}
@@ -453,47 +483,45 @@ export default function Dashboard() {
         </>
       ) : (
         <>
-          {/* Regular User View */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+          {/* Regular User View - Matching Web Dashboard */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">My Ticket Summary</h2>
-                <p className="text-gray-600 text-sm">Your ticket status overview</p>
+                <p className="text-gray-500 text-sm mt-1">Only your ticket counts are displayed here.</p>
               </div>
               <div className="flex items-center gap-4">
                 {myTicketSummary && (
                   <div className="text-right">
-                    <p className="text-xs text-gray-500">Total</p>
-                    <p className="text-2xl font-bold text-gray-600">{myTicketSummary.total}</p>
+                    <p className="text-sm text-gray-500">Total tickets</p>
+                    <p className="text-4xl font-bold text-gray-400">{myTicketSummary.total}</p>
                   </div>
                 )}
                 <button
                   onClick={handleRefresh}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                   title="Refresh"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                 </button>
               </div>
             </div>
 
             {myTicketSummary ? (
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                {PERSONAL_STATUS_CONFIG.map((statusConfig) => {
-                  const Icon = statusConfig.icon;
-                  return (
-                    <div key={statusConfig.key} className={`${statusConfig.bg} rounded-lg p-4`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Icon className={`w-4 h-4 ${statusConfig.accent}`} />
-                        <p className="text-xs font-medium text-gray-700">{statusConfig.label}</p>
-                      </div>
-                      <p className={`text-2xl font-bold ${statusConfig.accent}`}>
-                        {myTicketSummary.statusCounts[statusConfig.key] || 0}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">{statusConfig.description}</p>
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                {PERSONAL_STATUS_CONFIG.map((statusConfig) => (
+                  <button 
+                    key={statusConfig.key} 
+                    onClick={() => navigate('/my-tickets')}
+                    className={`${statusConfig.bg} rounded-xl p-4 text-left hover:ring-2 hover:ring-offset-1 hover:ring-gray-300 transition-all`}
+                  >
+                    <p className="text-sm font-medium text-gray-700 mb-2">{statusConfig.label}</p>
+                    <p className={`text-3xl font-bold ${statusConfig.accent}`}>
+                      {myTicketSummary.statusCounts[statusConfig.key] || 0}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">{statusConfig.description}</p>
+                  </button>
+                ))}
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
@@ -508,24 +536,37 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Quick Actions for Users */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => navigate('/my-tickets')}
-                className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 transition-colors"
-              >
-                <Ticket className="w-4 h-4" />
-                View My Tickets
-              </button>
+          {/* Quick Actions for Users - Matching Web Design */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-4 h-4 bg-gray-800 rounded" />
+              <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">Quick access to common tasks</p>
+            
+            <div className="grid grid-cols-2 gap-4">
               <button 
                 onClick={() => navigate('/tickets/new')}
-                className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg text-sm font-medium text-blue-700 transition-colors"
+                className="flex flex-col items-center justify-center gap-2 p-6 bg-gray-900 hover:bg-gray-800 rounded-xl text-white transition-colors"
               >
-                <Plus className="w-4 h-4" />
-                Create New Ticket
+                <Plus className="w-6 h-6" />
+                <span className="font-medium">New Ticket</span>
               </button>
+              <button 
+                onClick={() => navigate('/my-tickets')}
+                className="flex flex-col items-center justify-center gap-2 p-6 bg-blue-500 hover:bg-blue-600 rounded-xl text-white transition-colors"
+              >
+                <Search className="w-6 h-6" />
+                <span className="font-medium">Search Tickets</span>
+              </button>
+            </div>
+          </div>
+
+          {/* System Status - Matching Web Design */}
+          <div className="flex justify-end">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>All systems operational</span>
             </div>
           </div>
         </>

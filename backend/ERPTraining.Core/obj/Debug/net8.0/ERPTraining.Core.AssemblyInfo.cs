@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ERPTraining.Core")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6cf9acd0321f8fff42249c2b201900096bf4aade")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d5d4a619247462327e7d2c866c2298c9e033cab6")]
 [assembly: System.Reflection.AssemblyProductAttribute("ERPTraining.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ERPTraining.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -17,6 +17,7 @@ export { default as TicketReportsPage } from './views/TicketReportsPage';
 export { default as TicketSearchPage } from './views/TicketSearchPage';
 export { default as KnowledgeBasePage } from './views/KnowledgeBasePage';
 export { default as UserManagementPage } from './views/UserManagementPage';
+export { default as DownloadsPage } from './views/DownloadsPage';
 
 // Components
 export { default as EmailIntegration } from './components/EmailIntegration';

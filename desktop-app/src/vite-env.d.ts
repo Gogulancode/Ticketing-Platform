@@ -13,5 +13,6 @@ interface Window {
     onNavigate: (callback: (path: string) => void) => () => void;
     onDeepLink: (callback: (url: string) => void) => () => void;
     onAction: (callback: (action: string) => void) => () => void;
+    openExternal: (url: string) => Promise<void>;
   };
 }

@@ -77,6 +77,13 @@ function createWindow() {
     mainWindow?.show();
   });
 
+  // Stop taskbar flashing when window gains focus
+  mainWindow.on('focus', () => {
+    if (process.platform === 'win32') {
+      mainWindow?.flashFrame(false);
+    }
+  });
+
   // Handle close to tray
   mainWindow.on('close', (event) => {
     if (process.platform === 'darwin' || store.get('minimizeToTray', true)) {
@@ -218,6 +225,9 @@ ipcMain.handle('show-notification', (_, options: { title: string; body: string }
   }
 });
 
+// Track previous badge count to detect new notifications
+let previousBadgeCount = 0;
+
 // Update taskbar badge/overlay for notification count
 ipcMain.handle('set-badge-count', (_, count: number) => {
   if (!mainWindow) return;
@@ -225,6 +235,16 @@ ipcMain.handle('set-badge-count', (_, count: number) => {
   if (process.platform === 'darwin') {
     // macOS: Use dock badge
     app.dock?.setBadge(count > 0 ? String(count) : '');
+  } else if (process.platform === 'win32') {
+    // Windows: Use overlay icon on taskbar
+    if (count > 0) {
+      // Create a badge overlay icon dynamically
+      const badgeIcon = createBadgeIcon(count);
+      mainWindow.setOverlayIcon(badgeIcon, `${count} unread notifications`);
+    } else {
+      // Remove overlay icon
+      mainWindow.setOverlayIcon(null, '');
+    }
   }
   
   // Update tray tooltip to show notification count
@@ -232,11 +252,40 @@ ipcMain.handle('set-badge-count', (_, count: number) => {
     tray.setToolTip(count > 0 ? `Nova Ticketing (${count} unread)` : 'Nova Ticketing');
   }
   
-  // Flash taskbar on Windows when there are new notifications
-  if (process.platform === 'win32' && count > 0 && !mainWindow.isFocused()) {
+  // Flash taskbar ONLY when count increases (new notifications arrived)
+  // Don't flash continuously on every poll
+  if (process.platform === 'win32' && count > previousBadgeCount && !mainWindow.isFocused()) {
     mainWindow.flashFrame(true);
   }
+  
+  previousBadgeCount = count;
 });
+
+// Create a badge icon with the notification count for Windows taskbar overlay
+function createBadgeIcon(count: number): Electron.NativeImage {
+  // Create a 16x16 badge using a data URL
+  const size = 16;
+  const displayCount = count > 99 ? '99+' : String(count);
+  
+  // Create SVG badge - WhatsApp style green circle with white text
+  const svg = `
+    <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="#25D366"/>
+      <text x="${size/2}" y="${size/2 + 1}" 
+            font-family="Arial, sans-serif" 
+            font-size="${count > 9 ? 8 : 10}" 
+            font-weight="bold"
+            fill="white" 
+            text-anchor="middle" 
+            dominant-baseline="middle">${displayCount}</text>
+    </svg>
+  `;
+  
+  const base64 = Buffer.from(svg).toString('base64');
+  const dataUrl = `data:image/svg+xml;base64,${base64}`;
+  
+  return nativeImage.createFromDataURL(dataUrl);
+}
 
 ipcMain.handle('get-app-version', () => {
   return app.getVersion();
@@ -244,6 +293,11 @@ ipcMain.handle('get-app-version', () => {
 
 ipcMain.handle('get-platform', () => {
   return process.platform;
+});
+
+ipcMain.handle('open-external', async (_, url: string) => {
+  const { shell } = require('electron');
+  await shell.openExternal(url);
 });
 
 // Handle deep links (for future OAuth integration)
@@ -259,5 +313,16 @@ app.on('web-contents-created', (_, contents) => {
     if (!['localhost', '127.0.0.1'].includes(parsedUrl.hostname)) {
       event.preventDefault();
     }
+  });
+
+  // Handle window.open() calls - prevent blank windows from opening
+  contents.setWindowOpenHandler(({ url }) => {
+    const parsedUrl = new URL(url);
+    // Allow external URLs to open in default browser
+    if (!['localhost', '127.0.0.1'].includes(parsedUrl.hostname)) {
+      require('electron').shell.openExternal(url);
+    }
+    // Deny opening new Electron windows - let the main window handle navigation
+    return { action: 'deny' };
   });
 });

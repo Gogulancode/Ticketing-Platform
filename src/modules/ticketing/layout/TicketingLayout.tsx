@@ -14,11 +14,14 @@ import {
   LogOut,
   Clock,
   ShieldCheck,
-  UserCog
+  UserCog,
+  Monitor,
+  Download
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getCurrentUser } from '../../../shared/services/api/auth';
 import { settingsApi } from '../../../api/settingsApi';
+import { API_CONFIG } from '../../../config/api';
 
 const TicketingLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -53,17 +56,18 @@ const TicketingLayout: React.FC = () => {
           : [];
         const normalizedRoles = roles.map((role: string) => role.toLowerCase());
         
-        const userIsAdmin = adminRoles.some(role => 
-          singleRole.includes(role.toLowerCase()) || normalizedRoles.some((r: string) => r.includes(role.toLowerCase()))
+        // Use exact matching to prevent "categoryadmin" from matching "admin"
+        const userIsAdmin = adminRoles.some(adminRole => 
+          singleRole === adminRole.toLowerCase() || normalizedRoles.some((r: string) => r === adminRole.toLowerCase())
         );
         setIsAdmin(userIsAdmin);
 
-        // Check if Agent (includes Agent, Senior Agent, Team Lead)
+        // Check if Agent (includes Agent, Senior Agent, Team Lead) - use exact matching
         const agentRoles = ['agent', 'senior agent', 'team lead'];
         const userIsAgent = Boolean(
           currentUser.isAgent ||
-          agentRoles.some(agentRole => singleRole.includes(agentRole)) ||
-          normalizedRoles.some((role: string) => agentRoles.some(agentRole => role.includes(agentRole)))
+          agentRoles.some(agentRole => singleRole === agentRole) ||
+          normalizedRoles.some((role: string) => agentRoles.some(agentRole => role === agentRole))
         );
         setIsAgent(userIsAgent);
         
@@ -150,6 +154,7 @@ const TicketingLayout: React.FC = () => {
     { icon: Home, label: 'Dashboard', path: '/tickets', exact: true, requiresRole: 'all' },
     { icon: Ticket, label: 'My Tickets', path: '/tickets/my', requiresRole: 'all' },
     { icon: Plus, label: 'New Ticket', path: '/tickets/new', requiresRole: 'all' },
+    { icon: Download, label: 'Download Apps', path: '/tickets/downloads', requiresRole: 'all' },
     { icon: BarChart3, label: 'Reports', path: '/tickets/reports', requiresRole: 'agentAdminOrCategoryHead' },
     { icon: UserCog, label: 'Manage Agents', path: '/tickets/settings/agents', requiresRole: 'categoryHeadAgents' },
     { icon: Clock, label: 'SLA Settings', path: '/tickets/settings/sla', requiresRole: 'categoryHeadSLA' },
@@ -209,6 +214,17 @@ const TicketingLayout: React.FC = () => {
           {/* User Actions */}
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
+            {/* Desktop App Download Button */}
+            <a
+              href={`${API_CONFIG.BASE_URL}/downloads/desktop/windows`}
+              download="NivoChat-Setup-1.0.0.exe"
+              className="flex items-center space-x-1.5 px-4 py-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 transition-all duration-300 animate-pulse hover:animate-none"
+              title="Download Desktop App for Windows"
+            >
+              <Monitor className="w-4 h-4" />
+              <Download className="w-4 h-4" />
+              <span className="text-sm font-medium hidden sm:inline">Desktop App</span>
+            </a>
             <button 
               onClick={() => navigate('/tickets/notifications')}
               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"

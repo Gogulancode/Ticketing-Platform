@@ -203,7 +203,7 @@ export default function Chat() {
             {/* Messages */}
             <MessageList 
               messages={messages} 
-              currentUserId={user?.id || 0}
+              currentUserId={Number(user?.id) || 0}
             />
 
             {/* Typing Indicator */}

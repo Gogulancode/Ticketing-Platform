@@ -249,4 +249,33 @@ public class LocalDevAuthService : IAuthService
             return PasswordChangeResult.Failed("An error occurred while changing password", "Exception");
         }
     }
+
+    public async Task<PasswordChangeResult> ResetPasswordAsync(string email, string newPassword)
+    {
+        try
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                return PasswordChangeResult.Failed("User not found", "UserNotFound");
+            }
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+            
+            if (!result.Succeeded)
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                return PasswordChangeResult.Failed(errors, "ValidationFailed");
+            }
+
+            _logger.LogInformation("Password reset successfully for user {Email}", email);
+            return PasswordChangeResult.Succeeded();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting password for user {Email}", email);
+            return PasswordChangeResult.Failed("An error occurred while resetting password", "Exception");
+        }
+    }
 }

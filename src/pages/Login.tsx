@@ -92,8 +92,8 @@ const Login: React.FC = () => {
   const loginTitle = (branding?.loginTitle || 'Hello,\nI\'m Nivo').replace(/\\n/g, '\n');
   const loginSubtitle = branding?.loginSubtitle || 'I\'m here to streamline your business operations and boost productivity. Let me help you save time and enhance efficiency across your enterprise!';
   const footerText = branding?.footerText || `© ${new Date().getFullYear()} Nivo. All rights reserved.`;
-  const primaryColor = branding?.primaryColor || '#2563eb';
-  const secondaryColor = branding?.secondaryColor || '#1e40af';
+  const primaryColor = branding?.primaryColor || '#111827';
+  const secondaryColor = branding?.secondaryColor || '#1f2937';
 
   return (
     <div className="min-h-screen bg-gray-50 flex">

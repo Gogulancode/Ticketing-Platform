@@ -208,6 +208,12 @@ public class TicketService : ITicketService
         {
             ticket.ResolvedAt = DateTime.UtcNow;
         }
+        
+        // Update FirstResponseAt if this is the first response from someone other than the ticket creator
+        if (ticket.FirstResponseAt == null && ticket.CreatedByUserId != userId)
+        {
+            ticket.FirstResponseAt = DateTime.UtcNow;
+        }
 
         // Add audit log
         var auditLog = new AuditLog
@@ -343,6 +349,13 @@ public class TicketService : ITicketService
         
         command.Parameters.AddRange(parameters);
         await command.ExecuteNonQueryAsync();
+        
+        // Update FirstResponseAt if this is the first response from someone other than the ticket creator
+        // Only count non-internal comments as "responses"
+        if (!isInternal)
+        {
+            await UpdateFirstResponseAtIfNeededAsync(ticketId, authorUserId, createdAt);
+        }
         
         // Return the created comment
         return new TicketComment
@@ -683,5 +696,24 @@ public class TicketService : ITicketService
             .Where(t => t.CreatedByUserId == userId || t.AssignedToUserId == userId || ticketIds.Contains(t.Id))
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
+    }
+    
+    /// <summary>
+    /// Updates FirstResponseAt if this is the first response from someone other than the ticket creator
+    /// First response is defined as: first comment OR first status change, whichever comes first
+    /// </summary>
+    private async Task UpdateFirstResponseAtIfNeededAsync(Guid ticketId, string userId, DateTime responseAt)
+    {
+        var ticket = await _context.Tickets.FindAsync(ticketId);
+        if (ticket == null) return;
+        
+        // Only update if FirstResponseAt is null AND the user is not the ticket creator
+        if (ticket.FirstResponseAt == null && ticket.CreatedByUserId != userId)
+        {
+            ticket.FirstResponseAt = responseAt;
+            ticket.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Set FirstResponseAt for ticket {TicketId} to {ResponseAt}", ticketId, responseAt);
+        }
     }
 }

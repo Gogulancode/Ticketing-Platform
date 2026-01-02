@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -15,7 +16,8 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/
 import { ticketsApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 
-const getPriorityColor = (priority: string | number) => {
+const getPriorityColor = (priority: string | number | undefined | null) => {
+  if (priority === undefined || priority === null) return Colors.priorityLow;
   const p = typeof priority === 'string' ? priority.toLowerCase() : priority;
   switch (p) {
     case 'urgent':
@@ -34,7 +36,8 @@ const getPriorityColor = (priority: string | number) => {
   }
 };
 
-const getPriorityLabel = (priority: string | number) => {
+const getPriorityLabel = (priority: string | number | undefined | null) => {
+  if (priority === undefined || priority === null) return 'Low';
   const p = typeof priority === 'string' ? priority.toLowerCase() : priority;
   switch (p) {
     case 'urgent':
@@ -94,7 +97,7 @@ interface TicketItemProps {
   isClosed?: boolean;
 }
 
-const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, isClosed }) => {
+const TicketItem = React.memo<TicketItemProps>(({ ticket, onPress, isClosed }) => {
   const priorityColor = getPriorityColor(ticket.priority);
   const priorityLabel = getPriorityLabel(ticket.priority);
 
@@ -143,27 +146,67 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, isClosed }) =>
       </View>
     </TouchableOpacity>
   );
-};
+});
 
 export default function TicketsScreen({ navigation }: any) {
   const { user } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('open');
-  const isAgent = user?.role === 'Admin' || user?.role === 'Agent' || user?.role === 'CategoryAdmin';
+  const [activeFilter, setActiveFilter] = useState<number | null>(null);
+  
+  // Role detection - use exact matching to avoid "categoryadmin".includes("admin") = true issue
+  const isAdmin = user?.role === 'Admin' || user?.roles?.includes('Admin');
+  const isCategoryAdmin = user?.isCategoryAdmin || user?.role === 'CategoryAdmin';
+  const isAgent = user?.role === 'Agent' || user?.roles?.includes('Agent');
+  
+  // Only Admin uses getAllTickets. CategoryAdmin and Agent use getMyTickets (backend handles filtering)
+  // Backend /api/tickets/my returns:
+  // - Admin: All tickets
+  // - CategoryAdmin: Own tickets + tickets from managed categories
+  // - Agent: Own tickets + assigned tickets
+  // - User: Own tickets only
+  const useAllTickets = isAdmin;
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['tickets', isAgent ? 'all' : 'my'],
-    queryFn: () => isAgent ? ticketsApi.getAllTickets(1, 50) : ticketsApi.getMyTickets(1, 50),
+  const { data, isLoading, refetch, error } = useQuery({
+    queryKey: ['tickets', useAllTickets ? 'all' : 'my'],
+    queryFn: async () => {
+      console.log('Fetching tickets, isAdmin:', isAdmin, 'isCategoryAdmin:', isCategoryAdmin, 'isAgent:', isAgent);
+      // Use getMyTickets for everyone except pure Admin
+      // The backend properly filters based on role
+      const result = useAllTickets 
+        ? await ticketsApi.getAllTickets(1, 500) 
+        : await ticketsApi.getMyTickets(1, 500);
+      console.log('Tickets result:', result);
+      return result;
+    },
   });
 
-  const tickets = data?.data || [];
+  const tickets = data?.data || data || [];
+  console.log('Tickets count:', tickets.length, 'isAgent:', isAgent, 'error:', error);
+  
+  // Calculate stats
+  const totalCount = tickets.length;
+  const openCount = tickets.filter((t: any) => t.status === 1 || t.status === 'Open').length;
+  const inProgressCount = tickets.filter((t: any) => t.status === 2 || t.status === 'InProgress').length;
+  const resolvedCount = tickets.filter((t: any) => t.status === 4 || t.status === 'Resolved' || t.status === 5 || t.status === 'Closed').length;
+  const mergedCount = tickets.filter((t: any) => t.status === 1009 || t.status === 'Merged').length;
+  
+  const stats = [
+    { key: null, label: 'Total', count: totalCount, color: '#64748B' },
+    { key: 1, label: 'Open', count: openCount, color: '#3B82F6' },
+    { key: 2, label: 'In Progress', count: inProgressCount, color: '#F59E0B' },
+    { key: 4, label: 'Resolved', count: resolvedCount, color: '#10B981' },
+    { key: 1009, label: 'Merged', count: mergedCount, color: '#9333EA' },
+  ];
   
   const filteredTickets = tickets.filter((ticket: any) => {
     // Filter by status
     const status = typeof ticket.status === 'string' ? ticket.status.toLowerCase() : ticket.status;
-    if (activeFilter === 'open' && status !== 'open' && status !== 1) return false;
-    if (activeFilter === 'inprogress' && status !== 'inprogress' && status !== 2) return false;
-    if (activeFilter === 'closed' && status !== 'closed' && status !== 4) return false;
+    if (activeFilter !== null) {
+      if (activeFilter === 1 && status !== 'open' && status !== 1) return false;
+      if (activeFilter === 2 && status !== 'inprogress' && status !== 2) return false;
+      if (activeFilter === 4 && status !== 'resolved' && status !== 4 && status !== 'closed' && status !== 5) return false;
+      if (activeFilter === 1009 && status !== 'merged' && status !== 1009) return false;
+    }
     
     // Filter by search
     if (searchQuery) {
@@ -181,24 +224,57 @@ export default function TicketsScreen({ navigation }: any) {
     refetch();
   }, [refetch]);
 
-  const renderTicket = ({ item }: { item: any }) => (
+  const renderTicket = useCallback(({ item }: { item: any }) => (
     <TicketItem
       ticket={item}
       onPress={() => navigation.navigate('TicketDetail', { ticketId: item.id })}
       isClosed={item.status === 'Closed' || item.status === 4}
     />
-  );
+  ), [navigation]);
+
+  // Dynamic header title based on role
+  const getHeaderTitle = () => {
+    if (isAdmin) return 'All Tickets';
+    if (isCategoryAdmin) return 'Category Tickets';
+    if (isAgent) return 'My Assigned Tickets';
+    return 'My Tickets';
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <Text style={styles.headerTitle}>My Tickets</Text>
-          <TouchableOpacity style={styles.selectButton}>
-            <Text style={styles.selectButtonText}>Select</Text>
+          <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
+          <TouchableOpacity 
+            style={styles.refreshButton}
+            onPress={onRefresh}
+          >
+            <Ionicons name="refresh" size={22} color={Colors.gray600} />
           </TouchableOpacity>
         </View>
+
+        {/* Stats Cards */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.statsRow}
+          contentContainerStyle={styles.statsRowContent}
+        >
+          {stats.map((stat) => (
+            <TouchableOpacity
+              key={stat.key ?? 'total'}
+              style={[
+                styles.statCard,
+                activeFilter === stat.key && { borderColor: stat.color, borderWidth: 2 }
+              ]}
+              onPress={() => setActiveFilter(activeFilter === stat.key ? null : stat.key)}
+            >
+              <Text style={[styles.statCount, { color: stat.color }]}>{stat.count}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         {/* Search */}
         <View style={styles.searchRow}>
@@ -206,47 +282,32 @@ export default function TicketsScreen({ navigation }: any) {
             <Ionicons name="search" size={20} color={Colors.gray400} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search by ID, subject, or name..."
+              placeholder="Search by ID, title, or description..."
               placeholderTextColor={Colors.gray500}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={20} color={Colors.gray400} />
+              </TouchableOpacity>
+            )}
           </View>
-          <TouchableOpacity style={styles.filterButton}>
-            <Ionicons name="options" size={24} color={Colors.gray500} />
-          </TouchableOpacity>
         </View>
 
-        {/* Filter Chips */}
-        <View style={styles.filterChips}>
-          <TouchableOpacity
-            style={[styles.filterChip, activeFilter === 'open' && styles.filterChipActive]}
-            onPress={() => setActiveFilter('open')}
-          >
-            <Text style={[styles.filterChipText, activeFilter === 'open' && styles.filterChipTextActive]}>
-              Status: Open
-            </Text>
-            {activeFilter === 'open' && (
-              <Ionicons name="close" size={16} color={Colors.white} />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, activeFilter === 'inprogress' && styles.filterChipActive]}
-            onPress={() => setActiveFilter('inprogress')}
-          >
-            <Text style={[styles.filterChipText, activeFilter === 'inprogress' && styles.filterChipTextActive]}>
-              In Progress
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, activeFilter === 'closed' && styles.filterChipActive]}
-            onPress={() => setActiveFilter('closed')}
-          >
-            <Text style={[styles.filterChipText, activeFilter === 'closed' && styles.filterChipTextActive]}>
-              Closed
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Active Filter Badge */}
+        {activeFilter !== null && (
+          <View style={styles.activeFilterRow}>
+            <View style={styles.activeFilterBadge}>
+              <Text style={styles.activeFilterText}>
+                Filtered: {stats.find(s => s.key === activeFilter)?.label}
+              </Text>
+              <TouchableOpacity onPress={() => setActiveFilter(null)}>
+                <Ionicons name="close" size={16} color={Colors.white} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Ticket List */}
@@ -258,6 +319,17 @@ export default function TicketsScreen({ navigation }: any) {
         refreshControl={
           <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
         }
+        // Performance optimizations for smooth scrolling
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        initialNumToRender={10}
+        windowSize={10}
+        getItemLayout={(data, index) => ({
+          length: 130, // Approximate height of each ticket card
+          offset: 130 * index,
+          index,
+        })}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="ticket-outline" size={64} color={Colors.gray300} />
@@ -304,6 +376,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.textPrimary,
   },
+  refreshButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.gray100,
+  },
   selectButton: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
@@ -312,6 +392,52 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: '600',
     color: Colors.primary,
+  },
+  statsRow: {
+    marginBottom: Spacing.md,
+    marginHorizontal: -Spacing.lg,
+  },
+  statsRowContent: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  statCard: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    minWidth: 80,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadows.soft,
+  },
+  statCount: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  statLabel: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray500,
+    marginTop: 2,
+  },
+  activeFilterRow: {
+    marginBottom: Spacing.sm,
+  },
+  activeFilterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: Spacing.xs,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  activeFilterText: {
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
+    color: Colors.white,
   },
   searchRow: {
     flexDirection: 'row',
@@ -330,6 +456,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: Spacing.sm,
+    marginRight: Spacing.sm,
     fontSize: FontSizes.sm,
     color: Colors.textPrimary,
   },

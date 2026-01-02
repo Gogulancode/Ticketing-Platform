@@ -45,6 +45,15 @@ export const ticketsApi = {
     return response.json();
   },
 
+  getTicketById: async (id: string) => {
+    const response = await fetch(
+      `${getBaseUrl()}/api/tickets/${id}`,
+      { headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to fetch ticket');
+    return response.json();
+  },
+
   createTicket: async (data: {
     title: string;
     description: string;
@@ -167,7 +176,7 @@ export const settingsApi = {
   },
 };
 
-// Dashboard/Stats API
+// Dashboard/Stats API - Uses same endpoints as web frontend
 export const dashboardApi = {
   getStats: async () => {
     const response = await fetch(
@@ -175,6 +184,139 @@ export const dashboardApi = {
       { headers: getHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch stats');
+    return response.json();
+  },
+
+  // Same API as web frontend Dashboard (analyticsApi.getDashboardAnalytics)
+  getDashboardAnalytics: async (categoryIds?: number[]) => {
+    const params = new URLSearchParams();
+    if (categoryIds && categoryIds.length > 0) {
+      params.append('categoryIds', categoryIds.join(','));
+    }
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    
+    // Try the main analytics endpoint first (same as web)
+    try {
+      const response = await fetch(
+        `${getBaseUrl()}/api/analytics/dashboard${queryString}`,
+        { headers: getHeaders() }
+      );
+      if (response.ok) {
+        return response.json();
+      }
+    } catch (e) {
+      console.warn('Main analytics endpoint not available, using reports fallback');
+    }
+    
+    // Fallback: Build analytics from reports (same as web frontend)
+    const allTicketsResponse = await fetch(
+      `${getBaseUrl()}/api/Reports/all-tickets`,
+      { headers: getHeaders() }
+    );
+    if (!allTicketsResponse.ok) throw new Error('Failed to fetch tickets data');
+    
+    let allTickets = await allTicketsResponse.json();
+    
+    // Filter by category IDs if provided (for category admins)
+    if (categoryIds && categoryIds.length > 0) {
+      allTickets = allTickets.filter((ticket: any) => {
+        const ticketCategoryId = ticket.categoryId || ticket.category?.id;
+        return categoryIds.includes(ticketCategoryId);
+      });
+    }
+    
+    const totalTickets = allTickets.length;
+    
+    // Calculate weekly issue types (categories) - same as web
+    const categoryCount: Record<string, number> = {};
+    allTickets.forEach((ticket: any) => {
+      const category = ticket.category || 'Uncategorized';
+      categoryCount[category] = (categoryCount[category] || 0) + 1;
+    });
+    
+    const weeklyIssueTypes = Object.entries(categoryCount)
+      .sort(([,a], [,b]) => (b as number) - (a as number))
+      .slice(0, 10)
+      .map(([category, count]) => ({
+        issueType: category,
+        count,
+        department: 'General'
+      }));
+
+    // Calculate status distribution
+    const statusCount: Record<string, number> = {};
+    allTickets.forEach((ticket: any) => {
+      const status = ticket.status || 'Unknown';
+      statusCount[status] = (statusCount[status] || 0) + 1;
+    });
+
+    const subcategoryCounts = Object.entries(statusCount)
+      .sort(([,a], [,b]) => (b as number) - (a as number))
+      .slice(0, 10)
+      .map(([status, count], index) => ({
+        subcategoryId: index + 1,
+        subcategoryName: status,
+        categoryName: 'Status',
+        count,
+        percentage: (count as number / totalTickets) * 100
+      }));
+
+    return {
+      weeklyIssueTypes,
+      weeklyDepartments: [{ department: 'General', count: totalTickets, percentage: 100 }],
+      agentStats: [],
+      subcategoryCounts,
+      totalTickets,
+      averageResolutionTime: 0
+    };
+  },
+
+  getAllTicketsForAnalytics: async () => {
+    const response = await fetch(
+      `${getBaseUrl()}/api/Reports/all-tickets`,
+      { headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to fetch all tickets');
+    return response.json();
+  },
+
+  // V2 Analytics APIs - Same as Web Frontend widgets
+  getCustomFieldAnalytics: async (days = 7, categoryIds?: number[]) => {
+    const params = new URLSearchParams({ days: days.toString() });
+    if (categoryIds && categoryIds.length > 0) {
+      params.append('categoryIds', categoryIds.join(','));
+    }
+    const response = await fetch(
+      `${getBaseUrl()}/api/tickets-v2/custom-fields/analytics?${params}`,
+      { headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to fetch custom field analytics');
+    return response.json();
+  },
+
+  getAgentPerformance: async (days = 7, categoryIds?: number[]) => {
+    const params = new URLSearchParams({ days: days.toString() });
+    if (categoryIds && categoryIds.length > 0) {
+      params.append('categoryIds', categoryIds.join(','));
+    }
+    const response = await fetch(
+      `${getBaseUrl()}/api/tickets-v2/agent-performance?${params}`,
+      { headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to fetch agent performance');
+    return response.json();
+  },
+
+  getDepartmentAnalytics: async (days = 7, categoryIds?: number[]) => {
+    const params = new URLSearchParams({ days: days.toString() });
+    if (categoryIds && categoryIds.length > 0) {
+      params.append('categoryIds', categoryIds.join(','));
+    }
+    const response = await fetch(
+      `${getBaseUrl()}/api/tickets-v2/department-analytics?${params}`,
+      { headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to fetch department analytics');
     return response.json();
   },
 };

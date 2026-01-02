@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Building, TrendingUp } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
 
@@ -22,17 +22,43 @@ interface DepartmentData {
 interface WeeklyDepartmentWidgetProps {
   department?: string | null;
   showAllDepartments?: boolean;
+  categoryIds?: number[];
 }
 
-const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ department, showAllDepartments = false }) => {
+// Empty array constant to avoid creating new references on each render
+const EMPTY_CATEGORY_IDS: number[] = [];
+
+const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ department, showAllDepartments = false, categoryIds }) => {
   const [data, setData] = useState<DepartmentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Use stable reference for categoryIds - fallback to constant empty array
+  const stableCategoryIds = categoryIds ?? EMPTY_CATEGORY_IDS;
+  
+  // Use ref to track the categoryIds to avoid infinite re-renders on array comparison
+  const categoryIdsRef = useRef<string>(JSON.stringify(stableCategoryIds));
+  const isFetchingRef = useRef(false);
+  const hasFetchedRef = useRef(false);
 
   const fetchDepartmentData = useCallback(async () => {
+    // Prevent concurrent fetches
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    
     try {
       setLoading(true);
-      const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/department-analytics?days=7`, {
+      
+      // Parse categoryIds from the stable ref
+      const currentCategoryIds = JSON.parse(categoryIdsRef.current) as number[];
+      
+      // Build URL with category filter if provided (for Category Admins)
+      const params = new URLSearchParams({ days: '7' });
+      if (currentCategoryIds.length > 0) {
+        params.append('categoryIds', currentCategoryIds.join(','));
+      }
+      
+      const response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/department-analytics?${params}`, {
         headers: getAuthHeaders()
       });
       if (!response.ok) throw new Error('Failed to fetch department data');
@@ -51,12 +77,26 @@ const WeeklyDepartmentWidget: React.FC<WeeklyDepartmentWidgetProps> = ({ departm
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, [department, showAllDepartments]);
 
+  // Update the ref when categoryIds actually change (by value) and fetch
   useEffect(() => {
-    fetchDepartmentData();
-  }, [fetchDepartmentData]);
+    const newCategoryIdsString = JSON.stringify(stableCategoryIds);
+    const categoryIdsChanged = categoryIdsRef.current !== newCategoryIdsString;
+    
+    // Update ref if changed
+    if (categoryIdsChanged) {
+      categoryIdsRef.current = newCategoryIdsString;
+    }
+    
+    // Only fetch if: first mount OR categoryIds actually changed by value
+    if (!hasFetchedRef.current || categoryIdsChanged) {
+      hasFetchedRef.current = true;
+      fetchDepartmentData();
+    }
+  }, [stableCategoryIds, fetchDepartmentData]);
 
   if (loading) {
     return (

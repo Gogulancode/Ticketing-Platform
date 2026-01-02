@@ -40,7 +40,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (_: Electron.IpcRendererEvent, url: string) => callback(url);
     ipcRenderer.on('deep-link', handler);
     return () => ipcRenderer.removeListener('deep-link', handler);
-  }
+  },
+
+  // Open external URL in default browser
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url)
 });
 
 // Type definitions for the exposed API
@@ -56,6 +59,7 @@ export interface ElectronAPI {
   onNavigate: (callback: (path: string) => void) => () => void;
   onAction: (callback: (action: string) => void) => () => void;
   onDeepLink: (callback: (url: string) => void) => () => void;
+  openExternal: (url: string) => Promise<void>;
 }
 
 declare global {

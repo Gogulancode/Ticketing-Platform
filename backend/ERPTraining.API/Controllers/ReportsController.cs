@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using ERPTraining.Infrastructure.Data;
 using ERPTraining.Core.Entities;
@@ -10,6 +11,7 @@ namespace ERPTraining.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ReportsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -64,7 +66,8 @@ namespace ERPTraining.API.Controllers
                         query = query.Where(t => t.Priority == (TicketPriority)priorityId);
                 }
 
-                var tickets = await query.ToListAsync();
+                // Order by PublicId descending (newest first)
+                var tickets = await query.OrderByDescending(t => t.PublicId).ToListAsync();
                 var lookupCache = await LoadTicketLookupsAsync();
 
                 var reportData = tickets.Select(ticket => new
@@ -98,11 +101,25 @@ namespace ERPTraining.API.Controllers
         public async Task<IActionResult> GetAgentPerformanceReport(
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
-            [FromQuery] string? department = null)
+            [FromQuery] string? department = null,
+            [FromQuery] string? category = null)
         {
             try
             {
                 var query = ApplyCreatedDateRangeFilter(_context.Tickets.AsQueryable(), startDate, endDate);
+
+                // Apply category filter (supports comma-separated IDs for Category Admins)
+                if (!string.IsNullOrEmpty(category))
+                {
+                    var categoryIds = category.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(c => int.TryParse(c.Trim(), out var id) ? id : (int?)null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id!.Value)
+                        .ToList();
+                    
+                    if (categoryIds.Any())
+                        query = query.Where(t => t.CategoryId.HasValue && categoryIds.Contains(t.CategoryId.Value));
+                }
 
                 var tickets = await query.ToListAsync();
 
@@ -172,7 +189,8 @@ namespace ERPTraining.API.Controllers
                 if (!string.IsNullOrEmpty(search))
                     query = query.Where(t => t.Title.Contains(search) || t.Description.Contains(search));
 
-                var tickets = await query.OrderBy(t => t.CreatedAt).ToListAsync();
+                // Order by PublicId descending (newest first)
+                var tickets = await query.OrderByDescending(t => t.PublicId).ToListAsync();
                 var lookupCache = await LoadTicketLookupsAsync();
 
                 var reportData = tickets.Select(ticket => new
@@ -236,7 +254,8 @@ namespace ERPTraining.API.Controllers
                 if (!string.IsNullOrEmpty(search))
                     query = query.Where(t => t.Title.Contains(search) || t.Description.Contains(search));
 
-                var tickets = await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
+                // Order by PublicId descending (newest first)
+                var tickets = await query.OrderByDescending(t => t.PublicId).ToListAsync();
                 var lookupCache = await LoadTicketLookupsAsync();
 
                 var reportData = tickets.Select(ticket => new

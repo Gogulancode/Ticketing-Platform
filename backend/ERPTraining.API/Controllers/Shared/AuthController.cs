@@ -373,6 +373,30 @@ public class AuthController : ControllerBase
         var roles = await _authService.GetUserRolesAsync(userId);
         return Ok(roles);
     }
+
+    /// <summary>
+    /// TEMPORARY: Reset admin password (remove after use)
+    /// </summary>
+    [HttpPost("reset-admin-password")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public async Task<ActionResult> ResetAdminPassword([FromBody] ResetAdminPasswordDto dto)
+    {
+        // Security: Only allow with secret key
+        if (dto.SecretKey != "TEMP_RESET_KEY_2025")
+            return Unauthorized(new { message = "Invalid secret key" });
+
+        var result = await _authService.ResetPasswordAsync("admin@ticketing.local", dto.NewPassword);
+        if (!result.Success)
+            return BadRequest(new { message = result.ErrorMessage ?? "Failed to reset password" });
+
+        return Ok(new { message = "Admin password reset successfully" });
+    }
+}
+
+public class ResetAdminPasswordDto
+{
+    public string SecretKey { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
 }
 
 public class AssignRoleDto

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ERPTraining.Core.Services;
 using ERPTraining.Core.DTOs;
 using System.Security.Claims;
@@ -7,7 +8,7 @@ namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
 [Route("api/ticketing/acl")]
-// [Authorize] // TODO: Re-enable in production; disabled for dev testing
+[Authorize]
 public class TicketingAclController : ControllerBase
 {
     private readonly ITicketingAclService _aclService;

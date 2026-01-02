@@ -135,11 +135,11 @@ Three environments are supported:
 - iOS Simulator: `http://localhost:5016`
 
 ### Staging
-- URL: `https://staging-api.babajishivram.com`
+- URL: `https://staging-api.example.com` (TODO: Replace with your staging URL)
 - Set environment: Edit `app.json`  `extra.environment: "staging"`
 
 ### Production
-- URL: `https://api.babajishivram.com`
+- URL: `https://api.example.com` (TODO: Replace with your production URL)
 - Set environment: Edit `app.json`  `extra.environment: "production"`
 
 ##  Project Structure
@@ -177,7 +177,7 @@ Update production URLs in `src/config/environment.ts`:
 
 ```typescript
 production: {
-  apiUrl: 'https://api.babajishivram.com',
+  apiUrl: 'https://api.example.com', // TODO: Replace with your production URL
   environment: 'production',
 }
 ```
