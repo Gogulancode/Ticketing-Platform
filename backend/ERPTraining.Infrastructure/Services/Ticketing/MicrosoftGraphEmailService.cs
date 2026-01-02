@@ -4,42 +4,105 @@ using Microsoft.Kiota.Authentication.Azure;
 using Azure.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using ERPTraining.Core.Interfaces.Ticketing;
 using ERPTraining.Core.Entities;
 using ERPTraining.Core.Entities.Ticketing;
 using ERPTraining.Core.Entities.Tickets;
 using ERPTraining.Core.Models.Ticketing;
+using ERPTraining.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using ApplicationUser = ERPTraining.Core.Entities.User;
 
 namespace ERPTraining.Infrastructure.Services.Ticketing;
 
 public class MicrosoftGraphEmailService : IEmailService
 {
-    private readonly GraphServiceClient _graphServiceClient;
+    private GraphServiceClient? _graphServiceClient;
     private readonly IConfiguration _configuration;
     private readonly ILogger<MicrosoftGraphEmailService> _logger;
-    private readonly string _serviceAccountEmail;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private string _serviceAccountEmail = string.Empty;
+    private bool _isInitialized = false;
+    private readonly object _initLock = new object();
 
     public MicrosoftGraphEmailService(
         IConfiguration configuration,
-        ILogger<MicrosoftGraphEmailService> logger)
+        ILogger<MicrosoftGraphEmailService> logger,
+        IServiceScopeFactory serviceScopeFactory)
     {
         _configuration = configuration;
         _logger = logger;
-        _serviceAccountEmail = configuration["MicrosoftGraph:ServiceAccountEmail"] ?? "support@example.com"; // TODO: Configure in appsettings
+        _serviceScopeFactory = serviceScopeFactory;
+        
+        _logger.LogInformation("Microsoft Graph Email Service created - will initialize on first use");
+    }
 
-        // Initialize Graph client with app-only authentication
-        var clientId = configuration["MicrosoftGraph:ClientId"];
-        var tenantId = configuration["MicrosoftGraph:TenantId"];
-        var clientSecret = configuration["MicrosoftGraph:ClientSecret"];
+    /// <summary>
+    /// Initializes the Graph client from database config with appsettings fallback
+    /// </summary>
+    private async Task EnsureInitializedAsync(CancellationToken cancellationToken = default)
+    {
+        if (_isInitialized && _graphServiceClient != null)
+            return;
+
+        lock (_initLock)
+        {
+            if (_isInitialized && _graphServiceClient != null)
+                return;
+        }
+
+        string? clientId = null;
+        string? tenantId = null;
+        string? clientSecret = null;
+        string? serviceAccountEmail = null;
+
+        // Try to get config from database first
+        try
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            
+            var dbConfig = await dbContext.Set<GraphEmailConfig>()
+                .Where(c => c.IsActive)
+                .OrderByDescending(c => c.UpdatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (dbConfig != null)
+            {
+                clientId = dbConfig.ClientId;
+                tenantId = dbConfig.TenantId;
+                clientSecret = dbConfig.ClientSecret;
+                serviceAccountEmail = dbConfig.Email;
+                
+                _logger.LogInformation("Using Graph API config from database for email: {Email}", serviceAccountEmail);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not load Graph config from database, falling back to appsettings");
+        }
+
+        // Fallback to appsettings if database config not found
+        if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(tenantId) || string.IsNullOrEmpty(clientSecret))
+        {
+            clientId = _configuration["MicrosoftGraph:ClientId"];
+            tenantId = _configuration["MicrosoftGraph:TenantId"];
+            clientSecret = _configuration["MicrosoftGraph:ClientSecret"];
+            serviceAccountEmail = _configuration["MicrosoftGraph:ServiceAccountEmail"] ?? "support@example.com";
+            
+            _logger.LogInformation("Using Graph API config from appsettings for email: {Email}", serviceAccountEmail);
+        }
 
         if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(tenantId) || string.IsNullOrEmpty(clientSecret))
         {
-            throw new InvalidOperationException("Microsoft Graph configuration is missing. Please check ClientId, TenantId, and ClientSecret.");
+            throw new InvalidOperationException("Microsoft Graph configuration is missing. Please configure in Email Settings or appsettings.");
         }
 
+        _serviceAccountEmail = serviceAccountEmail ?? "support@example.com";
         var credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
         _graphServiceClient = new GraphServiceClient(credential);
+        _isInitialized = true;
 
         _logger.LogInformation("Microsoft Graph Email Service initialized for {Email}", _serviceAccountEmail);
     }
@@ -51,9 +114,11 @@ public class MicrosoftGraphEmailService : IEmailService
     {
         try
         {
+            await EnsureInitializedAsync(cancellationToken);
+            
             _logger.LogInformation("Fetching unread emails from {Email}", _serviceAccountEmail);
 
-            var messages = await _graphServiceClient.Users[_serviceAccountEmail]
+            var messages = await _graphServiceClient!.Users[_serviceAccountEmail]
                 .Messages
                 .GetAsync((requestConfiguration) =>
                 {
@@ -113,6 +178,8 @@ public class MicrosoftGraphEmailService : IEmailService
     {
         try
         {
+            await EnsureInitializedAsync(cancellationToken);
+            
             _logger.LogInformation("Sending email to {ToEmail} with subject: {Subject}", toEmail, subject);
 
             var message = new Message
@@ -166,7 +233,7 @@ public class MicrosoftGraphEmailService : IEmailService
             }
 
             // Try to send email using the service account with proper application permissions
-            await _graphServiceClient.Users[_serviceAccountEmail]
+            await _graphServiceClient!.Users[_serviceAccountEmail]
                 .SendMail
                 .PostAsync(new Microsoft.Graph.Users.Item.SendMail.SendMailPostRequestBody
                 {
@@ -201,6 +268,8 @@ public class MicrosoftGraphEmailService : IEmailService
     {
         try
         {
+            await EnsureInitializedAsync(cancellationToken);
+            
             var ccList = ccEmails?.Where(e => !string.IsNullOrWhiteSpace(e)).ToList() ?? new List<string>();
             _logger.LogInformation("Sending email to {ToEmail} with {CcCount} CC recipients, subject: {Subject}", 
                 toEmail, ccList.Count, subject);
@@ -245,7 +314,7 @@ public class MicrosoftGraphEmailService : IEmailService
                 if (fileAttachments.Count > 0) message.Attachments = fileAttachments;
             }
 
-            await _graphServiceClient.Users[_serviceAccountEmail]
+            await _graphServiceClient!.Users[_serviceAccountEmail]
                 .SendMail
                 .PostAsync(new Microsoft.Graph.Users.Item.SendMail.SendMailPostRequestBody
                 {
@@ -294,7 +363,9 @@ public class MicrosoftGraphEmailService : IEmailService
     {
         try
         {
-            await _graphServiceClient.Users[_serviceAccountEmail]
+            await EnsureInitializedAsync(cancellationToken);
+            
+            await _graphServiceClient!.Users[_serviceAccountEmail]
                 .Messages[emailId]
                 .PatchAsync(new Message { IsRead = true }, requestConfiguration: null, cancellationToken);
 
@@ -314,11 +385,13 @@ public class MicrosoftGraphEmailService : IEmailService
     {
         try
         {
+            await EnsureInitializedAsync(cancellationToken);
+            
             // First, get or create the folder
             var folderId = await GetOrCreateFolderAsync(folderName, cancellationToken);
 
             // Move the email
-            await _graphServiceClient.Users[_serviceAccountEmail]
+            await _graphServiceClient!.Users[_serviceAccountEmail]
                 .Messages[emailId]
                 .Move
                 .PostAsync(new Microsoft.Graph.Users.Item.Messages.Item.Move.MovePostRequestBody
@@ -342,8 +415,11 @@ public class MicrosoftGraphEmailService : IEmailService
     {
         try
         {
+            // Ensure initialized (should already be from calling method, but safe to call again)
+            await EnsureInitializedAsync(cancellationToken);
+            
             // Try to find existing folder
-            var folders = await _graphServiceClient.Users[_serviceAccountEmail]
+            var folders = await _graphServiceClient!.Users[_serviceAccountEmail]
                 .MailFolders
                 .GetAsync((requestConfiguration) =>
                 {
@@ -356,7 +432,7 @@ public class MicrosoftGraphEmailService : IEmailService
             }
 
             // Create new folder
-            var newFolder = await _graphServiceClient.Users[_serviceAccountEmail]
+            var newFolder = await _graphServiceClient!.Users[_serviceAccountEmail]
                 .MailFolders
                 .PostAsync(new MailFolder
                 {
@@ -425,9 +501,11 @@ public class MicrosoftGraphEmailService : IEmailService
     {
         try
         {
+            await EnsureInitializedAsync(cancellationToken);
+            
             _logger.LogInformation("Fetching attachments for email {EmailId}", emailId);
 
-            var attachments = await _graphServiceClient.Users[_serviceAccountEmail]
+            var attachments = await _graphServiceClient!.Users[_serviceAccountEmail]
                 .Messages[emailId]
                 .Attachments
                 .GetAsync((requestConfiguration) =>
@@ -444,7 +522,7 @@ public class MicrosoftGraphEmailService : IEmailService
                     if (attachment is FileAttachment fileAttachment)
                     {
                         // Get the actual attachment content
-                        var fullAttachment = await _graphServiceClient.Users[_serviceAccountEmail]
+                        var fullAttachment = await _graphServiceClient!.Users[_serviceAccountEmail]
                             .Messages[emailId]
                             .Attachments[attachment.Id]
                             .GetAsync(cancellationToken: cancellationToken);
