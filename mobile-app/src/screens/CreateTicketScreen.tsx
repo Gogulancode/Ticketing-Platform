@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
@@ -339,6 +339,9 @@ export default function CreateTicketScreen({ navigation }: any) {
 
   const getPriorityColor = (name: string) => PRIORITY_COLORS[name] || Colors.gray400;
 
+  // Get safe area insets for bottom navigation
+  const insets = useSafeAreaInsets();
+
   // Calculate form progress
   const formProgress = (() => {
     const fields = [title, description, categoryId, subcategoryId, departmentId];
@@ -366,7 +369,7 @@ export default function CreateTicketScreen({ navigation }: any) {
   }) => (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, 20) }]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{modalTitle}</Text>
             <TouchableOpacity onPress={onClose}>
@@ -691,7 +694,7 @@ export default function CreateTicketScreen({ navigation }: any) {
       {showCustomFieldPicker && (
         <Modal visible={true} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+            <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, 20) }]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{showCustomFieldPicker.label}</Text>
                 <TouchableOpacity onPress={() => setShowCustomFieldPicker(null)}>
