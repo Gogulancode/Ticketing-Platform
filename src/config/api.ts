@@ -27,7 +27,7 @@ const getApiBaseUrl = (): string => {
 
     // Staging domain - enrichbeauty
     if (currentHost === 'enrichbeauty.solutionsnextwave.com') {
-      return `${window.location.protocol}//enrichbeauty.solutionsnextwave.com/api/api`;
+      return `${window.location.protocol}//enrichbeauty.solutionsnextwave.com/api`;
     }
 
     // Production domain - ALWAYS use HTTP port 81 (no SSL configured)
