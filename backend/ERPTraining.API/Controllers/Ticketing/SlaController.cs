@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/tickets/settings/sla")]
+[Route("tickets/settings/sla")]
 [Authorize]
 public class SlaController : ControllerBase
 {

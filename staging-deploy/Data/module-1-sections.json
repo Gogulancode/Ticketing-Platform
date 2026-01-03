@@ -1,0 +1,1032 @@
+[
+  {
+    "lModuleId": "1",
+    "SectionId": "100",
+    "SectionName": "User Setup"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "101",
+    "SectionName": "BS User"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "102",
+    "SectionName": "Department"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "103",
+    "SectionName": "BS Group"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "104",
+    "SectionName": "Branch"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "105",
+    "SectionName": "Port"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "113",
+    "SectionName": "Loading Port"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "106",
+    "SectionName": "Access Role"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "107",
+    "SectionName": "CFS Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "108",
+    "SectionName": "Passing Stages"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "109",
+    "SectionName": "Expense Type"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "110",
+    "SectionName": "Job Type"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "111",
+    "SectionName": "Package Type"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "112",
+    "SectionName": "Status Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "200",
+    "SectionName": "Customer Setup"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "202",
+    "SectionName": "Customer"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "203",
+    "SectionName": "Consignee"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "204",
+    "SectionName": "Location"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "205",
+    "SectionName": "Checklist Document"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "206",
+    "SectionName": "Scheme Type"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "207",
+    "SectionName": "Incoterms of Shipment"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "208",
+    "SectionName": "Field Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "209",
+    "SectionName": "Warehouse Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "210",
+    "SectionName": "Customer Sector Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "211",
+    "SectionName": "PCD Document Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "212",
+    "SectionName": "Vehicle Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "300",
+    "SectionName": "Operation"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "301",
+    "SectionName": "Pre-Alert Received"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "302",
+    "SectionName": "Job Creation"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "303",
+    "SectionName": "IGM Awaited"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "304",
+    "SectionName": "Checklist Preparation"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "305",
+    "SectionName": "Checklist Verification IN"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "306",
+    "SectionName": "Customer Checklist"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "307",
+    "SectionName": "Audit Rejected"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "309",
+    "SectionName": "DO Awaited"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "308",
+    "SectionName": "Under Noting"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "310",
+    "SectionName": "Duty Request"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "312",
+    "SectionName": "1st Check Examine"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "311",
+    "SectionName": "Under Passing"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "330",
+    "SectionName": "Pending ADC/PHO"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "313",
+    "SectionName": "Delivery Planning"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "320",
+    "SectionName": "In General Warehouse"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "314",
+    "SectionName": "Under Delivery"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "319",
+    "SectionName": "Shipment Cleared"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "315",
+    "SectionName": "Job Expense"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "317",
+    "SectionName": "Job Activity"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "318",
+    "SectionName": "Job Tracking"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "321",
+    "SectionName": "Pending Document"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "322",
+    "SectionName": "Admin Job Tracking"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "323",
+    "SectionName": "Copy Job"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "324",
+    "SectionName": "Edit invoice"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "329",
+    "SectionName": "Inbond Jobs"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "400",
+    "SectionName": "Generel/ Administration"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "401",
+    "SectionName": "My Detail"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "402",
+    "SectionName": "Holiday List"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "500",
+    "SectionName": "Reports"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "512",
+    "SectionName": "Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "508",
+    "SectionName": "MIS Port"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "509",
+    "SectionName": "MIS Customer"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "510",
+    "SectionName": "MIS Ageing"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "513",
+    "SectionName": "Job Expenses Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "514",
+    "SectionName": "Group User Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "516",
+    "SectionName": "User Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "517",
+    "SectionName": "View User Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "600",
+    "SectionName": "Post Clearance"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "601",
+    "SectionName": "PCA Document"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "605",
+    "SectionName": "Billing Advice"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "606",
+    "SectionName": "Billing Rejected"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "602",
+    "SectionName": "Billing Scrutiny"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "603",
+    "SectionName": "Billing Dept"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "604",
+    "SectionName": "Dispatch Dept"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "114",
+    "SectionName": "Customs Group"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "3010",
+    "SectionName": "Mistake Log"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "3011",
+    "SectionName": "Mistake Review"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "333",
+    "SectionName": "Job Archive"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "518",
+    "SectionName": "Chart Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "520",
+    "SectionName": "Warehouse Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "612",
+    "SectionName": "Draft Check"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "611",
+    "SectionName": "Draft Invoice"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "614",
+    "SectionName": "Final Invoice Check"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "613",
+    "SectionName": "Final Invoice Typing"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "610",
+    "SectionName": "Billing Scrutiny_new"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "615",
+    "SectionName": "Bill Dispatch"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "616",
+    "SectionName": "Billing Rejected_new"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "617",
+    "SectionName": "Bill Status"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "519",
+    "SectionName": "Checklist KPI"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "521",
+    "SectionName": "BOE KPI"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "550",
+    "SectionName": "Billing Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "3012",
+    "SectionName": "Stamp Duty"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "340",
+    "SectionName": "Other Job"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "350",
+    "SectionName": "Transport"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "352",
+    "SectionName": "Request Received"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "355",
+    "SectionName": "Movement"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "356",
+    "SectionName": "Bill Detail"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "358",
+    "SectionName": "Bill Received"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "359",
+    "SectionName": "Bill Approval"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "360",
+    "SectionName": "Task Request"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "361",
+    "SectionName": "Customer Task Request"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "362",
+    "SectionName": "Pending Task"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "523",
+    "SectionName": "Dispatch Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "334",
+    "SectionName": "DO Planning"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "363",
+    "SectionName": "Completed Task List"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "535",
+    "SectionName": "Billing Dept KPI"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "536",
+    "SectionName": "Billing Stage KPI"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "537",
+    "SectionName": "Billing Reject KPI"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "538",
+    "SectionName": "Billing User KPI"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "539",
+    "SectionName": "Billing Customer KPI"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "541",
+    "SectionName": "MIS Import Dept"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "540",
+    "SectionName": "MIS Job Opening"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "341",
+    "SectionName": "Pending OOC"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "700",
+    "SectionName": "Payment"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "335",
+    "SectionName": "DO Security"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "524",
+    "SectionName": "CFS Delivery"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "619",
+    "SectionName": "Bill Return"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "525",
+    "SectionName": "DDP DSR"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "305",
+    "SectionName": "Checklist Verification"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "620",
+    "SectionName": "FA Current Job"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "526",
+    "SectionName": "DDP KPI"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "343",
+    "SectionName": "Vehicle Request"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "344",
+    "SectionName": "Provisional BE"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "527",
+    "SectionName": "Asian Paint DSR"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "528",
+    "SectionName": "Becton DSR"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "213",
+    "SectionName": "Shipping Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "800",
+    "SectionName": "LR Info"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "367",
+    "SectionName": "Trip Detail"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "366",
+    "SectionName": "Bill Tracking"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "542",
+    "SectionName": "License Utilisation MIS"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "543",
+    "SectionName": "SKF India Payment MIS"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "544",
+    "SectionName": "SKF India Bank Statement"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "546",
+    "SectionName": "SKF Import Expense Provision"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "547",
+    "SectionName": "SKF India Customs Duty IGST"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "529",
+    "SectionName": "SKF INDIA Bank Doc"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "216",
+    "SectionName": "Customer License"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "368",
+    "SectionName": "Bill Status"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "337",
+    "SectionName": "Admin Request Received"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "556",
+    "SectionName": "SKF India DSR"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "214",
+    "SectionName": "LR Copy"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "215",
+    "SectionName": "LR Details"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "557",
+    "SectionName": "SKF India DSR MIS"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "551",
+    "SectionName": "Becton Billing DSR"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "217",
+    "SectionName": "LR Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "566",
+    "SectionName": "Letter Genarate"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "365",
+    "SectionName": "Bill Rejected"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "3013",
+    "SectionName": "FA Current Job"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "631",
+    "SectionName": "MyPacco Tracking"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "632",
+    "SectionName": "MyPacco Return"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "3014",
+    "SectionName": "Expense Approval"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "552",
+    "SectionName": "ABB Duty Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "621",
+    "SectionName": "Bill Return Process"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "580",
+    "SectionName": "Pending Dispatch"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "345",
+    "SectionName": "Cancelled Job"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "581",
+    "SectionName": "DO Process Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "1024",
+    "SectionName": "Pending Bill Dispatch"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "1027",
+    "SectionName": "Bill Dispatch Status"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "607",
+    "SectionName": "Dispatch Dept - PCA"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "1028",
+    "SectionName": "Bill Upload"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "1026",
+    "SectionName": "Customer Bill List"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "604",
+    "SectionName": "Dispatch Dept - Billing"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "1029",
+    "SectionName": "Bill Dispatch Later"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "567",
+    "SectionName": "Johnson-Hitachi DSR Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "560",
+    "SectionName": "SKF Tech Import Register"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "3015",
+    "SectionName": "Expense Approval HOD"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "117",
+    "SectionName": "Priority Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "218",
+    "SectionName": "Document Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "563",
+    "SectionName": "SKF PreAlert"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "558",
+    "SectionName": "SKF Tech Bank Doc"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "559",
+    "SectionName": "SKF Tech License Utilisation"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "561",
+    "SectionName": "SKF Tech DSR"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "562",
+    "SectionName": "SKF Tech DSR MIS"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "582",
+    "SectionName": "EWay Bill BoE Data"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "583",
+    "SectionName": "Billing Turnaround"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "568",
+    "SectionName": "Billing Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "309302",
+    "SectionName": "Customer Base Billing"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "584",
+    "SectionName": "WabTec DSR"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "585",
+    "SectionName": "FujiFilm Billing Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "588",
+    "SectionName": "Container Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "589",
+    "SectionName": "WabTec Billing DSR"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "590",
+    "SectionName": "ICE BE Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "10101",
+    "SectionName": "Invoice Request"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "10102",
+    "SectionName": "Track Invoice"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "10115",
+    "SectionName": "Invoice Released"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "10100",
+    "SectionName": "ODeX Connect"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "10110",
+    "SectionName": "DO Request"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "10112",
+    "SectionName": "Track DO"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "107",
+    "SectionName": "CFS/Air shed Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "115",
+    "SectionName": "Air Expense Rule"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "116",
+    "SectionName": "Sea Expense Rule"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "309303",
+    "SectionName": "Range Criteria Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "309304",
+    "SectionName": "Cap Criteria Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "309305",
+    "SectionName": "UOM Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "403",
+    "SectionName": "Branch Expense"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "586",
+    "SectionName": "Thermax DSR Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "587",
+    "SectionName": "Thermax Prealert Report"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "591",
+    "SectionName": "Bill Rejection"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "592",
+    "SectionName": "Fuji Film"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "118",
+    "SectionName": "Vendor Expense Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "219",
+    "SectionName": "FA Book Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "309390",
+    "SectionName": "Additional Approval Tab"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "309391",
+    "SectionName": "Additional Billing Advice"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "10116",
+    "SectionName": "Rejected DO"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "404",
+    "SectionName": "Customer Master"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "701",
+    "SectionName": "Payment Request"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "618",
+    "SectionName": "LR Pending"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "1100",
+    "SectionName": "SKF Reports"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "549",
+    "SectionName": "Royal Canin DSR"
+  },
+  {
+    "lModuleId": "1",
+    "SectionId": "565",
+    "SectionName": "Stock Report"
+  }
+]

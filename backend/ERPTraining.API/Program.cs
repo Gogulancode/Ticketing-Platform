@@ -285,6 +285,7 @@ builder.Services.AddSwaggerGen(c =>
     var app = builder.Build();
 
     // Configure path base for sub-application hosting (e.g., under /api)
+    // MUST be before all other middleware!
     var pathBase = builder.Configuration.GetValue<string>("PathBase");
     if (!string.IsNullOrEmpty(pathBase))
     {

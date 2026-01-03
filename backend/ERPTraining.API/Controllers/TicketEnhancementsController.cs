@@ -10,7 +10,7 @@ namespace ERPTraining.API.Controllers;
 /// Controller for enhanced ticket features
 /// </summary>
 [ApiController]
-[Route("api/tickets")]
+[Route("tickets")]
 [Authorize]
 public class TicketEnhancementsController : ControllerBase
 {
@@ -367,7 +367,7 @@ public class TicketEnhancementsController : ControllerBase
 /// Controller for ticket templates
 /// </summary>
 [ApiController]
-[Route("api/tickets/templates")]
+[Route("tickets/templates")]
 [Authorize]
 public class TicketTemplatesController : ControllerBase
 {
@@ -481,7 +481,7 @@ public class TicketTemplatesController : ControllerBase
 /// Controller for canned responses
 /// </summary>
 [ApiController]
-[Route("api/tickets/canned-responses")]
+[Route("tickets/canned-responses")]
 [Authorize]
 public class CannedResponsesController : ControllerBase
 {

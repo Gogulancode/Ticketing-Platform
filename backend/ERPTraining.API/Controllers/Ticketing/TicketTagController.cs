@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/tickets/settings/tags")]
+[Route("tickets/settings/tags")]
 [Authorize]
 public class TicketTagController : ControllerBase
 {

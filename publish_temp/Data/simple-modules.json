@@ -1,0 +1,70 @@
+[
+  {
+    "lId": 1,
+    "sName": "CB – Imports"
+  },
+  {
+    "lId": 2,
+    "sName": "Freight Forwarding"
+  },
+  {
+    "lId": 3,
+    "sName": "NBCPL"
+  },
+  {
+    "lId": 4,
+    "sName": "Company Services"
+  },
+  {
+    "lId": 5,
+    "sName": "CB – Exports"
+  },
+  {
+    "lId": 6,
+    "sName": "Contracts"
+  },
+  {
+    "lId": 8,
+    "sName": "SEZ"
+  },
+  {
+    "lId": 9,
+    "sName": "Ops Accounting "
+  },
+  {
+    "lId": 10,
+    "sName": "Container Movement"
+  },
+  {
+    "lId": 11,
+    "sName": "CRM"
+  },
+  {
+    "lId": 12,
+    "sName": "Babaji Transport"
+  },
+  {
+    "lId": 13,
+    "sName": "Additional Job"
+  },
+  {
+    "lId": 15,
+    "sName": "MIS"
+  },
+  {
+    "lId": 35,
+    "sName": "Essential Certificate"
+  },
+  {
+    "lId": 45,
+    "sName": "Equipment Hire"
+  },
+  {
+    "lId": 50,
+    "sName": "Public Notice"
+  },
+  {
+    "lId": 55,
+    "sName": "Project"
+  }
+]

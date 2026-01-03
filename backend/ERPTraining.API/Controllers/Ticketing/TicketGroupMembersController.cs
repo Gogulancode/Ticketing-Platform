@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/tickets/settings/groups/{groupId:int}/members")]
+[Route("tickets/settings/groups/{groupId:int}/members")]
 [Authorize]
 public class TicketGroupMembersController : ControllerBase
 {

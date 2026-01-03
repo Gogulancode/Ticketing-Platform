@@ -12,7 +12,7 @@ namespace ERPTraining.API.Controllers
     }
 
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class UserManagementController : ControllerBase
     {
         private readonly UserManager<User> _userManager;

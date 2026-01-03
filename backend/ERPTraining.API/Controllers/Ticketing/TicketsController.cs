@@ -14,7 +14,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/tickets")]
+[Route("tickets")]
 [Authorize] // Authentication required for all endpoints
 [EnableRateLimiting("api")]  // Enterprise: API rate limiting
 public class TicketsController : ControllerBase
@@ -422,26 +422,28 @@ public class TicketsController : ControllerBase
                 ? (await _categoryAdminService.GetAdminCategoryIdsAsync(userId)).ToList()
                 : new List<int>();
             
-            // Base query with filters
+            // Base query with filters (exclude deleted tickets with Status = 99)
             IQueryable<Ticket> query;
             if (isAdmin)
             {
-                // Admin sees all tickets
-                query = _context.Tickets.AsNoTracking();
+                // Admin sees all tickets (except deleted)
+                query = _context.Tickets.AsNoTracking()
+                    .Where(t => t.Status != 99);
             }
             else if (isCategoryAdmin && categoryAdminCategoryIds.Any())
             {
-                // Category Admin sees: tickets they created, assigned to them, OR in their managed categories
+                // Category Admin sees: tickets they created, assigned to them, OR in their managed categories (except deleted)
                 query = _context.Tickets.AsNoTracking()
-                    .Where(t => t.CreatedByUserId == userId 
-                             || t.AssignedToUserId == userId 
-                             || (t.CategoryId.HasValue && categoryAdminCategoryIds.Contains(t.CategoryId.Value)));
+                    .Where(t => t.Status != 99 && (
+                        t.CreatedByUserId == userId 
+                        || t.AssignedToUserId == userId 
+                        || (t.CategoryId.HasValue && categoryAdminCategoryIds.Contains(t.CategoryId.Value))));
             }
             else
             {
-                // Regular user sees only tickets they created or are assigned to
+                // Regular user sees only tickets they created or are assigned to (except deleted)
                 query = _context.Tickets.AsNoTracking()
-                    .Where(t => t.CreatedByUserId == userId || t.AssignedToUserId == userId);
+                    .Where(t => t.Status != 99 && (t.CreatedByUserId == userId || t.AssignedToUserId == userId));
             }
             
             // Apply filters
@@ -796,15 +798,17 @@ public class TicketsController : ControllerBase
                     {
                         // Decode and save the file to disk
                         var fileBytes = Convert.FromBase64String(attachmentReq.Base64Content);
-                        var tempDirectory = Path.Combine(Directory.GetCurrentDirectory(), "temp");
+                        var uploadsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "tickets");
                         
-                        // Ensure temp directory exists
-                        if (!Directory.Exists(tempDirectory))
+                        // Ensure uploads directory exists
+                        if (!Directory.Exists(uploadsDirectory))
                         {
-                            Directory.CreateDirectory(tempDirectory);
+                            Directory.CreateDirectory(uploadsDirectory);
                         }
                         
-                        var filePath = Path.Combine(tempDirectory, attachmentReq.FileName);
+                        // Use unique filename to prevent overwrites
+                        var uniqueFileName = $"{Guid.NewGuid()}_{attachmentReq.FileName}";
+                        var filePath = Path.Combine(uploadsDirectory, uniqueFileName);
                         await System.IO.File.WriteAllBytesAsync(filePath, fileBytes);
                         
                         // Create attachment record
@@ -815,7 +819,7 @@ public class TicketsController : ControllerBase
                             FileName = attachmentReq.FileName,
                             ContentType = attachmentReq.ContentType,
                             SizeBytes = fileBytes.Length,
-                            StoragePath = $"temp/{attachmentReq.FileName}",
+                            StoragePath = filePath, // Store full path like V2 controller
                             UploadedByUserId = GetCurrentUserId(),
                             CreatedAt = GetUtcNow()
                         };

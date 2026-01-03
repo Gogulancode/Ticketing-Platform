@@ -58,10 +58,6 @@
               "target": "Package",
               "version": "[9.0.0, )"
             },
-            "AspNetCoreRateLimit": {
-              "target": "Package",
-              "version": "[5.0.0, )"
-            },
             "AutoMapper": {
               "target": "Package",
               "version": "[12.0.1, )"
@@ -114,33 +110,9 @@
               "target": "Package",
               "version": "[10.0.1, )"
             },
-            "Serilog.AspNetCore": {
-              "target": "Package",
-              "version": "[10.0.0, )"
-            },
-            "Serilog.Enrichers.Environment": {
-              "target": "Package",
-              "version": "[3.0.1, )"
-            },
-            "Serilog.Enrichers.Thread": {
-              "target": "Package",
-              "version": "[4.0.0, )"
-            },
-            "Serilog.Formatting.Compact": {
-              "target": "Package",
-              "version": "[3.0.0, )"
-            },
-            "Serilog.Sinks.Console": {
-              "target": "Package",
-              "version": "[6.1.1, )"
-            },
-            "Serilog.Sinks.File": {
-              "target": "Package",
-              "version": "[7.0.0, )"
-            },
             "SixLabors.ImageSharp": {
               "target": "Package",
-              "version": "[3.1.5, )"
+              "version": "[3.1.8, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",

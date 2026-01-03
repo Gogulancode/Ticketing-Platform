@@ -86,6 +86,16 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
     {
         try
         {
+            // Skip system/automated emails that should not create tickets
+            if (IsSystemOrAutomatedEmail(email))
+            {
+                _logger.LogInformation("Skipping system/automated email from {FromEmail}: {Subject}", email.FromEmail, email.Subject);
+                
+                // Mark as read so it doesn't get processed again
+                await _emailService.MarkEmailAsReadAsync(email.Id, cancellationToken);
+                return;
+            }
+
             // Check if this is a reply to an existing ticket
             var existingTicket = await FindExistingTicketAsync(email, dbContext, cancellationToken);
             
@@ -131,16 +141,17 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
     private async Task<Ticket?> FindExistingTicketAsync(EmailMessage email, ApplicationDbContext dbContext, CancellationToken cancellationToken)
     {
         // Try multiple patterns to find ticket number in subject line
-        // Pattern 1: #101925 (with hash)
-        // Pattern 2: Ticket #101925 or Ticket 101925
-        // Pattern 3: [Ticket #101925] or [#101925]
-        // Pattern 4: Re: ... #101925 or just the number 101925
+        // Updated to support 1-8 digit ticket numbers (was only 5-6 before)
+        // Pattern 1: #15 or #101925 (with hash, 1-8 digits)
+        // Pattern 2: Ticket #15 or Ticket 101925
+        // Pattern 3: [Ticket #15] or [#101925]
+        // Pattern 4: Re: ... #15 or standalone number
         var patterns = new[]
         {
-            @"#(\d{5,6})",                    // #101925
-            @"\[Ticket\s*#?(\d{5,6})\]",      // [Ticket #101925] or [Ticket 101925]
-            @"Ticket\s*#?(\d{5,6})",          // Ticket #101925 or Ticket 101925
-            @"(?:^|[\s:])(\d{5,6})(?:[\s\]]|$)" // Standalone 5-6 digit number (like 101925)
+            @"#(\d{1,8})",                    // #15, #123, #101925, etc.
+            @"\[Ticket\s*#?(\d{1,8})\]",      // [Ticket #15] or [Ticket 101925]
+            @"Ticket\s*#?(\d{1,8})",          // Ticket #15 or Ticket 101925
+            @"(?:^|[\s:])(\d{4,8})(?:[\s\].\-]|$)" // Standalone 4-8 digit number (like 101925), at least 4 to avoid false matches
         };
 
         foreach (var pattern in patterns)
@@ -255,12 +266,38 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
         // Generate ticket number
         var ticketNumber = await GenerateTicketNumberAsync(dbContext, cancellationToken);
 
+        // Check if email body might contain inline images (cid: references or base64 data:image)
+        var mightHaveInlineImages = email.Body.Contains("cid:", StringComparison.OrdinalIgnoreCase) || 
+                                    email.Body.Contains("data:image", StringComparison.OrdinalIgnoreCase) ||
+                                    email.HasAttachments;
+
+        // Process inline images first (if email has attachments or inline image references)
+        var processedBody = email.Body;
+        var inlineImageInfo = "";
+        if (mightHaveInlineImages)
+        {
+            _logger.LogInformation("Email might have inline images. HasAttachments={HasAttachments}, Contains cid:={ContainsCid}", 
+                email.HasAttachments, email.Body.Contains("cid:"));
+            
+            var (updatedBody, savedImages) = await ProcessInlineImagesAsync(email.Id, email.Body, cancellationToken);
+            processedBody = updatedBody;
+            
+            // Add info about inline images
+            if (savedImages.Any())
+            {
+                // Create markdown-style image links that can be rendered in the frontend
+                var imageLinks = string.Join("\n", savedImages.Select((img, idx) => $"[Image {idx + 1}]({img.savedPath})"));
+                inlineImageInfo = $"\n\n📎 Inline images ({savedImages.Count}):\n{imageLinks}";
+            }
+        }
+
         // Create a well-formatted description with sender info and clean content
-        var cleanBody = CleanEmailBody(email.Body);
+        var cleanBody = CleanEmailBody(processedBody);
         var formattedDescription = $"📧 Email from: {email.FromEmail}\n" +
                                  $"📅 Received: {email.ReceivedDate:yyyy-MM-dd HH:mm}\n\n" +
                                  $"--- Message Content ---\n" +
-                                 $"{cleanBody}";
+                                 $"{cleanBody}" +
+                                 inlineImageInfo;
 
         // Auto-assign SLA policy based on ticket priority
         Guid? slaPolicyId = null;
@@ -373,6 +410,125 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
     }
 
     /// <summary>
+    /// Processes inline images from email HTML body and returns updated body with proper image URLs
+    /// </summary>
+    private async Task<(string updatedBody, List<(string contentId, string savedPath, byte[] bytes)> savedImages)> ProcessInlineImagesAsync(
+        string emailId, 
+        string htmlBody, 
+        CancellationToken cancellationToken)
+    {
+        var savedImages = new List<(string contentId, string savedPath, byte[] bytes)>();
+        var updatedBody = htmlBody;
+        
+        // Create attachments directory for inline images
+        var attachmentDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "email-images");
+        if (!Directory.Exists(attachmentDirectory))
+        {
+            Directory.CreateDirectory(attachmentDirectory);
+        }
+        
+        try
+        {
+            // First, try to get inline attachments from Graph API (for cid: references)
+            var emailAttachments = await _emailService.GetEmailAttachmentsAsync(emailId, cancellationToken);
+            var inlineAttachments = emailAttachments.Where(a => a.IsInline && !string.IsNullOrEmpty(a.ContentId)).ToList();
+            
+            _logger.LogInformation("Found {Total} attachments, {Inline} are inline for email {EmailId}", 
+                emailAttachments.Count, inlineAttachments.Count, emailId);
+            
+            // Process CID-referenced inline attachments
+            foreach (var inlineAttachment in inlineAttachments)
+            {
+                if (inlineAttachment.ContentBytes == null || string.IsNullOrEmpty(inlineAttachment.ContentId))
+                    continue;
+                    
+                try
+                {
+                    // Generate unique filename
+                    var fileExtension = Path.GetExtension(inlineAttachment.FileName);
+                    if (string.IsNullOrEmpty(fileExtension))
+                    {
+                        // Determine extension from content type
+                        fileExtension = inlineAttachment.ContentType switch
+                        {
+                            "image/png" => ".png",
+                            "image/jpeg" => ".jpg",
+                            "image/gif" => ".gif",
+                            "image/webp" => ".webp",
+                            _ => ".png"
+                        };
+                    }
+                    var uniqueFileName = $"inline_{Guid.NewGuid()}{fileExtension}";
+                    var filePath = Path.Combine(attachmentDirectory, uniqueFileName);
+                    
+                    // Save file
+                    await File.WriteAllBytesAsync(filePath, inlineAttachment.ContentBytes, cancellationToken);
+                    
+                    // Create URL for the image (relative to wwwroot)
+                    var imageUrl = $"/uploads/email-images/{uniqueFileName}";
+                    
+                    // Replace cid: references in HTML body
+                    // Content-ID can be with or without angle brackets
+                    var contentId = inlineAttachment.ContentId.Trim('<', '>');
+                    updatedBody = updatedBody.Replace($"cid:{contentId}", imageUrl, StringComparison.OrdinalIgnoreCase);
+                    updatedBody = updatedBody.Replace($"cid:{inlineAttachment.ContentId}", imageUrl, StringComparison.OrdinalIgnoreCase);
+                    
+                    savedImages.Add((contentId, imageUrl, inlineAttachment.ContentBytes));
+                    
+                    _logger.LogInformation("Saved inline CID image {FileName} as {SavedPath}", inlineAttachment.FileName, imageUrl);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing inline image {FileName}", inlineAttachment.FileName);
+                }
+            }
+            
+            // Also extract and save base64 encoded images (data:image/xxx;base64,...)
+            var base64Pattern = new System.Text.RegularExpressions.Regex(
+                @"src=[""']data:image/(png|jpeg|jpg|gif|webp);base64,([A-Za-z0-9+/=]+)[""']",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
+            var matches = base64Pattern.Matches(updatedBody);
+            _logger.LogInformation("Found {Count} base64 encoded images in email body", matches.Count);
+            
+            foreach (System.Text.RegularExpressions.Match match in matches)
+            {
+                try
+                {
+                    var imageType = match.Groups[1].Value.ToLower();
+                    var base64Data = match.Groups[2].Value;
+                    var imageBytes = Convert.FromBase64String(base64Data);
+                    
+                    var fileExtension = imageType == "jpeg" ? ".jpg" : $".{imageType}";
+                    var uniqueFileName = $"inline_{Guid.NewGuid()}{fileExtension}";
+                    var filePath = Path.Combine(attachmentDirectory, uniqueFileName);
+                    
+                    await File.WriteAllBytesAsync(filePath, imageBytes, cancellationToken);
+                    
+                    var imageUrl = $"/uploads/email-images/{uniqueFileName}";
+                    
+                    // Replace the base64 data with the saved image URL
+                    updatedBody = updatedBody.Replace(match.Value, $"src=\"{imageUrl}\"");
+                    
+                    savedImages.Add(($"base64_{uniqueFileName}", imageUrl, imageBytes));
+                    
+                    _logger.LogInformation("Saved base64 inline image as {SavedPath}", imageUrl);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing base64 inline image");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing inline images for email {EmailId}", emailId);
+        }
+        
+        return (updatedBody, savedImages);
+    }
+
+    /// <summary>
     /// Processes attachments from an email and saves them to the ticket
     /// </summary>
     /// <param name="commentId">Optional comment ID to link attachments to a specific comment</param>
@@ -384,9 +540,12 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
 
             var emailAttachments = await _emailService.GetEmailAttachmentsAsync(emailId, cancellationToken);
 
-            if (!emailAttachments.Any())
+            // Filter out inline attachments (already processed as inline images)
+            var regularAttachments = emailAttachments.Where(a => !a.IsInline).ToList();
+
+            if (!regularAttachments.Any())
             {
-                _logger.LogInformation("No attachments found for email {EmailId}", emailId);
+                _logger.LogInformation("No regular attachments found for email {EmailId} (inline images already processed)", emailId);
                 return;
             }
 
@@ -397,7 +556,7 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
                 Directory.CreateDirectory(attachmentDirectory);
             }
 
-            foreach (var emailAttachment in emailAttachments)
+            foreach (var emailAttachment in regularAttachments)
             {
                 try
                 {
@@ -693,6 +852,105 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
     }
 
     /// <summary>
+    /// Checks if an email is from a system/automated sender that should not create tickets
+    /// This prevents loops from bounce-back emails, delivery failure notifications, etc.
+    /// </summary>
+    private bool IsSystemOrAutomatedEmail(EmailMessage email)
+    {
+        var fromEmail = email.FromEmail?.ToLowerInvariant() ?? "";
+        var subject = email.Subject?.ToLowerInvariant() ?? "";
+
+        // List of email address patterns that indicate automated/system emails
+        var systemEmailPatterns = new[]
+        {
+            "postmaster@",
+            "mailer-daemon@",
+            "noreply@",
+            "no-reply@",
+            "no_reply@",
+            "donotreply@",
+            "do-not-reply@",
+            "do_not_reply@",
+            "bounce@",
+            "bounces@",
+            "notifications@",
+            "notification@",
+            "alert@",
+            "alerts@",
+            "system@",
+            "automail@",
+            "auto-mail@",
+            "quarantine@",
+            "@messaging.microsoft.com",  // Microsoft system notifications
+            "@notification.microsoft.com",
+            "@mail.protection.outlook.com"
+        };
+
+        // Check if from address matches any system pattern
+        foreach (var pattern in systemEmailPatterns)
+        {
+            if (fromEmail.Contains(pattern))
+            {
+                _logger.LogDebug("Email from {FromEmail} matches system pattern: {Pattern}", email.FromEmail, pattern);
+                return true;
+            }
+        }
+
+        // List of subject patterns that indicate automated/system emails
+        var systemSubjectPatterns = new[]
+        {
+            "undeliverable:",
+            "delivery status notification",
+            "delivery failure",
+            "mail delivery failed",
+            "returned mail:",
+            "failure notice",
+            "automatic reply:",
+            "out of office:",
+            "out-of-office:",
+            "auto-reply:",
+            "autoreply:",
+            "action required:",
+            "couldn't be delivered",
+            "could not be delivered",
+            "message blocked",
+            "delivery has failed"
+        };
+
+        // Check if subject matches any system pattern
+        foreach (var pattern in systemSubjectPatterns)
+        {
+            if (subject.Contains(pattern))
+            {
+                _logger.LogDebug("Email subject '{Subject}' matches system pattern: {Pattern}", email.Subject, pattern);
+                return true;
+            }
+        }
+
+        // Check for typical NDR (Non-Delivery Report) indicators in body
+        var body = email.Body?.ToLowerInvariant() ?? "";
+        var ndrBodyIndicators = new[]
+        {
+            "550 5.1.10",  // Recipient not found
+            "550 5.1.1",   // Mailbox not found
+            "smtp address lookup",
+            "resolver.adr.recipientnotfound",
+            "this is an automatically generated delivery status notification"
+        };
+
+        foreach (var indicator in ndrBodyIndicators)
+        {
+            if (body.Contains(indicator))
+            {
+                _logger.LogDebug("Email body contains NDR indicator: {Indicator}", indicator);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Cleans email body by removing signatures and HTML
     /// </summary>
     private string CleanEmailBody(string body)
@@ -719,6 +977,10 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
         //               You could be a victim of phishing, malware, or viruses. Ok"
         var externalEmailPatterns = new[]
         {
+            // Microsoft/Outlook safety tip: "You don't often get email from xxx@email.com. Learn why this is important"
+            @"You\s+don'?t\s+often\s+get\s+email\s+from\s+[\w.@+-]+\.?\s*Learn\s+why\s+this\s+is\s+important\.?",
+            @"You\s+don'?t\s+often\s+get\s+email\s+from\s+[\w.@+-]+",
+            @"Learn\s+why\s+this\s+is\s+important\.?",
             // Full external email warning (may span multiple lines after HTML conversion)
             @"External\s*Email\s*:?\s*This\s+email\s+has\s+not\s+been\s+originated\s+from\s+[\w.-]+\.com\.?[\s\S]*?(?:phishing|malware|viruses)[\s\S]*?(?:Ok\.?)?",
             // Catch just the "External Email:" header
@@ -741,6 +1003,10 @@ public class GraphEmailToTicketProcessor : IEmailToTicketProcessor
         // Direct string cleanup for any stubborn fragments that regex might miss
         var fragmentsToRemove = new[]
         {
+            // Microsoft Outlook safety tip
+            "You don't often get email from",
+            "Learn why this is important",
+            // Other fragments
             ", malware, or viruses.",
             ",malware,or viruses.",
             ", malware, or viruses",

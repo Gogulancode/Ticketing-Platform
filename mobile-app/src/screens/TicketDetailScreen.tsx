@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -27,7 +28,7 @@ interface Comment {
   authorId?: string;
   isInternal: boolean;
   createdAt: string;
-  attachments?: Array<{id: string, fileName: string, fileSize: number}>;
+  attachments?: Array<{id: string, fileName: string, fileSize?: number, sizeBytes?: number}>;
 }
 
 interface Category {
@@ -75,7 +76,8 @@ interface CustomField {
 interface Attachment {
   id: string;
   fileName: string;
-  fileSize: number;
+  fileSize?: number;
+  sizeBytes?: number; // API returns sizeBytes, mobile app used fileSize
   contentType: string;
 }
 
@@ -779,7 +781,16 @@ export default function TicketDetailScreen({ route, navigation }: any) {
               <View style={styles.attachmentsContent}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {ticket.attachments.map((att: Attachment) => (
-                    <View key={att.id} style={styles.attachmentCard}>
+                    <TouchableOpacity 
+                      key={att.id} 
+                      style={styles.attachmentCard}
+                      onPress={() => {
+                        const downloadUrl = `${serverUrl}/api/tickets-v2/attachments/${att.id}/download`;
+                        Linking.openURL(downloadUrl).catch(() => {
+                          Alert.alert('Error', 'Could not open attachment');
+                        });
+                      }}
+                    >
                       <View style={styles.attachmentPreview}>
                         {att.contentType?.startsWith('image/') ? (
                           <Ionicons name="image" size={28} color={Colors.gray400} />
@@ -790,10 +801,10 @@ export default function TicketDetailScreen({ route, navigation }: any) {
                       <View style={styles.attachmentInfo}>
                         <Text style={styles.attachmentName} numberOfLines={1}>{att.fileName}</Text>
                         <Text style={styles.attachmentSize}>
-                          {(att.fileSize / 1024).toFixed(0)} KB
+                          {((att.sizeBytes || att.fileSize || 0) / 1024).toFixed(0)} KB
                         </Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </ScrollView>
               </View>

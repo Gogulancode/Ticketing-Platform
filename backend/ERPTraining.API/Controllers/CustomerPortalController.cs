@@ -7,7 +7,7 @@ using ERPTraining.Core.Interfaces.CustomerPortal;
 namespace ERPTraining.API.Controllers
 {
     [ApiController]
-    [Route("api/portal")]
+    [Route("portal")]
     public class CustomerPortalController : ControllerBase
     {
         private readonly ICustomerPortalService _portalService;

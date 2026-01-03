@@ -1,0 +1,217 @@
+[
+  {
+    "lModuleId": "12",
+    "SectionId": "309334",
+    "SectionName": "Job Creation -TS"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309335",
+    "SectionName": "Request Received"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309353",
+    "SectionName": "Vehicle Placed"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309351",
+    "SectionName": "Dispatch - TS/FF"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309338",
+    "SectionName": "IN - Transit"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309347",
+    "SectionName": "Trip Detail"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309350",
+    "SectionName": "Job Tracking"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "12470",
+    "SectionName": "Transport Bill"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309378",
+    "SectionName": "Pending Bill"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309379",
+    "SectionName": "Bill Received"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309380",
+    "SectionName": "HOD Approval"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309381",
+    "SectionName": "Bill Rejected"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309382",
+    "SectionName": "Payment Report"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309383",
+    "SectionName": "Tracking"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309384",
+    "SectionName": "HOD Rejected"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309362",
+    "SectionName": "Eway Bill Request"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309363",
+    "SectionName": "Show Eway Bill"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309364",
+    "SectionName": "Update Part B"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309365",
+    "SectionName": "Cancel EWay Bill"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309366",
+    "SectionName": "Reject EWay Bill"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309367",
+    "SectionName": "Extend Validity"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309371",
+    "SectionName": "Multiple Vehicle"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309373",
+    "SectionName": "Gen By Other Party"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309375",
+    "SectionName": "Assigned For Transport"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309376",
+    "SectionName": "Gen By Date"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309377",
+    "SectionName": "Gen By State"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309372",
+    "SectionName": "Eway Tracking"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "12200",
+    "SectionName": "Report"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309322",
+    "SectionName": "Customer MIS"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309333",
+    "SectionName": "Vehicle Trip Daily"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309323",
+    "SectionName": "Transporter MIS"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309324",
+    "SectionName": "Vehicle Type MIS"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309325",
+    "SectionName": "Vehicle Trip MIS"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309327",
+    "SectionName": "Vardi Daily Expense"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309328",
+    "SectionName": "Weekly Trip"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309329",
+    "SectionName": "Vehicle Unloading Pending"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309330",
+    "SectionName": "Invoice Pending"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309331",
+    "SectionName": "TP Wise Vehicle Placed"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309332",
+    "SectionName": "Client Wise Summary"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309360",
+    "SectionName": "Upload JSON File"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309357",
+    "SectionName": "Transporter Master"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "12750",
+    "SectionName": "EWay Bill"
+  },
+  {
+    "lModuleId": "12",
+    "SectionId": "309389",
+    "SectionName": "DSR"
+  }
+]

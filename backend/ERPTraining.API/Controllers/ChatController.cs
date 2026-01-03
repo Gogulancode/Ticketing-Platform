@@ -7,7 +7,7 @@ using ERPTraining.Core.Entities.Chat;
 namespace ERPTraining.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 [Authorize]
 public class ChatController : ControllerBase
 {

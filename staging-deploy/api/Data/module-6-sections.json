@@ -1,0 +1,47 @@
+[
+  {
+    "lModuleId": "6",
+    "SectionId": "5000",
+    "SectionName": "Master"
+  },
+  {
+    "lModuleId": "6",
+    "SectionId": "5001",
+    "SectionName": "Quotation Charge Master"
+  },
+  {
+    "lModuleId": "6",
+    "SectionId": "5002",
+    "SectionName": "Quotation Unit Master"
+  },
+  {
+    "lModuleId": "6",
+    "SectionId": "5003",
+    "SectionName": "Quotation Mode Master"
+  },
+  {
+    "lModuleId": "6",
+    "SectionId": "5004",
+    "SectionName": "Terms & Condition Master"
+  },
+  {
+    "lModuleId": "6",
+    "SectionId": "5005",
+    "SectionName": "Quotation Templates"
+  },
+  {
+    "lModuleId": "6",
+    "SectionId": "5050",
+    "SectionName": "Quotation"
+  },
+  {
+    "lModuleId": "6",
+    "SectionId": "5051",
+    "SectionName": "New Quotation"
+  },
+  {
+    "lModuleId": "6",
+    "SectionId": "5052",
+    "SectionName": "Draft Quotation"
+  }
+]

@@ -10,7 +10,7 @@ using System.Collections.Generic;
 namespace ERPTraining.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [Authorize]
     public class ReportsController : ControllerBase
     {

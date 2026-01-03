@@ -14,11 +14,15 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.nivosupport",
+      "bundleIdentifier": "com.nivosupport.app",
+      "buildNumber": "1",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
-        ]
+        ],
+        "NSCameraUsageDescription": "This app uses the camera to capture photos for ticket attachments.",
+        "NSPhotoLibraryUsageDescription": "This app accesses your photos to attach images to support tickets.",
+        "NSPhotoLibraryAddUsageDescription": "This app saves downloaded attachments to your photo library."
       }
     },
     "android": {
@@ -26,11 +30,15 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1337ec"
       },
-      "package": "com.yourcompany.nivosupport",
+      "package": "com.nivosupport.app",
+      "versionCode": 1,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.POST_NOTIFICATIONS",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -38,7 +46,14 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos for ticket attachments.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera for ticket attachments."
+        }
+      ]
     ],
     "extra": {
       "environment": "development",

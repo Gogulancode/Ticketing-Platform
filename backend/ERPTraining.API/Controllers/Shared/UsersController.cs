@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Identity;
 namespace ERPTraining.API.Controllers;
 
 [ApiController]
-[Route("api/users")]
+[Route("users")]
 [Authorize]
 public class UsersController : ControllerBase
 {

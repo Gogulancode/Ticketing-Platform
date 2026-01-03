@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Merge and Email Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.secondary {
+            background-color: #6c757d;
+        }
+        button.secondary:hover {
+            background-color: #545b62;
+        }
+        button.success {
+            background-color: #28a745;
+        }
+        button.success:hover {
+            background-color: #1e7e34;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .result.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .ticket-list {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .ticket-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .ticket-item:hover {
+            background-color: #f8f9fa;
+        }
+        .ticket-item.selected {
+            background-color: #e3f2fd;
+            border-left: 4px solid #007bff;
+        }
+        .merge-info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎫 Ticket Merge and Email Functionality Test</h1>
+        <p>Test the enhanced ticket merge functionality and email reply/forward features.</p>
+    </div>
+
+    <div class="grid">
+        <!-- Ticket Details with Merge Info -->
+        <div class="container">
+            <h2>📋 Ticket Details with Merge Info</h2>
+            <div class="test-section">
+                <div class="form-group">
+                    <label for="ticketId">Ticket ID:</label>
+                    <input type="text" id="ticketId" placeholder="Enter ticket GUID">
+                </div>
+                <button onclick="getTicketDetails()">Get Ticket Details</button>
+                <div id="ticketResult" class="result" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Merge Tickets -->
+        <div class="container">
+            <h2>🔗 Merge Tickets</h2>
+            <div class="test-section">
+                <div class="form-group">
+                    <label for="primaryTicketId">Primary Ticket ID:</label>
+                    <input type="text" id="primaryTicketId" placeholder="Primary ticket GUID">
+                </div>
+                <div class="form-group">
+                    <label for="mergeTicketIds">Tickets to Merge (comma-separated GUIDs):</label>
+                    <textarea id="mergeTicketIds" placeholder="ticket-guid-1, ticket-guid-2, ..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="mergeReason">Merge Reason:</label>
+                    <input type="text" id="mergeReason" placeholder="Reason for merging">
+                </div>
+                <button onclick="mergeTickets()">Merge Tickets</button>
+                <div id="mergeResult" class="result" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Search Tickets for Merge -->
+        <div class="container">
+            <h2>🔍 Search Tickets for Merge</h2>
+            <div class="test-section">
+                <div class="form-group">
+                    <label for="searchQuery">Search Query:</label>
+                    <input type="text" id="searchQuery" placeholder="Search by title, description, or ticket number">
+                </div>
+                <button onclick="searchTickets()">Search Tickets</button>
+                <div id="searchResult" class="result" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Email Reply -->
+        <div class="container">
+            <h2>📧 Reply to Email</h2>
+            <div class="test-section">
+                <div class="form-group">
+                    <label for="replyTicketId">Ticket ID for Reply:</label>
+                    <input type="text" id="replyTicketId" placeholder="Ticket GUID">
+                </div>
+                <div class="form-group">
+                    <label for="replyMessage">Reply Message:</label>
+                    <textarea id="replyMessage" placeholder="Your reply message..."></textarea>
+                </div>
+                <button onclick="replyToEmail()">Send Reply</button>
+                <div id="replyResult" class="result" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Email Forward -->
+        <div class="container">
+            <h2>📤 Forward Email</h2>
+            <div class="test-section">
+                <div class="form-group">
+                    <label for="forwardTicketId">Ticket ID for Forward:</label>
+                    <input type="text" id="forwardTicketId" placeholder="Ticket GUID">
+                </div>
+                <div class="form-group">
+                    <label for="recipientEmail">Recipient Email:</label>
+                    <input type="email" id="recipientEmail" placeholder="recipient@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="recipientName">Recipient Name (optional):</label>
+                    <input type="text" id="recipientName" placeholder="Recipient Name">
+                </div>
+                <div class="form-group">
+                    <label for="forwardMessage">Forward Message:</label>
+                    <textarea id="forwardMessage" placeholder="Additional message for the forward..."></textarea>
+                </div>
+                <button onclick="forwardEmail()">Forward Email</button>
+                <div id="forwardResult" class="result" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Process Incoming Email -->
+        <div class="container">
+            <h2>📨 Process Incoming Email</h2>
+            <div class="test-section">
+                <div class="form-group">
+                    <label for="emailFrom">From Email:</label>
+                    <input type="email" id="emailFrom" placeholder="sender@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="emailSubject">Subject (include [Ticket #123] to link to existing ticket):</label>
+                    <input type="text" id="emailSubject" placeholder="Re: [Ticket #123] Your issue">
+                </div>
+                <div class="form-group">
+                    <label for="emailBody">Email Body:</label>
+                    <textarea id="emailBody" placeholder="Email content..."></textarea>
+                </div>
+                <button onclick="processEmail()">Process Email</button>
+                <div id="emailResult" class="result" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5015/api/tickets-v2';
+
+        function showResult(elementId, data, isError = false) {
+            const resultElement = document.getElementById(elementId);
+            resultElement.style.display = 'block';
+            resultElement.className = `result ${isError ? 'error' : 'success'}`;
+            resultElement.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function makeRequest(url, method = 'GET', body = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                };
+
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+
+                const response = await fetch(url, options);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || data.message || 'Request failed');
+                }
+
+                return data;
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        async function getTicketDetails() {
+            const ticketId = document.getElementById('ticketId').value.trim();
+            
+            if (!ticketId) {
+                showResult('ticketResult', { error: 'Please enter a ticket ID' }, true);
+                return;
+            }
+
+            try {
+                const data = await makeRequest(`${API_BASE}/${ticketId}`);
+                showResult('ticketResult', data);
+            } catch (error) {
+                showResult('ticketResult', { error: error.message }, true);
+            }
+        }
+
+        async function mergeTickets() {
+            const primaryTicketId = document.getElementById('primaryTicketId').value.trim();
+            const mergeTicketIdsText = document.getElementById('mergeTicketIds').value.trim();
+            const reason = document.getElementById('mergeReason').value.trim();
+
+            if (!primaryTicketId || !mergeTicketIdsText || !reason) {
+                showResult('mergeResult', { error: 'Please fill in all fields' }, true);
+                return;
+            }
+
+            const ticketIds = mergeTicketIdsText.split(',').map(id => id.trim()).filter(id => id);
+            if (!ticketIds.includes(primaryTicketId)) {
+                ticketIds.push(primaryTicketId);
+            }
+
+            try {
+                const data = await makeRequest(`${API_BASE}/${primaryTicketId}/merge`, 'POST', {
+                    ticketIds,
+                    reason
+                });
+                showResult('mergeResult', data);
+            } catch (error) {
+                showResult('mergeResult', { error: error.message }, true);
+            }
+        }
+
+        async function searchTickets() {
+            const query = document.getElementById('searchQuery').value.trim();
+            
+            if (!query) {
+                showResult('searchResult', { error: 'Please enter a search query' }, true);
+                return;
+            }
+
+            try {
+                const data = await makeRequest(`${API_BASE}/search?query=${encodeURIComponent(query)}`);
+                showResult('searchResult', data);
+            } catch (error) {
+                showResult('searchResult', { error: error.message }, true);
+            }
+        }
+
+        async function replyToEmail() {
+            const ticketId = document.getElementById('replyTicketId').value.trim();
+            const message = document.getElementById('replyMessage').value.trim();
+
+            if (!ticketId || !message) {
+                showResult('replyResult', { error: 'Please fill in all fields' }, true);
+                return;
+            }
+
+            try {
+                const data = await makeRequest(`${API_BASE}/${ticketId}/reply-email`, 'POST', {
+                    replyMessage: message
+                });
+                showResult('replyResult', data);
+            } catch (error) {
+                showResult('replyResult', { error: error.message }, true);
+            }
+        }
+
+        async function forwardEmail() {
+            const ticketId = document.getElementById('forwardTicketId').value.trim();
+            const email = document.getElementById('recipientEmail').value.trim();
+            const name = document.getElementById('recipientName').value.trim();
+            const message = document.getElementById('forwardMessage').value.trim();
+
+            if (!ticketId || !email || !message) {
+                showResult('forwardResult', { error: 'Please fill in required fields' }, true);
+                return;
+            }
+
+            try {
+                const data = await makeRequest(`${API_BASE}/${ticketId}/forward-email`, 'POST', {
+                    recipientEmail: email,
+                    recipientName: name || null,
+                    forwardMessage: message
+                });
+                showResult('forwardResult', data);
+            } catch (error) {
+                showResult('forwardResult', { error: error.message }, true);
+            }
+        }
+
+        async function processEmail() {
+            const fromEmail = document.getElementById('emailFrom').value.trim();
+            const subject = document.getElementById('emailSubject').value.trim();
+            const body = document.getElementById('emailBody').value.trim();
+
+            if (!fromEmail || !subject || !body) {
+                showResult('emailResult', { error: 'Please fill in all fields' }, true);
+                return;
+            }
+
+            try {
+                const data = await makeRequest(`${API_BASE}/process-email`, 'POST', {
+                    fromEmail,
+                    subject,
+                    body
+                });
+                showResult('emailResult', data);
+            } catch (error) {
+                showResult('emailResult', { error: error.message }, true);
+            }
+        }
+
+        // Auto-populate with sample data for testing
+        document.addEventListener('DOMContentLoaded', function() {
+            // Real ticket IDs from database
+            document.getElementById('ticketId').value = '66901b97-d4bc-406d-9e29-1ac0c8198669';
+            document.getElementById('primaryTicketId').value = '66901b97-d4bc-406d-9e29-1ac0c8198669';
+            document.getElementById('mergeTicketIds').value = '101b2781-27d7-483a-90ee-68cf4c4f7ba2, 3ba2bc1a-192b-4a55-af4d-07eeb91d83e6';
+            document.getElementById('mergeReason').value = 'Testing merge functionality - duplicate tickets';
+            
+            // Set the same IDs for email functionality
+            document.getElementById('replyTicketId').value = '66901b97-d4bc-406d-9e29-1ac0c8198669';
+            document.getElementById('forwardTicketId').value = '66901b97-d4bc-406d-9e29-1ac0c8198669';
+            
+            // Sample email data
+            document.getElementById('emailFrom').value = 'test@example.com';
+            document.getElementById('emailSubject').value = 'Re: [Ticket #10] Test Ticket feature';
+            document.getElementById('emailBody').value = 'This is a test email reply that should be added as a comment to ticket #10.';
+            
+            document.getElementById('replyMessage').value = 'Thank you for your inquiry. We will look into this matter and get back to you soon.';
+            document.getElementById('recipientEmail').value = 'colleague@example.com';
+            document.getElementById('forwardMessage').value = 'Please review this ticket and provide assistance if needed.';
+        });
+    </script>
+</body>
+</html>

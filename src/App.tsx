@@ -47,6 +47,9 @@ import {
 // Create a client
 const queryClient = new QueryClient();
 
+// Get the base path from Vite (set via VITE_BASE_PATH env variable)
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '';
+
 // Check if user is authenticated
 const isAuthenticated = () => {
   // Check for either token or currentUser (for backwards compatibility)
@@ -66,7 +69,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider>
-          <Router>
+          <Router basename={basename}>
             <Toaster 
               position="top-right"
               toastOptions={{

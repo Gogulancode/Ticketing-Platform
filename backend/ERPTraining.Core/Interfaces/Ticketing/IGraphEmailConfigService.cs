@@ -12,6 +12,7 @@ public interface IGraphEmailConfigService
     Task<GraphEmailConfigDto> CreateAsync(CreateGraphEmailConfigDto dto);
     Task<GraphEmailConfigDto> UpdateAsync(int id, UpdateGraphEmailConfigDto dto);
     Task<bool> DeleteAsync(int id);
+    Task<GraphEmailConfigDto?> ReactivateAsync(int id);
     Task<bool> TestConnectionAsync(int id);
     Task<bool> ExistsAsync(int id);
 }

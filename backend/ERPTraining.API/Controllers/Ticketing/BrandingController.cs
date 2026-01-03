@@ -12,7 +12,7 @@ using SixLabors.ImageSharp.Processing;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/branding")]
+[Route("branding")]
 public class BrandingController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

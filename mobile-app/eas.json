@@ -10,6 +10,21 @@
         "ENVIRONMENT": "development"
       }
     },
+    "staging": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "ENVIRONMENT": "staging"
+      },
+      "channel": "staging"
+    },
     "preview": {
       "distribution": "internal",
       "android": {
@@ -28,7 +43,8 @@
       },
       "env": {
         "ENVIRONMENT": "production"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {

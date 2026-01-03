@@ -1,0 +1,257 @@
+[
+  {
+    "sectionId": 1,
+    "sectionName": "User Management",
+    "moduleId": 1
+  },
+  {
+    "sectionId": 2,
+    "sectionName": "Role Assignment",
+    "moduleId": 1
+  },
+  {
+    "sectionId": 3,
+    "sectionName": "Access Control",
+    "moduleId": 1
+  },
+  {
+    "sectionId": 4,
+    "sectionName": "Financial Reports",
+    "moduleId": 2
+  },
+  {
+    "sectionId": 5,
+    "sectionName": "Budget Management",
+    "moduleId": 2
+  },
+  {
+    "sectionId": 6,
+    "sectionName": "Invoice Processing",
+    "moduleId": 2
+  },
+  {
+    "sectionId": 7,
+    "sectionName": "Employee Records",
+    "moduleId": 3
+  },
+  {
+    "sectionId": 8,
+    "sectionName": "Payroll Management",
+    "moduleId": 3
+  },
+  {
+    "sectionId": 9,
+    "sectionName": "Performance Reviews",
+    "moduleId": 3
+  },
+  {
+    "sectionId": 10,
+    "sectionName": "Product Catalog",
+    "moduleId": 4
+  },
+  {
+    "sectionId": 11,
+    "sectionName": "Inventory Tracking",
+    "moduleId": 4
+  },
+  {
+    "sectionId": 12,
+    "sectionName": "Stock Alerts",
+    "moduleId": 4
+  },
+  {
+    "sectionId": 13,
+    "sectionName": "Customer Database",
+    "moduleId": 5
+  },
+  {
+    "sectionId": 14,
+    "sectionName": "Lead Management",
+    "moduleId": 5
+  },
+  {
+    "sectionId": 15,
+    "sectionName": "Sales Pipeline",
+    "moduleId": 5
+  },
+  {
+    "sectionId": 16,
+    "sectionName": "Order Processing",
+    "moduleId": 6
+  },
+  {
+    "sectionId": 17,
+    "sectionName": "Payment Processing",
+    "moduleId": 6
+  },
+  {
+    "sectionId": 18,
+    "sectionName": "Order History",
+    "moduleId": 6
+  },
+  {
+    "sectionId": 19,
+    "sectionName": "Purchase Orders",
+    "moduleId": 7
+  },
+  {
+    "sectionId": 20,
+    "sectionName": "Vendor Management",
+    "moduleId": 7
+  },
+  {
+    "sectionId": 21,
+    "sectionName": "Approval Workflow",
+    "moduleId": 7
+  },
+  {
+    "sectionId": 22,
+    "sectionName": "Project Planning",
+    "moduleId": 8
+  },
+  {
+    "sectionId": 23,
+    "sectionName": "Task Assignment",
+    "moduleId": 8
+  },
+  {
+    "sectionId": 24,
+    "sectionName": "Progress Tracking",
+    "moduleId": 8
+  },
+  {
+    "sectionId": 25,
+    "sectionName": "Help Desk",
+    "moduleId": 9
+  },
+  {
+    "sectionId": 26,
+    "sectionName": "Ticket Management",
+    "moduleId": 9
+  },
+  {
+    "sectionId": 27,
+    "sectionName": "Knowledge Base",
+    "moduleId": 9
+  },
+  {
+    "sectionId": 28,
+    "sectionName": "Asset Registry",
+    "moduleId": 10
+  },
+  {
+    "sectionId": 29,
+    "sectionName": "Maintenance Scheduling",
+    "moduleId": 10
+  },
+  {
+    "sectionId": 30,
+    "sectionName": "Asset Tracking",
+    "moduleId": 10
+  },
+  {
+    "sectionId": 31,
+    "sectionName": "Quality Standards",
+    "moduleId": 11
+  },
+  {
+    "sectionId": 32,
+    "sectionName": "Quality Testing",
+    "moduleId": 11
+  },
+  {
+    "sectionId": 33,
+    "sectionName": "Quality Reports",
+    "moduleId": 11
+  },
+  {
+    "sectionId": 34,
+    "sectionName": "Training Programs",
+    "moduleId": 12
+  },
+  {
+    "sectionId": 35,
+    "sectionName": "Skill Assessment",
+    "moduleId": 12
+  },
+  {
+    "sectionId": 36,
+    "sectionName": "Certification Tracking",
+    "moduleId": 12
+  },
+  {
+    "sectionId": 37,
+    "sectionName": "Safety Protocols",
+    "moduleId": 13
+  },
+  {
+    "sectionId": 38,
+    "sectionName": "Incident Reporting",
+    "moduleId": 13
+  },
+  {
+    "sectionId": 39,
+    "sectionName": "Risk Assessment",
+    "moduleId": 13
+  },
+  {
+    "sectionId": 40,
+    "sectionName": "Shipping Management",
+    "moduleId": 14
+  },
+  {
+    "sectionId": 41,
+    "sectionName": "Route Optimization",
+    "moduleId": 14
+  },
+  {
+    "sectionId": 42,
+    "sectionName": "Delivery Tracking",
+    "moduleId": 14
+  },
+  {
+    "sectionId": 43,
+    "sectionName": "Contract Management",
+    "moduleId": 15
+  },
+  {
+    "sectionId": 44,
+    "sectionName": "Legal Documentation",
+    "moduleId": 15
+  },
+  {
+    "sectionId": 45,
+    "sectionName": "Compliance Tracking",
+    "moduleId": 15
+  },
+  {
+    "sectionId": 46,
+    "sectionName": "Business Reports",
+    "moduleId": 16
+  },
+  {
+    "sectionId": 47,
+    "sectionName": "Analytics Dashboard",
+    "moduleId": 16
+  },
+  {
+    "sectionId": 48,
+    "sectionName": "Performance Metrics",
+    "moduleId": 16
+  },
+  {
+    "sectionId": 49,
+    "sectionName": "System Settings",
+    "moduleId": 17
+  },
+  {
+    "sectionId": 50,
+    "sectionName": "User Preferences",
+    "moduleId": 17
+  },
+  {
+    "sectionId": 51,
+    "sectionName": "Backup & Recovery",
+    "moduleId": 17
+  }
+]

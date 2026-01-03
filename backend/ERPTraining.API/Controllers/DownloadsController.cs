@@ -4,7 +4,7 @@ using System.IO.Compression;
 
 namespace ERPTraining.API.Controllers
 {
-    [Route("api/downloads")]
+    [Route("downloads")]
     [ApiController]
     public class DownloadsController : ControllerBase
     {

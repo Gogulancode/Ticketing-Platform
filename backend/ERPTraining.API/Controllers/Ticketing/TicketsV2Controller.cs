@@ -14,7 +14,7 @@ using ERPTraining.Infrastructure.Services.Ticketing;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/tickets-v2")]
+[Route("tickets-v2")]
 [Authorize] // Enterprise security: Require authentication for all endpoints
 [EnableRateLimiting("api")]  // Enterprise: API rate limiting
 public class TicketsV2Controller : ControllerBase
@@ -1519,21 +1519,20 @@ public class TicketsV2Controller : ControllerBase
                 var mergedStatusIdObj = await statusCommand.ExecuteScalarAsync();
                 var mergedStatusId = mergedStatusIdObj != null ? (int)mergedStatusIdObj : 98; // Use found status or fallback to 98
 
-                // Create merge record in MergedTickets table with user info
-                var mergeId = Guid.NewGuid();
+                // Create merge record in MergedTickets table with user info (Id is auto-increment int)
                 var createMergeSql = @"
-                    INSERT INTO MergedTickets (Id, PrimaryTicketId, MergedTicketIds, MergeReason, MergedAt, MergedByUserId)
-                    VALUES (@MergeId, @PrimaryTicketId, @MergedTicketIds, @MergeReason, @MergedAt, @MergedByUserId)";
+                    INSERT INTO MergedTickets (PrimaryTicketId, MergedTicketIds, MergeReason, MergedAt, MergedByUserId)
+                    OUTPUT INSERTED.Id
+                    VALUES (@PrimaryTicketId, @MergedTicketIds, @MergeReason, @MergedAt, @MergedByUserId)";
                 
                 using var mergeCommand = new SqlCommand(createMergeSql, connection, transaction);
-                mergeCommand.Parameters.AddWithValue("@MergeId", mergeId);
                 mergeCommand.Parameters.AddWithValue("@PrimaryTicketId", primaryTicketId);
                 mergeCommand.Parameters.AddWithValue("@MergedTicketIds", string.Join(",", mergeTicketIds));
-                mergeCommand.Parameters.AddWithValue("@MergeReason", request.Reason);
+                mergeCommand.Parameters.AddWithValue("@MergeReason", request.Reason ?? "Merged by user");
                 mergeCommand.Parameters.AddWithValue("@MergedAt", DateTime.UtcNow);
                 mergeCommand.Parameters.AddWithValue("@MergedByUserId", mergeUserId);
                 
-                await mergeCommand.ExecuteNonQueryAsync();
+                var mergeId = (int)(await mergeCommand.ExecuteScalarAsync() ?? 0);
 
                 // Move all comments from merged tickets to primary ticket
                 foreach (var ticketId in mergeTicketIds)

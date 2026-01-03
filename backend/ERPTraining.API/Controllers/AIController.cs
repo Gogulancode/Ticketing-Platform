@@ -11,7 +11,7 @@ namespace ERPTraining.API.Controllers;
 /// AI-powered ticket assistance features
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 [Authorize]
 public class AIController : ControllerBase
 {

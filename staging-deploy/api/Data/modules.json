@@ -1,0 +1,431 @@
+[
+  {
+    "id": 1,
+    "title": "Import Management",
+    "description": "Learn the fundamentals of import management, documentation, and compliance procedures.",
+    "icon": "Package",
+    "category": "Trade Operations",
+    "color": "blue",
+    "estimatedTime": "2-3 hours",
+    "difficulty": "Beginner",
+    "prerequisites": [],
+    "learningObjectives": [
+      "Understand import documentation requirements",
+      "Learn compliance procedures",
+      "Master import cost calculations"
+    ],
+    "isActive": true,
+    "order": 1,
+    "erpModuleId": "IMP001",
+    "sections": [
+      {
+        "title": "Import Fundamentals",
+        "description": "Basic concepts and terminology",
+        "order": 1,
+        "isActive": true,
+        "erpSectionId": "IMP001-SEC01",
+        "lessons": [
+          {
+            "title": "Introduction to Import Management",
+            "description": "Overview of import processes and key stakeholders",
+            "type": "Video",
+            "duration": "15 min",
+            "order": 1,
+            "isActive": true,
+            "videoUrl": "https://www.youtube.com/embed/example",
+            "hasAssessment": false
+          },
+          {
+            "title": "Import Terminology",
+            "description": "Key terms and definitions in import management",
+            "type": "Document",
+            "duration": "10 min",
+            "order": 2,
+            "isActive": true,
+            "documentContent": "<h3>Import Terminology</h3><p>Key terms and definitions...</p>",
+            "hasAssessment": false
+          }
+        ]
+      },
+      {
+        "title": "Documentation & Compliance",
+        "description": "Required documents and regulatory compliance",
+        "order": 2,
+        "isActive": true,
+        "erpSectionId": "IMP001-SEC02",
+        "lessons": [
+          {
+            "title": "Import Documentation Requirements",
+            "description": "Essential documents for import operations",
+            "type": "Document",
+            "duration": "25 min",
+            "order": 1,
+            "isActive": true,
+            "documentContent": "<h3>Required Documents</h3><p>Essential import documents...</p>",
+            "hasAssessment": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Export Operations",
+    "description": "Master export procedures, documentation, and international shipping requirements.",
+    "icon": "Truck",
+    "category": "Trade Operations",
+    "color": "green",
+    "estimatedTime": "2-3 hours",
+    "difficulty": "Intermediate",
+    "prerequisites": ["1"],
+    "learningObjectives": [
+      "Understand export documentation",
+      "Learn shipping procedures",
+      "Master export regulations"
+    ],
+    "isActive": true,
+    "order": 2,
+    "erpModuleId": "EXP002",
+    "sections": [
+      {
+        "title": "Export Basics",
+        "description": "Fundamental export concepts",
+        "order": 1,
+        "isActive": true,
+        "erpSectionId": "EXP002-SEC01",
+        "lessons": [
+          {
+            "title": "Export Fundamentals",
+            "description": "Basic export procedures and requirements",
+            "type": "Video",
+            "duration": "20 min",
+            "order": 1,
+            "isActive": true,
+            "videoUrl": "https://www.youtube.com/embed/export-example",
+            "hasAssessment": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Freight Management",
+    "description": "Learn freight booking, tracking, and cost optimization strategies.",
+    "icon": "Ship",
+    "category": "Logistics",
+    "color": "purple",
+    "estimatedTime": "1-2 hours",
+    "difficulty": "Intermediate",
+    "prerequisites": ["1", "2"],
+    "learningObjectives": [
+      "Master freight booking procedures",
+      "Understand shipping modes",
+      "Learn cost optimization"
+    ],
+    "isActive": true,
+    "order": 3,
+    "erpModuleId": "FRT003",
+    "sections": [
+      {
+        "title": "Freight Booking",
+        "description": "Booking and managing freight shipments",
+        "order": 1,
+        "isActive": true,
+        "erpSectionId": "FRT003-SEC01",
+        "lessons": [
+          {
+            "title": "Freight Booking Procedures",
+            "description": "Step-by-step freight booking process",
+            "type": "Video",
+            "duration": "25 min",
+            "order": 1,
+            "isActive": true,
+            "videoUrl": "https://www.youtube.com/embed/freight-booking",
+            "hasAssessment": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "title": "Inventory Management",
+    "description": "Optimize inventory levels, tracking, and warehouse management.",
+    "icon": "Archive",
+    "category": "Operations",
+    "color": "orange",
+    "estimatedTime": "1-2 hours",
+    "difficulty": "Beginner",
+    "prerequisites": [],
+    "learningObjectives": [
+      "Learn inventory optimization",
+      "Master stock tracking",
+      "Understand warehouse management"
+    ],
+    "isActive": true,
+    "order": 4,
+    "erpModuleId": "INV004",
+    "sections": [
+      {
+        "title": "Stock Management",
+        "description": "Managing inventory and stock levels",
+        "order": 1,
+        "isActive": true,
+        "erpSectionId": "INV004-SEC01",
+        "lessons": [
+          {
+            "title": "Inventory Basics",
+            "description": "Fundamental inventory management principles",
+            "type": "Video",
+            "duration": "20 min",
+            "order": 1,
+            "isActive": true,
+            "videoUrl": "https://www.youtube.com/embed/inventory-basics",
+            "hasAssessment": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "title": "Reporting & Analytics",
+    "description": "Generate insights through comprehensive reporting and data analysis.",
+    "icon": "BarChart3",
+    "category": "Analytics",
+    "color": "red",
+    "estimatedTime": "1-2 hours",
+    "difficulty": "Advanced",
+    "prerequisites": ["1", "2", "3", "4"],
+    "learningObjectives": [
+      "Master report generation",
+      "Learn data analysis",
+      "Understand KPI tracking"
+    ],
+    "isActive": true,
+    "order": 5,
+    "erpModuleId": "RPT005",
+    "sections": [
+      {
+        "title": "Report Generation",
+        "description": "Creating and customizing reports",
+        "order": 1,
+        "isActive": true,
+        "erpSectionId": "RPT005-SEC01",
+        "lessons": [
+          {
+            "title": "Basic Reporting",
+            "description": "Introduction to report generation",
+            "type": "Video",
+            "duration": "30 min",
+            "order": 1,
+            "isActive": true,
+            "videoUrl": "https://www.youtube.com/embed/basic-reporting",
+            "hasAssessment": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "title": "Customer Management",
+    "description": "Build and maintain strong customer relationships and communication.",
+    "icon": "Users",
+    "category": "CRM",
+    "color": "indigo",
+    "estimatedTime": "1 hour",
+    "difficulty": "Beginner",
+    "prerequisites": [],
+    "learningObjectives": [
+      "Learn customer communication",
+      "Master relationship building",
+      "Understand service excellence"
+    ],
+    "isActive": true,
+    "order": 6,
+    "erpModuleId": "CRM006",
+    "sections": [
+      {
+        "title": "Customer Relations",
+        "description": "Building strong customer relationships",
+        "order": 1,
+        "isActive": true,
+        "erpSectionId": "CRM006-SEC01",
+        "lessons": [
+          {
+            "title": "Customer Communication",
+            "description": "Effective customer communication strategies",
+            "type": "Video",
+            "duration": "25 min",
+            "order": 1,
+            "isActive": true,
+            "videoUrl": "https://www.youtube.com/embed/customer-communication",
+            "hasAssessment": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "title": "Financial Management",
+    "description": "Master financial processes, budgeting, and cost management.",
+    "icon": "DollarSign",
+    "category": "Finance",
+    "color": "emerald",
+    "estimatedTime": "2-3 hours",
+    "difficulty": "Advanced",
+    "prerequisites": ["1", "4"],
+    "learningObjectives": [
+      "Understand financial processes",
+      "Learn budgeting techniques",
+      "Master cost management"
+    ],
+    "isActive": true,
+    "order": 7,
+    "erpModuleId": "FIN007",
+    "sections": [
+      {
+        "title": "Financial Fundamentals",
+        "description": "Basic financial management concepts",
+        "order": 1,
+        "isActive": true,
+        "erpSectionId": "FIN007-SEC01",
+        "lessons": [
+          {
+            "title": "Financial Basics",
+            "description": "Introduction to financial management",
+            "type": "Video",
+            "duration": "30 min",
+            "order": 1,
+            "isActive": true,
+            "videoUrl": "https://www.youtube.com/embed/financial-basics",
+            "hasAssessment": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "title": "Quality Management",
+    "description": "Implement quality control processes and continuous improvement.",
+    "icon": "Award",
+    "category": "Quality",
+    "color": "yellow",
+    "estimatedTime": "1-2 hours",
+    "difficulty": "Intermediate",
+    "prerequisites": ["4"],
+    "learningObjectives": [
+      "Learn quality control processes",
+      "Understand continuous improvement",
+      "Master quality metrics"
+    ],
+    "isActive": true,
+    "order": 8,
+    "erpModuleId": "QMS008",
+    "sections": [
+      {
+        "title": "Quality Control",
+        "description": "Quality control processes and procedures",
+        "order": 1,
+        "isActive": true,
+        "erpSectionId": "QMS008-SEC01",
+        "lessons": [
+          {
+            "title": "Quality Fundamentals",
+            "description": "Basic quality management principles",
+            "type": "Video",
+            "duration": "25 min",
+            "order": 1,
+            "isActive": true,
+            "videoUrl": "https://www.youtube.com/embed/quality-fundamentals",
+            "hasAssessment": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "title": "Human Resources",
+    "description": "Manage employee lifecycle, payroll, and performance management.",
+    "icon": "UserCheck",
+    "category": "HR",
+    "color": "pink",
+    "estimatedTime": "1-2 hours",
+    "difficulty": "Intermediate",
+    "prerequisites": [],
+    "learningObjectives": [
+      "Learn employee management",
+      "Understand payroll processes",
+      "Master performance tracking"
+    ],
+    "isActive": true,
+    "order": 9,
+    "erpModuleId": "HRM009",
+    "sections": [
+      {
+        "title": "Employee Management",
+        "description": "Managing employee lifecycle and data",
+        "order": 1,
+        "isActive": true,
+        "erpSectionId": "HRM009-SEC01",
+        "lessons": [
+          {
+            "title": "HR Fundamentals",
+            "description": "Basic human resources management",
+            "type": "Video",
+            "duration": "30 min",
+            "order": 1,
+            "isActive": true,
+            "videoUrl": "https://www.youtube.com/embed/hr-fundamentals",
+            "hasAssessment": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "title": "Production Planning",
+    "description": "Optimize production schedules, resource allocation, and manufacturing processes.",
+    "icon": "Cog",
+    "category": "Manufacturing",
+    "color": "gray",
+    "estimatedTime": "2-3 hours",
+    "difficulty": "Advanced",
+    "prerequisites": ["4", "7"],
+    "learningObjectives": [
+      "Master production scheduling",
+      "Learn resource optimization",
+      "Understand manufacturing workflows"
+    ],
+    "isActive": true,
+    "order": 10,
+    "erpModuleId": "PPL010",
+    "sections": [
+      {
+        "title": "Production Basics",
+        "description": "Fundamental production planning concepts",
+        "order": 1,
+        "isActive": true,
+        "erpSectionId": "PPL010-SEC01",
+        "lessons": [
+          {
+            "title": "Production Fundamentals",
+            "description": "Introduction to production planning",
+            "type": "Video",
+            "duration": "35 min",
+            "order": 1,
+            "isActive": true,
+            "videoUrl": "https://www.youtube.com/embed/production-fundamentals",
+            "hasAssessment": false
+          }
+        ]
+      }
+    ]
+  }
+]

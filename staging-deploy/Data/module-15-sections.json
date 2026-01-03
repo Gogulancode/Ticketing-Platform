@@ -1,0 +1,127 @@
+[
+  {
+    "lModuleId": "15",
+    "SectionId": "1500",
+    "SectionName": "Import"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1501",
+    "SectionName": "Overall Performance"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1502",
+    "SectionName": "User Performance"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1503",
+    "SectionName": "Checklist"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1504",
+    "SectionName": "DO Collection"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1505",
+    "SectionName": "Noting"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1506",
+    "SectionName": "KAM/Clearance"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1510",
+    "SectionName": "Billing"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1511",
+    "SectionName": "Overall Billing"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1512",
+    "SectionName": "Scrutiny"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1513",
+    "SectionName": "Draft"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1514",
+    "SectionName": "Draft Check"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1515",
+    "SectionName": "Final Type"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1516",
+    "SectionName": "Final Check"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1517",
+    "SectionName": "Bill Dispatch"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1518",
+    "SectionName": "Bill Rejection"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1530",
+    "SectionName": "Freight Dept"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1531",
+    "SectionName": "Sales Performance"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1532",
+    "SectionName": "Operation Performance"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1540",
+    "SectionName": "Transport Dept"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1541",
+    "SectionName": "Vehicle Performance"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1542",
+    "SectionName": "Driver Report"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1519",
+    "SectionName": "Bill Dispatch"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1520",
+    "SectionName": "Bill Rejection"
+  },
+  {
+    "lModuleId": "15",
+    "SectionId": "1521",
+    "SectionName": "Bill Incentive"
+  }
+]

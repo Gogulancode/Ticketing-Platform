@@ -505,13 +505,11 @@ public class MicrosoftGraphEmailService : IEmailService
             
             _logger.LogInformation("Fetching attachments for email {EmailId}", emailId);
 
+            // Don't use $select because contentId and isInline are only on FileAttachment subtype
             var attachments = await _graphServiceClient!.Users[_serviceAccountEmail]
                 .Messages[emailId]
                 .Attachments
-                .GetAsync((requestConfiguration) =>
-                {
-                    requestConfiguration.QueryParameters.Select = new string[] { "id", "name", "contentType", "size" };
-                }, cancellationToken);
+                .GetAsync(cancellationToken: cancellationToken);
 
             var emailAttachments = new List<EmailAttachment>();
 
@@ -521,27 +519,49 @@ public class MicrosoftGraphEmailService : IEmailService
                 {
                     if (attachment is FileAttachment fileAttachment)
                     {
-                        // Get the actual attachment content
-                        var fullAttachment = await _graphServiceClient!.Users[_serviceAccountEmail]
-                            .Messages[emailId]
-                            .Attachments[attachment.Id]
-                            .GetAsync(cancellationToken: cancellationToken);
-
-                        if (fullAttachment is FileAttachment fullFileAttachment && fullFileAttachment.ContentBytes != null)
+                        // FileAttachment already has content, no need for second call
+                        if (fileAttachment.ContentBytes != null)
                         {
                             emailAttachments.Add(new EmailAttachment
                             {
-                                Id = fullFileAttachment.Id ?? string.Empty,
-                                FileName = fullFileAttachment.Name ?? "unknown",
-                                ContentType = fullFileAttachment.ContentType ?? "application/octet-stream",
-                                Size = fullFileAttachment.Size ?? 0,
-                                ContentBytes = fullFileAttachment.ContentBytes
+                                Id = fileAttachment.Id ?? string.Empty,
+                                FileName = fileAttachment.Name ?? "unknown",
+                                ContentType = fileAttachment.ContentType ?? "application/octet-stream",
+                                Size = fileAttachment.Size ?? 0,
+                                ContentBytes = fileAttachment.ContentBytes,
+                                ContentId = fileAttachment.ContentId,
+                                IsInline = fileAttachment.IsInline ?? false
                             });
+                        }
+                        else
+                        {
+                            // Need to fetch content separately
+                            var fullAttachment = await _graphServiceClient!.Users[_serviceAccountEmail]
+                                .Messages[emailId]
+                                .Attachments[attachment.Id]
+                                .GetAsync(cancellationToken: cancellationToken);
+
+                            if (fullAttachment is FileAttachment fullFileAttachment && fullFileAttachment.ContentBytes != null)
+                            {
+                                emailAttachments.Add(new EmailAttachment
+                                {
+                                    Id = fullFileAttachment.Id ?? string.Empty,
+                                    FileName = fullFileAttachment.Name ?? "unknown",
+                                    ContentType = fullFileAttachment.ContentType ?? "application/octet-stream",
+                                    Size = fullFileAttachment.Size ?? 0,
+                                    ContentBytes = fullFileAttachment.ContentBytes,
+                                    ContentId = fullFileAttachment.ContentId,
+                                    IsInline = fullFileAttachment.IsInline ?? false
+                                });
+                            }
                         }
                     }
                 }
 
-                _logger.LogInformation("Retrieved {Count} attachments for email {EmailId}", emailAttachments.Count, emailId);
+                _logger.LogInformation("Retrieved {Count} attachments ({InlineCount} inline) for email {EmailId}", 
+                    emailAttachments.Count, 
+                    emailAttachments.Count(a => a.IsInline),
+                    emailId);
             }
 
             return emailAttachments;
@@ -897,4 +917,12 @@ public class EmailAttachment
     public string ContentType { get; set; } = string.Empty;
     public int Size { get; set; }
     public byte[]? ContentBytes { get; set; }
+    /// <summary>
+    /// ContentId for inline images (used in cid: references in HTML body)
+    /// </summary>
+    public string? ContentId { get; set; }
+    /// <summary>
+    /// True if this is an inline attachment (embedded in email body)
+    /// </summary>
+    public bool IsInline { get; set; }
 }

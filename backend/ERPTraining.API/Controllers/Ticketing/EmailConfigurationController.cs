@@ -8,7 +8,7 @@ using ERPTraining.Core.DTOs.Ticketing;
 using ERPTraining.Core.Entities.Tickets;
 using System.Text.Json;
 
-namespace ERPTraining.APIng;
+namespace ERPTraining.API.Controllers.Ticketing;
 
 public class CreateEmailAccountDto
 {
@@ -21,18 +21,18 @@ public class CreateEmailAccountDto
 }
 
 [ApiController]
-[Route("api/email-config")]
+[Route("email-config")]
 [Authorize(Roles = "Admin")]
-public class EmailConfigurationController_Disabled : ControllerBase
+public class EmailConfigurationController : ControllerBase
 {
     private readonly IEmailConfigurationService _emailConfigService;
     private readonly IGraphEmailConfigService _graphEmailConfigService;
-    private readonly ILogger<EmailConfigurationController_Disabled> _logger;
+    private readonly ILogger<EmailConfigurationController> _logger;
 
-    public EmailConfigurationController_Disabled(
+    public EmailConfigurationController(
         IEmailConfigurationService emailConfigService,
         IGraphEmailConfigService graphEmailConfigService,
-        ILogger<EmailConfigurationController_Disabled> logger)
+        ILogger<EmailConfigurationController> logger)
     {
         _emailConfigService = emailConfigService;
         _graphEmailConfigService = graphEmailConfigService;
@@ -357,31 +357,32 @@ public class EmailConfigurationController_Disabled : ControllerBase
     /// </summary>
     [HttpPut("{id}")]
     // [Authorize(Roles = "Admin")] // Temporarily disabled for testing
-    public async Task<ActionResult> UpdateEmailAccount(int id, [FromBody] EmailConfiguration configuration)
+    public async Task<ActionResult<GraphEmailConfigDto>> UpdateEmailAccount(int id, [FromBody] UpdateGraphEmailConfigDto dto)
     {
         try
         {
-            if (configuration == null)
+            _logger.LogInformation("UpdateEmailAccount called for id={Id}, dto={@Dto}", id, dto);
+            
+            if (dto == null)
             {
                 return BadRequest(new { message = "Configuration is required" });
             }
 
-            // Validate configuration
-            var validationErrors = ValidateEmailConfiguration(configuration);
-            if (validationErrors.Any())
+            if (!ModelState.IsValid)
             {
-                return BadRequest(new { message = "Validation errors", errors = validationErrors });
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+                return BadRequest(ModelState);
             }
 
-            var success = await _emailConfigService.UpdateEmailConfigurationAsync(configuration);
+            var updatedConfig = await _graphEmailConfigService.UpdateAsync(id, dto);
             
-            if (!success)
-            {
-                return StatusCode(500, new { message = "Failed to update email configuration" });
-            }
-
-            _logger.LogInformation("Email configuration updated for account {Id}", id);
-            return Ok(new { message = "Email configuration updated successfully" });
+            _logger.LogInformation("Email configuration updated for account {Id}, categoryId={CategoryId}", id, dto.CategoryId);
+            return Ok(updatedConfig);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation while updating email configuration: {Message}", ex.Message);
+            return Conflict(ex.Message);
         }
         catch (Exception ex)
         {
@@ -408,6 +409,30 @@ public class EmailConfigurationController_Disabled : ControllerBase
         {
             _logger.LogError(ex, "Error deleting email account {Id}", id);
             return StatusCode(500, new { message = "Error deleting email account" });
+        }
+    }
+
+    /// <summary>
+    /// Reactivates a soft-deleted email configuration
+    /// </summary>
+    [HttpPost("{id}/reactivate")]
+    [AllowAnonymous] // Temporarily allow anonymous for quick fix
+    public async Task<ActionResult<GraphEmailConfigDto>> ReactivateEmailConfig(int id)
+    {
+        try
+        {
+            var config = await _graphEmailConfigService.ReactivateAsync(id);
+            if (config == null)
+            {
+                return NotFound(new { message = $"Email configuration with ID {id} not found" });
+            }
+            _logger.LogInformation("Email configuration {Id} reactivated", id);
+            return Ok(config);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reactivating email configuration {Id}", id);
+            return StatusCode(500, new { message = "Error reactivating email configuration" });
         }
     }
 

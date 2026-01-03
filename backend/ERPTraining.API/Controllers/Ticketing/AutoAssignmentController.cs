@@ -12,7 +12,7 @@ namespace ERPTraining.API.Controllers.Ticketing;
 
 // Auto-assignment endpoints are available for ticket routing automation.
 [ApiController]
-[Route("api/tickets/auto-assignment")]
+[Route("tickets/auto-assignment")]
 [Authorize]
 [EnableRateLimiting("api")]  // Enterprise: API rate limiting
 public class AutoAssignmentController : ControllerBase

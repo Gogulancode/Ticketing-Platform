@@ -14,7 +14,7 @@ namespace ERPTraining.API.Controllers;
 /// Manage AI configuration settings (Admin only)
 /// </summary>
 [ApiController]
-[Route("api/ai/settings")]
+[Route("ai/settings")]
 [Authorize(Roles = "Admin,SuperAdmin,Administrator")]
 public class AISettingsController : ControllerBase
 {

@@ -7,7 +7,7 @@ using System.Security.Claims;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/ticketing/acl")]
+[Route("ticketing/acl")]
 [Authorize]
 public class TicketingAclController : ControllerBase
 {

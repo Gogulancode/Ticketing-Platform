@@ -9,7 +9,7 @@ using TicketGroupEntity = ERPTraining.Core.Entities.Ticketing.TicketGroup;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/tickets/settings/agents")]
+[Route("tickets/settings/agents")]
 [Authorize]
 [EnableRateLimiting("api")]  // Enterprise: API rate limiting
 public class AgentsController : ControllerBase

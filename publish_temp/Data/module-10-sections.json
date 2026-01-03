@@ -1,0 +1,37 @@
+[
+  {
+    "lModuleId": "10",
+    "SectionId": "9100",
+    "SectionName": "Container Movement"
+  },
+  {
+    "lModuleId": "10",
+    "SectionId": "9101",
+    "SectionName": "Movement Detail"
+  },
+  {
+    "lModuleId": "10",
+    "SectionId": "9102",
+    "SectionName": "Movement Process"
+  },
+  {
+    "lModuleId": "10",
+    "SectionId": "9103",
+    "SectionName": "Cont Received"
+  },
+  {
+    "lModuleId": "10",
+    "SectionId": "9113",
+    "SectionName": "Un-Process Job"
+  },
+  {
+    "lModuleId": "10",
+    "SectionId": "9112",
+    "SectionName": "Job Tracking"
+  },
+  {
+    "lModuleId": "10",
+    "SectionId": "9114",
+    "SectionName": "CFS Refund"
+  }
+]

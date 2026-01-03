@@ -678,7 +678,7 @@ function TicketDetailView({ ticket, onBack, onUpdated }: TicketDetailViewProps) 
                           {comment.attachments.map((att) => (
                             <a
                               key={att.id}
-                              href={`${serverUrl}/api/attachments/${att.id}/download`}
+                              href={`${serverUrl}/api/tickets-v2/attachments/${att.id}/download`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm text-gray-600 transition-colors"

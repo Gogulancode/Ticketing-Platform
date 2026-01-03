@@ -2398,6 +2398,8 @@ class EnhancedSettingsApiService extends SettingsApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
+      console.log('📤 Sending email config update:', { id, data, categoryId: data.categoryId });
+      
       const response = await fetch(`${this.baseUrl}/email-config/${id}`, {
         method: 'PUT',
         headers,
@@ -2405,6 +2407,8 @@ class EnhancedSettingsApiService extends SettingsApiService {
       });
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Update failed:', response.status, errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       

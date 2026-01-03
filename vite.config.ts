@@ -6,10 +6,13 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   const env = loadEnv(mode, process.cwd(), '');
+  
+  // Use VITE_BASE_PATH env variable for deployment path, default to '/'
+  const basePath = env.VITE_BASE_PATH || '/';
 
   return {
     plugins: [react()],
-    // base: '/support-staging/', // REMOVED - folder itself is at /support-staging/
+    base: basePath,
     server: {
       port: 5175,
       proxy: {

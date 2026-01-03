@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/tickets/settings/groups")]
-[Route("api/tickets/settings/agent-groups")] // Alias for frontend compatibility
+[Route("tickets/settings/groups")]
+[Route("tickets/settings/agent-groups")] // Alias for frontend compatibility
 [Authorize]
 public class TicketGroupController : ControllerBase
 {

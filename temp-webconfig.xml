@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <location path="." inheritInChildApplications="false">
+    <system.webServer>
+      <!-- Remove WebDAV module that can block PUT/DELETE -->
+      <modules>
+        <remove name="WebDAVModule" />
+      </modules>
+      <handlers>
+        <!-- Remove WebDAV handler -->
+        <remove name="WebDAV" />
+        <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
+      </handlers>
+      <aspNetCore processPath="dotnet" arguments=".\ERPTraining.API.dll" stdoutLogEnabled="true" stdoutLogFile=".\logs\stdout" hostingModel="Outofprocess">
+        <environmentVariables>
+          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Staging" />
+        </environmentVariables>
+      </aspNetCore>
+    </system.webServer>
+  </location>
+</configuration>
+<!--ProjectGuid: AB531939-A8CB-FCB4-5BE7-91569073B863-->

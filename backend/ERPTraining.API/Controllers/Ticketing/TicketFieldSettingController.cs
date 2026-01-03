@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/tickets/settings/ticket-fields")]
+[Route("tickets/settings/ticket-fields")]
 [Authorize]
 public class TicketFieldSettingController : ControllerBase
 {

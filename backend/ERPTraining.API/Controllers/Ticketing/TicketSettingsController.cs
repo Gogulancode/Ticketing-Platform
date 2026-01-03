@@ -29,7 +29,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/tickets/settings")] // Keep original path so frontend stays untouched
+[Route("tickets/settings")] // Keep original path so frontend stays untouched
 [Authorize]
 public class TicketSettingsController : ControllerBase
 {

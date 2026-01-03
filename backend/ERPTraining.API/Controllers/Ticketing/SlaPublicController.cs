@@ -7,7 +7,7 @@ using ERPTraining.Core.DTOs.Ticketing.Sla;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/sla")]
+[Route("sla")]
 public class SlaPublicController : ControllerBase
 {
     private readonly ILogger<SlaPublicController> _logger;

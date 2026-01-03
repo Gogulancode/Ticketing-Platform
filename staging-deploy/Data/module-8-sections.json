@@ -1,0 +1,87 @@
+[
+  {
+    "lModuleId": "8",
+    "SectionId": "8000",
+    "SectionName": "SEZ"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8001",
+    "SectionName": "SEZ Detail"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8002",
+    "SectionName": "SEZ Info"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8012",
+    "SectionName": "Document"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8030",
+    "SectionName": "Payment"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8031",
+    "SectionName": "Payment Request"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8011",
+    "SectionName": "Master"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8013",
+    "SectionName": "Gross Wt. Unit"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8014",
+    "SectionName": "Destination"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8015",
+    "SectionName": "Country of Origin"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8016",
+    "SectionName": "Place of Origin"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8004",
+    "SectionName": "SEZ Report"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8005",
+    "SectionName": "View Report"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8020",
+    "SectionName": "Task Request"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8021",
+    "SectionName": "Customer Task Request"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8022",
+    "SectionName": "Pending Task"
+  },
+  {
+    "lModuleId": "8",
+    "SectionId": "8023",
+    "SectionName": "Completed Task List"
+  }
+]

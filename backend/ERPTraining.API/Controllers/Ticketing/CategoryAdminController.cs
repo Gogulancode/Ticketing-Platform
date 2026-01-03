@@ -10,7 +10,7 @@ namespace ERPTraining.API.Controllers.Ticketing;
 /// API controller for managing Category Admins
 /// </summary>
 [ApiController]
-[Route("api/tickets/settings/category-admins")]
+[Route("tickets/settings/category-admins")]
 [Authorize]
 public class CategoryAdminController : ControllerBase
 {

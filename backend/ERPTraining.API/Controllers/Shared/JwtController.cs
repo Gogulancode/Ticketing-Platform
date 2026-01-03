@@ -4,7 +4,7 @@ using ERPTraining.API.Services;
 namespace ERPTraining.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class JwtController : ControllerBase
     {
         private readonly IConfiguration _configuration;

@@ -6,7 +6,7 @@ namespace ERPTraining.API.Controllers;
 /// Health check controller for API monitoring
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 [Tags("Health")]
 public class HealthController : ControllerBase
 {

@@ -1,0 +1,257 @@
+[
+  {
+    "lModuleId": "2",
+    "SectionId": "1000",
+    "SectionName": "Freight"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1001",
+    "SectionName": "Freight Tracking"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1002",
+    "SectionName": "Freight Executed"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1003",
+    "SectionName": "Freight Lost"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1010",
+    "SectionName": "Operation"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1011",
+    "SectionName": "Awaiting Booking"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1012",
+    "SectionName": "Agent PreAlert"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1013",
+    "SectionName": "Customer PreAlert"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1014",
+    "SectionName": "Cargo Arrival Notice"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1015",
+    "SectionName": "Delivery Order"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1017",
+    "SectionName": "Tracking"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1030",
+    "SectionName": "Master"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1031",
+    "SectionName": "Invoice Line Item"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1004",
+    "SectionName": "Freight Awarded"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1005",
+    "SectionName": "Budgetary"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1040",
+    "SectionName": "Report"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1041",
+    "SectionName": "Create Report"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1042",
+    "SectionName": "View Report"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1016",
+    "SectionName": "Billing & Back Office"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1043",
+    "SectionName": "MIS - Stage"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1044",
+    "SectionName": "MIS - Profit"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1045",
+    "SectionName": "MIS - Customer"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1019",
+    "SectionName": "Billing Advice"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1018",
+    "SectionName": "Billing Pending"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1046",
+    "SectionName": "MIS - Customer Month"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1032",
+    "SectionName": "HSN/SAC"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1052",
+    "SectionName": "Pending Task"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1050",
+    "SectionName": "Task Request"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1051",
+    "SectionName": "Customer Task Request"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1033",
+    "SectionName": "SEA Rate"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1034",
+    "SectionName": "AIR Rate"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1035",
+    "SectionName": "Agent Contract"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1060",
+    "SectionName": "Payment"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1061",
+    "SectionName": "Payment Request"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "6010",
+    "SectionName": "Export Operation"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "6015",
+    "SectionName": "Awaiting Booking"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "6011",
+    "SectionName": "Operation"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "6012",
+    "SectionName": "VGM-Form13"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "6013",
+    "SectionName": "Cust PreAlert"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "6014",
+    "SectionName": "Shipped Onboard"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "6016",
+    "SectionName": "Tracking"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "2500",
+    "SectionName": "Billing"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1009",
+    "SectionName": "Import Operation"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1053",
+    "SectionName": "Completed Task List"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1020",
+    "SectionName": "Agent Pending"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1021",
+    "SectionName": "Current Job"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1023",
+    "SectionName": "Bill Dispatch"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1025",
+    "SectionName": "Bill Status"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1022",
+    "SectionName": "Additional Jobs"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1007",
+    "SectionName": "Freight Quote"
+  },
+  {
+    "lModuleId": "2",
+    "SectionId": "1008",
+    "SectionName": "Freight Tracking"
+  }
+]

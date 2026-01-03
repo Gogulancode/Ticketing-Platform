@@ -9,7 +9,7 @@ namespace ERPTraining.API.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 public class NotificationsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

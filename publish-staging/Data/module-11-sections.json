@@ -1,0 +1,97 @@
+[
+  {
+    "lModuleId": "11",
+    "SectionId": "10011",
+    "SectionName": "Lead"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10013",
+    "SectionName": "Quote"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10014",
+    "SectionName": "Contract Approval"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10016",
+    "SectionName": "Rejected"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10015",
+    "SectionName": "Tracking"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10017",
+    "SectionName": "Others"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10012",
+    "SectionName": "Lead Approved"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10001",
+    "SectionName": "Company"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10034",
+    "SectionName": "Contract Secured"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10035",
+    "SectionName": "Contract Volume Analysis"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10032",
+    "SectionName": "Weekly Visit"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10036",
+    "SectionName": "Monthly Sales Person Leads"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10038",
+    "SectionName": "Service Head Wise Location"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10018",
+    "SectionName": "MOM/Visit Report"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10039",
+    "SectionName": "Weekly Sales Wise"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10037",
+    "SectionName": "Customer Wise Lead Status"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10000",
+    "SectionName": "Master"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10002",
+    "SectionName": "Service Head"
+  },
+  {
+    "lModuleId": "11",
+    "SectionId": "10010",
+    "SectionName": "Operation"
+  }
+]

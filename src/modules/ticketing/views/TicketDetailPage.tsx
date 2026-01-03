@@ -366,71 +366,43 @@ const TicketDetailPage: React.FC = () => {
       const token = localStorage.getItem('token');
       let response;
       
-      // Create FormData for multipart request if there are attachments
-      if (emailAttachments.length > 0) {
-        const formData = new FormData();
+      // Always use FormData since backend uses [FromForm] attributes
+      const formData = new FormData();
+      
+      if (emailType === 'reply') {
+        formData.append('replyMessage', emailContent);
+        // CC emails (optional)
+        if (emailTo.trim()) {
+          formData.append('ccEmails', emailTo.trim());
+        }
+        // Add attachments if any
+        emailAttachments.forEach((file) => {
+          formData.append('attachments', file);
+        });
         
-        if (emailType === 'reply') {
-          // For reply, emailTo contains comma-separated recipients
-          if (emailTo.trim()) {
-            formData.append('recipientEmails', emailTo.trim());
-          }
-          formData.append('replyMessage', emailContent);
-          emailAttachments.forEach((file) => {
-            formData.append('attachments', file);
-          });
-          
-          response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${id}/reply-email`, {
-            method: 'POST',
-            headers: { 
-              'Authorization': `Bearer ${token}`
-            },
-            body: formData
-          });
-        } else {
-          formData.append('recipientEmail', emailTo);
-          formData.append('forwardMessage', emailContent);
-          emailAttachments.forEach((file) => {
-            formData.append('attachments', file);
-          });
-          
-          response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${id}/forward-email`, {
-            method: 'POST',
-            headers: { 
-              'Authorization': `Bearer ${token}`
-            },
-            body: formData
-          });
-        }
+        response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${id}/reply-email`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
       } else {
-        // No attachments - use JSON
-        if (emailType === 'reply') {
-          response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${id}/reply-email`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              recipientEmails: emailTo.trim() || undefined,
-              replyMessage: emailContent
-            })
-          });
-        } else if (emailType === 'forward') {
-          response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${id}/forward-email`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              recipientEmail: emailTo,
-              forwardMessage: emailContent
-            })
-          });
-        } else {
-          throw new Error('Invalid email type');
-        }
+        // Forward email
+        formData.append('recipientEmail', emailTo);
+        formData.append('forwardMessage', emailContent);
+        // Add attachments if any
+        emailAttachments.forEach((file) => {
+          formData.append('attachments', file);
+        });
+        
+        response = await fetch(`${API_CONFIG.BASE_URL}/tickets-v2/${id}/forward-email`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
       }
       
       if (!response.ok) {

@@ -29,7 +29,7 @@ namespace ERPTraining.API.Controllers;
 /// <para>All endpoints use JWT Bearer token authentication except for registration and login.</para>
 /// </remarks>
 [ApiController]
-[Route("api/auth")]
+[Route("auth")]
 [Tags("Auth")]
 [Produces("application/json")]
 [EnableRateLimiting("auth")]  // Enterprise: Strict rate limiting on auth endpoints

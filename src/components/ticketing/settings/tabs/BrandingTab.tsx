@@ -116,8 +116,9 @@ const BrandingTab: React.FC = () => {
     );
   }
 
+  // Keep /api prefix for staging where static files are under /api
   const logoUrl = branding?.logoUrl 
-    ? `${API_CONFIG.BASE_URL.replace('/api', '')}${branding.logoUrl}`
+    ? `${API_CONFIG.BASE_URL}${branding.logoUrl}`
     : null;
 
   return (

@@ -7,7 +7,7 @@ using ERPTraining.Infrastructure.Data;
 namespace ERPTraining.API.Controllers;
 
 [ApiController]
-[Route("api/branches")]
+[Route("branches")]
 public class BranchController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

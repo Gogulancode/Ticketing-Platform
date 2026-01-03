@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace ERPTraining.API.Controllers.Ticketing;
 
 [ApiController]
-[Route("api/tickets/settings/email-config")]
+[Route("tickets/settings/email-config")]
 [Authorize]
 public class GraphEmailConfigController_Disabled : ControllerBase
 {

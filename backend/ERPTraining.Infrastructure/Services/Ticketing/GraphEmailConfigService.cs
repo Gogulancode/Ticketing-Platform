@@ -106,7 +106,9 @@ public class GraphEmailConfigService : IGraphEmailConfigService
         config.ProcessIncomingEmails = dto.ProcessIncomingEmails;
         config.CreateTicketsFromEmails = dto.CreateTicketsFromEmails;
         config.SendNotifications = dto.SendNotifications;
-        config.IsActive = dto.IsActive;
+        // Keep IsActive as true - don't let update deactivate the config
+        // Use DeleteAsync for soft-delete instead
+        config.IsActive = true;
         config.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -128,6 +130,21 @@ public class GraphEmailConfigService : IGraphEmailConfigService
 
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<GraphEmailConfigDto?> ReactivateAsync(int id)
+    {
+        var config = await _context.GraphEmailConfigs
+            .FirstOrDefaultAsync(g => g.Id == id && !g.IsActive);
+
+        if (config == null)
+            return null;
+
+        config.IsActive = true;
+        config.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return MapToDto(config);
     }
 
     public async Task<bool> TestConnectionAsync(int id)

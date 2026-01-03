@@ -8,7 +8,7 @@ namespace ERPTraining.API.Controllers;
 /// Controller for branch analytics and reporting
 /// </summary>
 [ApiController]
-[Route("api/analytics/branches")]
+[Route("analytics/branches")]
 [Authorize]
 public class BranchAnalyticsController : ControllerBase
 {
