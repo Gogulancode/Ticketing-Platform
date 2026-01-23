@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore, showDesktopNotification } from '../store/settingsStore';
+import AvailabilityToggle from './AvailabilityToggle';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -212,6 +213,12 @@ export default function Layout() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-1">
+            {/* Agent Shift/Availability Toggle */}
+            <AvailabilityToggle compact />
+            
+            {/* Divider */}
+            <div className="w-px h-6 bg-slate-200 mx-2" />
+            
             {/* Notifications */}
             <div className="relative">
               <button

@@ -345,13 +345,14 @@ public class AutoAssignmentService : IAutoAssignmentService
             }
         }
 
-        // 3. Fetch actual agent entities that are active (don't filter by AvailabilityStatus - often empty/null)
+        // 3. Fetch actual agent entities that are active AND available (shift open)
         var agents = await _context.Agents
             .Where(a => eligibleAgentIds.Contains(a.Id))
             .Where(a => a.IsActive)
+            .Where(a => a.IsAvailable) // Only include agents with open shifts
             .ToListAsync();
 
-        _logger.LogDebug("Rule {RuleId} ({RuleName}): Found {Count} eligible agents from {DirectCount} direct assignments and {GroupCount} groups",
+        _logger.LogDebug("Rule {RuleId} ({RuleName}): Found {Count} eligible agents (active & available) from {DirectCount} direct assignments and {GroupCount} groups",
             rule.Id, rule.Name, agents.Count, directAgentIds.Count, rule.RuleGroups?.Count ?? 0);
 
         return agents;

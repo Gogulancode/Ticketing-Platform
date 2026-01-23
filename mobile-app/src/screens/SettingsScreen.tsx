@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { agentAvailabilityApi, AgentAvailabilityStatus } from '../services/api';
 
 interface SettingItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -82,6 +83,48 @@ export default function SettingsScreen({ navigation }: any) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Agent Availability State
+  const [availability, setAvailability] = useState<AgentAvailabilityStatus | null>(null);
+  const [loadingAvailability, setLoadingAvailability] = useState(true);
+  const [updatingAvailability, setUpdatingAvailability] = useState(false);
+  const [showAgentAvailability, setShowAgentAvailability] = useState(false);
+
+  // Fetch agent availability on mount
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      try {
+        const data = await agentAvailabilityApi.getMyAvailability();
+        setAvailability(data);
+        setShowAgentAvailability(true);
+      } catch (error) {
+        // Not an agent, hide the availability section
+        setShowAgentAvailability(false);
+      } finally {
+        setLoadingAvailability(false);
+      }
+    };
+    fetchAvailability();
+  }, []);
+
+  const handleToggleAvailability = async (newValue: boolean) => {
+    if (updatingAvailability || !availability) return;
+    
+    try {
+      setUpdatingAvailability(true);
+      await agentAvailabilityApi.updateMyAvailability(newValue);
+      setAvailability({
+        ...availability,
+        isAvailable: newValue,
+        shiftStatus: newValue ? 'Available' : 'Shift Closed',
+        lastStatusChange: new Date().toISOString(),
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update availability status');
+    } finally {
+      setUpdatingAvailability(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -208,6 +251,48 @@ export default function SettingsScreen({ navigation }: any) {
             </View>
           </View>
         </View>
+
+        {/* Agent Availability Section - Only for agents */}
+        {showAgentAvailability && !loadingAvailability && availability && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Shift Status</Text>
+            <View style={styles.settingsGroup}>
+              <View style={styles.availabilityCard}>
+                <View style={styles.availabilityInfo}>
+                  <View style={[
+                    styles.availabilityIndicator,
+                    { backgroundColor: availability.isAvailable ? Colors.success : Colors.gray400 }
+                  ]} />
+                  <View>
+                    <Text style={styles.availabilityTitle}>
+                      {availability.isAvailable ? 'Available' : 'Shift Closed'}
+                    </Text>
+                    <Text style={styles.availabilitySubtitle}>
+                      {availability.currentTicketCount} / {availability.maxTicketsCapacity} tickets assigned
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.availabilityToggle}>
+                  {updatingAvailability ? (
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  ) : (
+                    <Switch
+                      value={availability.isAvailable}
+                      onValueChange={handleToggleAvailability}
+                      trackColor={{ false: Colors.gray300, true: Colors.success + '60' }}
+                      thumbColor={availability.isAvailable ? Colors.success : Colors.gray400}
+                    />
+                  )}
+                </View>
+              </View>
+              <Text style={styles.availabilityHint}>
+                {availability.isAvailable 
+                  ? 'New tickets can be assigned to you' 
+                  : 'No new tickets will be assigned while shift is closed'}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Notifications Section */}
         <View style={styles.section}>
@@ -638,5 +723,44 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: '600',
     color: Colors.white,
+  },
+  // Agent Availability Styles
+  availabilityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.lg,
+  },
+  availabilityInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  availabilityIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: Spacing.md,
+  },
+  availabilityTitle: {
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  availabilitySubtitle: {
+    fontSize: FontSizes.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  availabilityToggle: {
+    marginLeft: Spacing.md,
+  },
+  availabilityHint: {
+    fontSize: FontSizes.xs,
+    color: Colors.textSecondary,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.md,
+    fontStyle: 'italic',
   },
 });

@@ -102,6 +102,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
     // USER & NOTIFICATION ENTITIES
     // ========================================
     public DbSet<UserNotification> UserNotifications { get; set; }
+    public DbSet<UserPushToken> UserPushTokens { get; set; }
 
     // Branch Management for multi-branch analytics
     public DbSet<Branch> Branches { get; set; }

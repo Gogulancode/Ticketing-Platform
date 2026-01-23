@@ -1,6 +1,6 @@
 {
   "name": "nivo-chat",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Enterprise Chat Application for Nivo Ticketing Platform",
   "main": "dist-electron/main.js",
   "author": "Nivo Team",
@@ -65,6 +65,11 @@
       "dist-electron/**/*",
       "public/**/*"
     ],
+    "publish": {
+      "provider": "generic",
+      "url": "https://updates.yourdomain.com/desktop-app",
+      "channel": "latest"
+    },
     "win": {
       "target": [
         {
@@ -73,7 +78,8 @@
         }
       ],
       "icon": "public/icon.ico",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "publisherName": "Nivo Team"
     },
     "mac": {
       "target": [

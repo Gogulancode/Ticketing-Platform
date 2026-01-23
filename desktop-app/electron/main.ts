@@ -1,6 +1,11 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, Notification } from 'electron';
+import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, Notification, dialog } from 'electron';
 import { join } from 'path';
 import Store from 'electron-store';
+import { autoUpdater } from 'electron-updater';
+
+// Configure auto-updater
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
 
 // Single instance lock - prevent multiple windows
 const gotTheLock = app.requestSingleInstanceLock();
@@ -177,6 +182,11 @@ function createTray() {
 app.whenReady().then(() => {
   createWindow();
   createTray();
+  
+  // Check for updates in production (not in dev mode)
+  if (!isDev) {
+    initAutoUpdater();
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -185,6 +195,106 @@ app.whenReady().then(() => {
       mainWindow?.show();
     }
   });
+});
+
+// Auto-updater setup and event handlers
+function initAutoUpdater() {
+  // Check for updates on startup (after 5 seconds delay)
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch(console.error);
+  }, 5000);
+  
+  // Check for updates every hour
+  setInterval(() => {
+    autoUpdater.checkForUpdates().catch(console.error);
+  }, 60 * 60 * 1000);
+
+  autoUpdater.on('checking-for-update', () => {
+    console.log('Checking for updates...');
+    mainWindow?.webContents.send('update-status', { status: 'checking' });
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    console.log('Update available:', info.version);
+    mainWindow?.webContents.send('update-status', { 
+      status: 'available', 
+      version: info.version,
+      releaseNotes: info.releaseNotes 
+    });
+    
+    // Show notification to user
+    if (Notification.isSupported()) {
+      const notification = new Notification({
+        title: 'Update Available',
+        body: `A new version (${info.version}) is available and downloading...`,
+        icon: join(__dirname, '../public/nivo-logo.png')
+      });
+      notification.show();
+    }
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    console.log('No updates available');
+    mainWindow?.webContents.send('update-status', { status: 'not-available' });
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    mainWindow?.webContents.send('update-status', { 
+      status: 'downloading',
+      percent: Math.round(progressObj.percent),
+      bytesPerSecond: progressObj.bytesPerSecond,
+      transferred: progressObj.transferred,
+      total: progressObj.total
+    });
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('Update downloaded:', info.version);
+    mainWindow?.webContents.send('update-status', { 
+      status: 'downloaded', 
+      version: info.version 
+    });
+    
+    // Ask user if they want to restart and install
+    dialog.showMessageBox(mainWindow!, {
+      type: 'info',
+      title: 'Update Ready',
+      message: `Version ${info.version} has been downloaded.`,
+      detail: 'The update will be installed when you restart the application. Would you like to restart now?',
+      buttons: ['Restart Now', 'Later'],
+      defaultId: 0,
+      cancelId: 1
+    }).then(({ response }) => {
+      if (response === 0) {
+        autoUpdater.quitAndInstall(false, true);
+      }
+    });
+  });
+
+  autoUpdater.on('error', (error) => {
+    console.error('Auto-updater error:', error);
+    mainWindow?.webContents.send('update-status', { 
+      status: 'error', 
+      message: error.message 
+    });
+  });
+}
+
+// IPC handlers for manual update checks
+ipcMain.handle('check-for-updates', async () => {
+  if (isDev) {
+    return { status: 'dev-mode', message: 'Updates not available in development mode' };
+  }
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    return { status: 'checking', updateInfo: result?.updateInfo };
+  } catch (error) {
+    return { status: 'error', message: (error as Error).message };
+  }
+});
+
+ipcMain.handle('install-update', () => {
+  autoUpdater.quitAndInstall(false, true);
 });
 
 app.on('window-all-closed', () => {

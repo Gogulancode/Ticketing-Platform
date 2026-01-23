@@ -450,6 +450,151 @@ namespace ERPTraining.API.Controllers
             IReadOnlyDictionary<int, string> Departments
         );
 
+        /// <summary>
+        /// Export tickets to CSV or Excel format
+        /// </summary>
+        [HttpGet("export")]
+        public async Task<IActionResult> ExportReport(
+            [FromQuery] string reportType = "all-tickets",
+            [FromQuery] string format = "csv",
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string? category = null)
+        {
+            try
+            {
+                var query = ApplyCreatedDateRangeFilter(_context.Tickets.AsQueryable(), startDate, endDate);
+
+                // Apply category filter
+                if (!string.IsNullOrEmpty(category))
+                {
+                    var categoryIds = category.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(c => int.TryParse(c.Trim(), out var id) ? id : (int?)null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id!.Value)
+                        .ToList();
+
+                    if (categoryIds.Any())
+                        query = query.Where(t => t.CategoryId.HasValue && categoryIds.Contains(t.CategoryId.Value));
+                }
+
+                var tickets = await query.OrderByDescending(t => t.PublicId).ToListAsync();
+                var lookupCache = await LoadTicketLookupsAsync();
+
+                if (format.ToLower() == "excel")
+                {
+                    // Generate Excel file
+                    var excelContent = GenerateExcelContent(tickets, lookupCache);
+                    return File(excelContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                        $"{reportType}-report.xlsx");
+                }
+                else
+                {
+                    // Generate CSV file
+                    var csvContent = GenerateCsvContent(tickets, lookupCache);
+                    return File(System.Text.Encoding.UTF8.GetBytes(csvContent), "text/csv", 
+                        $"{reportType}-report.csv");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting report");
+                return StatusCode(500, new { message = "Failed to export report" });
+            }
+        }
+
+        private string GenerateCsvContent(List<TicketingTicket> tickets, TicketLookupCache lookupCache)
+        {
+            var sb = new System.Text.StringBuilder();
+            
+            // Header
+            sb.AppendLine("Ticket ID,Public ID,Title,Category,Priority,Status,Created At,Resolved At,Assigned Agent,Department");
+            
+            // Data rows
+            foreach (var ticket in tickets)
+            {
+                var title = EscapeCsvField(ticket.Title);
+                var category = EscapeCsvField(ResolveCategoryName(ticket, lookupCache));
+                var priority = ResolvePriorityName(ticket, lookupCache);
+                var status = ResolveStatusName(ticket, lookupCache);
+                var createdAt = ticket.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss");
+                var resolvedAt = ticket.ResolvedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
+                var agent = EscapeCsvField(GetAssignedAgentName(ticket.AssignedToUserId) ?? "Unassigned");
+                var department = EscapeCsvField(ResolveDepartmentName(ticket.DepartmentId, lookupCache));
+                
+                sb.AppendLine($"{ticket.Id},{ticket.PublicId},{title},{category},{priority},{status},{createdAt},{resolvedAt},{agent},{department}");
+            }
+            
+            return sb.ToString();
+        }
+
+        private byte[] GenerateExcelContent(List<TicketingTicket> tickets, TicketLookupCache lookupCache)
+        {
+            // Simple XML-based Excel format (XLSX compatible with Excel)
+            var sb = new System.Text.StringBuilder();
+            
+            // XML header for simple spreadsheet
+            sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+            sb.AppendLine("<?mso-application progid=\"Excel.Sheet\"?>");
+            sb.AppendLine("<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\"");
+            sb.AppendLine("  xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">");
+            sb.AppendLine("  <Worksheet ss:Name=\"Tickets\">");
+            sb.AppendLine("    <Table>");
+            
+            // Header row
+            sb.AppendLine("      <Row>");
+            sb.AppendLine("        <Cell><Data ss:Type=\"String\">Ticket ID</Data></Cell>");
+            sb.AppendLine("        <Cell><Data ss:Type=\"String\">Public ID</Data></Cell>");
+            sb.AppendLine("        <Cell><Data ss:Type=\"String\">Title</Data></Cell>");
+            sb.AppendLine("        <Cell><Data ss:Type=\"String\">Category</Data></Cell>");
+            sb.AppendLine("        <Cell><Data ss:Type=\"String\">Priority</Data></Cell>");
+            sb.AppendLine("        <Cell><Data ss:Type=\"String\">Status</Data></Cell>");
+            sb.AppendLine("        <Cell><Data ss:Type=\"String\">Created At</Data></Cell>");
+            sb.AppendLine("        <Cell><Data ss:Type=\"String\">Resolved At</Data></Cell>");
+            sb.AppendLine("        <Cell><Data ss:Type=\"String\">Assigned Agent</Data></Cell>");
+            sb.AppendLine("        <Cell><Data ss:Type=\"String\">Department</Data></Cell>");
+            sb.AppendLine("      </Row>");
+            
+            // Data rows
+            foreach (var ticket in tickets)
+            {
+                sb.AppendLine("      <Row>");
+                sb.AppendLine($"        <Cell><Data ss:Type=\"String\">{EscapeXml(ticket.Id.ToString())}</Data></Cell>");
+                sb.AppendLine($"        <Cell><Data ss:Type=\"Number\">{ticket.PublicId}</Data></Cell>");
+                sb.AppendLine($"        <Cell><Data ss:Type=\"String\">{EscapeXml(ticket.Title)}</Data></Cell>");
+                sb.AppendLine($"        <Cell><Data ss:Type=\"String\">{EscapeXml(ResolveCategoryName(ticket, lookupCache))}</Data></Cell>");
+                sb.AppendLine($"        <Cell><Data ss:Type=\"String\">{ResolvePriorityName(ticket, lookupCache)}</Data></Cell>");
+                sb.AppendLine($"        <Cell><Data ss:Type=\"String\">{ResolveStatusName(ticket, lookupCache)}</Data></Cell>");
+                sb.AppendLine($"        <Cell><Data ss:Type=\"String\">{ticket.CreatedAt:yyyy-MM-dd HH:mm:ss}</Data></Cell>");
+                sb.AppendLine($"        <Cell><Data ss:Type=\"String\">{ticket.ResolvedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""}</Data></Cell>");
+                sb.AppendLine($"        <Cell><Data ss:Type=\"String\">{EscapeXml(GetAssignedAgentName(ticket.AssignedToUserId) ?? "Unassigned")}</Data></Cell>");
+                sb.AppendLine($"        <Cell><Data ss:Type=\"String\">{EscapeXml(ResolveDepartmentName(ticket.DepartmentId, lookupCache))}</Data></Cell>");
+                sb.AppendLine("      </Row>");
+            }
+            
+            sb.AppendLine("    </Table>");
+            sb.AppendLine("  </Worksheet>");
+            sb.AppendLine("</Workbook>");
+            
+            return System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        }
+
+        private string EscapeCsvField(string? field)
+        {
+            if (string.IsNullOrEmpty(field)) return "";
+            if (field.Contains(',') || field.Contains('"') || field.Contains('\n'))
+            {
+                return $"\"{field.Replace("\"", "\"\"")}\"";
+            }
+            return field;
+        }
+
+        private string EscapeXml(string? text)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            return System.Security.SecurityElement.Escape(text) ?? "";
+        }
+
         private double? CalculateResponseTime(DateTime createdAt, DateTime? firstResponseAt)
         {
             if (!firstResponseAt.HasValue)

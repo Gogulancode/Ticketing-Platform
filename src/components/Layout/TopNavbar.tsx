@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Bell, ChevronDown, User, LogOut } from 'lucide-react';
 import { currentUser } from '../../shared/data/mockData';
 import { useAuth } from '../../contexts/AuthContext';
+import AvailabilityToggle from './AvailabilityToggle';
 
 const TopNavbar: React.FC = () => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -36,6 +37,9 @@ const TopNavbar: React.FC = () => {
       </div>
 
       <div className="flex items-center space-x-4">
+        {/* Agent Shift/Availability Toggle */}
+        <AvailabilityToggle compact />
+        
         {/* Notifications */}
         <div className="relative">
           <button

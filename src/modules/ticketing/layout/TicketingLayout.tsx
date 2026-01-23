@@ -19,6 +19,7 @@ import {
   Download
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import AvailabilityToggle from '../../../components/Layout/AvailabilityToggle';
 import { getCurrentUser } from '../../../shared/services/api/auth';
 import { settingsApi } from '../../../api/settingsApi';
 import { API_CONFIG } from '../../../config/api';
@@ -214,6 +215,9 @@ const TicketingLayout: React.FC = () => {
           {/* User Actions */}
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
+            {/* Agent Shift/Availability Toggle */}
+            <AvailabilityToggle compact />
+            
             {/* Desktop App Download Button */}
             <a
               href={`${API_CONFIG.BASE_URL}/downloads/desktop/windows`}

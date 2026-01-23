@@ -320,3 +320,48 @@ export const dashboardApi = {
     return response.json();
   },
 };
+
+// Agent Availability API
+export interface AgentAvailabilityStatus {
+  agentId: number;
+  name: string;
+  email: string;
+  isAvailable: boolean;
+  shiftStatus: string;
+  lastStatusChange: string | null;
+  currentTicketCount: number;
+  maxTicketsCapacity: number;
+}
+
+export const agentAvailabilityApi = {
+  getMyAvailability: async (): Promise<AgentAvailabilityStatus> => {
+    const response = await fetch(
+      `${getBaseUrl()}/api/agents/availability/me`,
+      { headers: getHeaders() }
+    );
+    if (response.status === 404) {
+      throw new Error('Agent profile not found');
+    }
+    if (!response.ok) throw new Error('Failed to fetch availability');
+    return response.json();
+  },
+
+  updateMyAvailability: async (isAvailable: boolean, shiftStatus?: string) => {
+    const response = await fetch(
+      `${getBaseUrl()}/api/agents/availability/me`,
+      {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          isAvailable,
+          shiftStatus: shiftStatus || (isAvailable ? 'Available' : 'Shift Closed'),
+        }),
+      }
+    );
+    if (response.status === 404) {
+      throw new Error('Agent profile not found');
+    }
+    if (!response.ok) throw new Error('Failed to update availability');
+    return response.json();
+  },
+};

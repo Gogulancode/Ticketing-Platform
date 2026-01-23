@@ -35,7 +35,7 @@ public class MicrosoftGraphEmailService : IEmailService
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
         
-        _logger.LogInformation("Microsoft Graph Email Service created - will initialize on first use");
+        _logger.LogDebug("Microsoft Graph Email Service created - will initialize on first use");
     }
 
     /// <summary>

@@ -177,6 +177,9 @@ if (useIST)
         // Configure JSON serialization for DateTime to use ISO 8601 format
         // System.Text.Json automatically serializes DateTime with Kind=UTC to ISO 8601 with 'Z' suffix
         // No custom converter needed - just ensure DateTimes have DateTimeKind.Utc
+        
+        // Enable case-insensitive property matching for mobile app compatibility
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     });
 builder.Services.Configure<IISServerOptions>(options =>
 {
@@ -221,9 +224,9 @@ builder.Services.AddSwaggerGen(c =>
     // Email Configuration Service
     builder.Services.AddScoped<ERPTraining.Infrastructure.Services.Ticketing.IEmailConfigurationService, ERPTraining.Infrastructure.Services.Ticketing.EmailConfigurationService>();
 
-    // Microsoft Graph Email Services
-    builder.Services.AddScoped<ERPTraining.Core.Interfaces.Ticketing.IEmailService, ERPTraining.Infrastructure.Services.Ticketing.MicrosoftGraphEmailService>();
-    builder.Services.AddScoped<ERPTraining.Infrastructure.Services.Ticketing.MicrosoftGraphEmailService>();
+    // Microsoft Graph Email Services - Singleton to avoid creating on every request
+    builder.Services.AddSingleton<ERPTraining.Infrastructure.Services.Ticketing.MicrosoftGraphEmailService>();
+    builder.Services.AddSingleton<ERPTraining.Core.Interfaces.Ticketing.IEmailService>(sp => sp.GetRequiredService<ERPTraining.Infrastructure.Services.Ticketing.MicrosoftGraphEmailService>());
     builder.Services.AddScoped<ERPTraining.Infrastructure.Services.Ticketing.GraphEmailToTicketProcessor>();
 
     // Email Processing Background Service (Graph API)

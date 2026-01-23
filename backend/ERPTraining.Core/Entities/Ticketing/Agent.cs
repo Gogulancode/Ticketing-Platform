@@ -18,6 +18,11 @@ public class Agent
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     
+    // Shift/Availability status for ticket assignment
+    public bool IsAvailable { get; set; } = true;
+    public string ShiftStatus { get; set; } = "Available";
+    public DateTime? LastStatusChange { get; set; }
+    
     // Navigation property
     public virtual User User { get; set; } = null!;
 }
