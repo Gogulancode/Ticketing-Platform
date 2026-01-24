@@ -10,7 +10,7 @@ namespace ERPTraining.API.Controllers.Ticketing;
 /// Manages agent availability/shift status for ticket assignment
 /// </summary>
 [ApiController]
-[Route("api/agents/availability")]
+[Route("agents/availability")]
 [Authorize]
 public class AgentAvailabilityController : ControllerBase
 {
@@ -23,6 +23,36 @@ public class AgentAvailabilityController : ControllerBase
     {
         _connectionString = configuration.GetConnectionString("DefaultConnection") ?? "";
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Test endpoint to verify controller is loaded
+    /// </summary>
+    [HttpGet("ping")]
+    [AllowAnonymous]
+    public ActionResult Ping()
+    {
+        return Ok(new { message = "AgentAvailabilityController is loaded!", timestamp = DateTime.UtcNow });
+    }
+
+    /// <summary>
+    /// Debug endpoint - test me route without auth
+    /// </summary>
+    [HttpGet("debug-me")]
+    [AllowAnonymous]
+    public ActionResult DebugMe()
+    {
+        return Ok(new { message = "debug-me endpoint works!", route = "agents/availability/debug-me", timestamp = DateTime.UtcNow });
+    }
+
+    /// <summary>
+    /// Debug endpoint - test me2 to compare
+    /// </summary>
+    [HttpGet("me2")]
+    [AllowAnonymous]
+    public ActionResult Me2()
+    {
+        return Ok(new { message = "me2 endpoint works!", route = "agents/availability/me2", timestamp = DateTime.UtcNow });
     }
 
     private string? GetCurrentUserId()

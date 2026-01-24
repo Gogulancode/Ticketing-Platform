@@ -45,15 +45,16 @@ export const agentAvailabilityApi = {
   /**
    * Get current user's availability status
    */
-  async getMyAvailability(): Promise<AgentAvailabilityStatus> {
-    const response = await fetch(`${API_BASE_URL}/api/agents/availability/me`, {
+  async getMyAvailability(): Promise<AgentAvailabilityStatus | null> {
+    const response = await fetch(`${API_BASE_URL}/agents/availability/me`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
     
     if (!response.ok) {
       if (response.status === 404) {
-        throw new Error('Agent profile not found');
+        // User is not an agent - return null instead of throwing
+        return null;
       }
       throw new Error('Failed to get availability status');
     }
@@ -65,7 +66,7 @@ export const agentAvailabilityApi = {
    * Update current user's availability status
    */
   async updateMyAvailability(request: UpdateAvailabilityRequest): Promise<UpdateAvailabilityResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/agents/availability/me`, {
+    const response = await fetch(`${API_BASE_URL}/agents/availability/me`, {
       method: 'PUT',
       headers: {
         ...getAuthHeaders(),
@@ -88,7 +89,7 @@ export const agentAvailabilityApi = {
    * Get all agents with availability status (for managers/admins)
    */
   async getAllAgentsAvailability(): Promise<AllAgentsAvailability> {
-    const response = await fetch(`${API_BASE_URL}/api/agents/availability/all`, {
+    const response = await fetch(`${API_BASE_URL}/agents/availability/all`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
@@ -105,8 +106,8 @@ export const agentAvailabilityApi = {
    */
   async getAvailableAgents(departmentId?: number): Promise<AgentAvailabilityStatus[]> {
     const url = departmentId 
-      ? `${API_BASE_URL}/api/agents/availability/available?departmentId=${departmentId}`
-      : `${API_BASE_URL}/api/agents/availability/available`;
+      ? `${API_BASE_URL}/agents/availability/available?departmentId=${departmentId}`
+      : `${API_BASE_URL}/agents/availability/available`;
       
     const response = await fetch(url, {
       method: 'GET',
@@ -124,7 +125,7 @@ export const agentAvailabilityApi = {
    * Admin: Update any agent's availability
    */
   async updateAgentAvailability(agentId: number, request: UpdateAvailabilityRequest): Promise<UpdateAvailabilityResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/agents/availability/${agentId}`, {
+    const response = await fetch(`${API_BASE_URL}/agents/availability/${agentId}`, {
       method: 'PUT',
       headers: {
         ...getAuthHeaders(),

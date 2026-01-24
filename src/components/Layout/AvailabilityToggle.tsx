@@ -22,8 +22,13 @@ const AvailabilityToggle: React.FC<AvailabilityToggleProps> = ({ compact = false
       setLoading(true);
       setError(null);
       const data = await agentAvailabilityApi.getMyAvailability();
-      setAvailability(data);
-      setIsAgent(true);
+      if (data === null) {
+        // User is not an agent
+        setIsAgent(false);
+      } else {
+        setAvailability(data);
+        setIsAgent(true);
+      }
     } catch (err) {
       // If not an agent, hide the component
       if (err instanceof Error && err.message.includes('not found')) {
